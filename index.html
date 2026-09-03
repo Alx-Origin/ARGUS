@@ -293,6 +293,41 @@ body { font-family: 'Inter', sans-serif; background: var(--paper); color: var(--
 .legacy-cat-avatar.small { width:38px; height:38px; flex-basis:38px; font-size:25px; box-shadow:2px 2px 0 var(--ink); }
 .identity-cat-art { width:110px; height:128px; object-fit:contain; display:block; margin:auto; filter:drop-shadow(5px 5px 0 rgba(23,23,23,.22)); }
 .identity-hero { grid-template-columns:130px 1fr; }
+.avatar-upload-panel { display:grid; grid-template-columns:84px 1fr; gap:.8rem; align-items:center; padding:.75rem; margin:.75rem 0; border:2px dashed var(--ink); background:var(--paper-bright); }
+.avatar-preview { width:78px; height:78px; border:3px solid var(--ink); border-radius:14px; background:#fff; object-fit:cover; }
+.player-avatar-image { width:38px; height:38px; flex:0 0 38px; object-fit:cover; border:2px solid var(--ink); border-radius:9px; background:#fff; box-shadow:2px 2px 0 var(--ink); }
+.region-pickers { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; }
+
+/* Contract Hunt review desk — intentionally uses the supplied review palette. */
+.professional-audit { --review-paper:#F2F1F1; --review-blue:#A2C4D9; --review-gold:#FFD700; font-family:"DengXian","等线","FangSong","仿宋","SimSun","宋体",serif; color:#171717; }
+.professional-audit * { box-sizing:border-box; }
+.review-hero { padding:1.1rem; border:3px solid #171717; background:var(--review-blue); box-shadow:7px 7px 0 #171717; margin-bottom:1rem; }
+.review-hero h2 { margin:0 0 .3rem; font:900 2rem/1 "DengXian","等线",sans-serif; }
+.review-intake { display:grid; grid-template-columns:1.4fr .6fr; gap:.8rem; padding:1rem; border:2px solid #171717; background:var(--review-paper); margin-bottom:1rem; }
+.review-intake .full { grid-column:1/-1; }
+.review-label { display:block; margin:0 0 .35rem; font-weight:700; }
+.review-control { width:100%; border:2px solid #171717; background:#fff; padding:.7rem; font:inherit; }
+.review-upload { border:2px dashed #171717; padding:.8rem; background:rgba(162,196,217,.36); cursor:pointer; }
+.review-toolbar { display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; }
+.review-run { border:2px solid #171717; background:var(--review-gold); padding:.75rem 1rem; font-weight:800; box-shadow:4px 4px 0 #171717; cursor:pointer; }
+.review-summary { display:none; grid-template-columns:repeat(4,1fr); gap:.6rem; margin:1rem 0; }
+.review-summary.visible { display:grid; }
+.review-stat { border:2px solid #171717; background:var(--review-blue); padding:.75rem; }
+.review-stat strong { display:block; font-size:1.1rem; }
+.review-desk { display:none; border:3px solid #171717; background:var(--review-paper); }
+.review-desk.visible { display:block; }
+.review-columns,.review-row { display:grid; grid-template-columns:1fr 1fr; }
+.review-columns { position:sticky; top:0; z-index:3; font-weight:900; background:var(--review-blue); border-bottom:3px solid #171717; }
+.review-columns > div { padding:.8rem; }
+.review-columns > div+div,.review-cell+ .review-cell { border-left:2px solid #171717; }
+.review-row { border-bottom:1px solid #a4a4a4; }
+.review-cell { padding:1rem; min-width:0; line-height:1.75; }
+.review-original.risky { background:linear-gradient(transparent 18%,rgba(255,215,0,.52) 18% 88%,transparent 88%); }
+.review-chip { display:inline-block; margin:.15rem .25rem .35rem 0; padding:.18rem .55rem; border-radius:999px; background:rgba(255,215,0,.62); border:1px solid #b99d00; font-weight:800; font-size:.78rem; }
+.review-necessity { display:inline-block; padding:.16rem .5rem; background:var(--review-blue); border:1px solid #171717; font-weight:800; }
+.review-empty { padding:2rem; text-align:center; }
+.review-disclaimer { margin:.8rem 0 0; font-size:.75rem; }
+@media(max-width:760px){.review-intake,.review-columns,.review-row,.review-summary{grid-template-columns:1fr}.review-columns>div+div,.review-cell+.review-cell{border-left:0}.review-columns>div+div{border-top:1px solid #171717}.region-pickers{grid-template-columns:1fr}}
 @media(max-width:700px){.identity-grid,.cat-court-stage{grid-template-columns:1fr}.cat-court-stage{padding-top:2.5rem}.judge-bench{order:-1}.court-cat.enemy{flex-direction:row}.screen-cat{display:none}.profile-panel{grid-template-columns:1fr}.identity-hero{grid-template-columns:1fr;text-align:center}}
 </style>
 </head>
@@ -379,8 +414,8 @@ body { font-family: 'Inter', sans-serif; background: var(--paper); color: var(--
         <div class="dropzone" id="forge-dropzone" onclick="document.getElementById('forge-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover');" ondragleave="this.classList.remove('dragover');" ondrop="handleForgeDrop(event)">
           <div class="dropzone-icon">📎</div>
           <div class="dropzone-text">拖拽文件到此处 或 点击上传</div>
-          <div class="dropzone-hint">支持：PDF / Word / TXT / 图片（最多5个文件）</div>
-          <input type="file" id="forge-file-input" style="display:none;" multiple accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg" onchange="handleForgeFiles(event)">
+          <div class="dropzone-hint">支持：PDF / Word / PPT / TXT / 图片（最多5个文件）</div>
+          <input type="file" id="forge-file-input" style="display:none;" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.png,.jpg,.jpeg" onchange="handleForgeFiles(event)">
         </div>
         <div class="file-list" id="forge-file-list" style="display:none;"></div>
 
@@ -1487,7 +1522,16 @@ async function readFileText(file) {
     for(let i=1;i<=pdf.numPages;i++){const p=await pdf.getPage(i),c=await p.getTextContent();out+=c.items.map(x=>x.str).join(' ')+'\n';} return out;
   }
   if(lower.endsWith('.docx')) { await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js','mammoth'); return (await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()})).value; }
-  throw new Error('该格式暂不支持浏览器提取；请改用 PDF、DOCX 或 TXT');
+  if(lower.endsWith('.pptx')) {
+    await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js','JSZip');
+    const zip=await JSZip.loadAsync(await file.arrayBuffer());
+    const slides=Object.keys(zip.files).filter(n=>/^ppt\/slides\/slide\d+\.xml$/.test(n)).sort((a,b)=>Number(a.match(/\d+/)[0])-Number(b.match(/\d+/)[0]));
+    const pages=[];
+    for(const name of slides){const xml=await zip.file(name).async('string'),doc=new DOMParser().parseFromString(xml,'application/xml');pages.push([...doc.getElementsByTagNameNS('*','t')].map(n=>n.textContent).join(' '));}
+    return pages.map((t,i)=>`【第 ${i+1} 页】\n${t}`).join('\n\n');
+  }
+  if(lower.endsWith('.doc')||lower.endsWith('.ppt')) throw new Error('已接收旧版 Word/PPT 文件；请另存为 DOCX/PPTX 后上传，浏览器才能可靠提取原文');
+  throw new Error('该格式暂不支持浏览器提取；请改用 PDF、DOCX、PPTX 或 TXT');
 }
 function loadScriptOnce(src,globalName){ if(window[globalName]) return Promise.resolve(); return new Promise((ok,bad)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>bad(new Error('解析组件加载失败'));document.head.appendChild(s);}); }
 
@@ -1601,6 +1645,7 @@ renderCommunity();
 // ==================== CAT-ZINE IDENTITY + SOCIAL LAYER ====================
 let playerProfile = null;
 let selectedCatStyle = 'blue';
+let pendingAvatarData = '';
 let activeCommunityTag = '';
 let activeChatUser = '';
 const chatThreads = {};
@@ -1624,25 +1669,32 @@ function loadPlayerProfile(){
 function renderPlayerBadge(){
   const host=document.querySelector('.user-badge'); if(!host)return;
   const p=playerProfile||{name:'创建身份卡',role:'见习律师',cat:selectedCatStyle};
-  host.innerHTML=`<button class="player-card-button" onclick="openIdentityCard()">${catHTML(p.cat,'ID','small')}<span><strong>${esc(p.name)}</strong><small>${esc(p.role)} · 点击编辑身份卡</small></span></button><span class="user-rank">⭐ <span id="profile-score">1,240</span>分</span>`;
+  const avatar=p.avatarData?`<img class="player-avatar-image" src="${p.avatarData}" alt="${esc(p.name)}的头像">`:catHTML(p.cat,'ID','small');
+  host.innerHTML=`<button class="player-card-button" onclick="openIdentityCard()">${avatar}<span><strong>${esc(p.name)}</strong><small>${esc(p.role)} · 点击更换头像或编辑资料</small></span></button><span class="user-rank">⭐ <span id="profile-score">1,240</span>分</span>`;
 }
 function ensureSocialModals(){
   if(document.getElementById('identity-overlay'))return;
-  document.body.insertAdjacentHTML('beforeend',`<div class="identity-overlay" id="identity-overlay"><section class="identity-card" role="dialog" aria-modal="true" aria-labelledby="identity-title"><button class="modal-close" id="identity-close" onclick="closeIdentityCard()">×</button><div class="identity-hero"><img class="identity-cat-art" src="assets/lawyer-cat-transparent.png" alt="戴蓝色眼镜、穿紫金律师袍的猫咪"><div><span class="tag tag-yellow">ARGUS+ PLAYER FILE · 001</span><h2 class="identity-title" id="identity-title">创建律师猫身份卡</h2><p>你的称呼、身份和擅长方向会出现在法庭席位与社区个人资料中。</p></div></div><div class="identity-grid"><label><span class="label">昵称 / NAME *</span><input id="profile-name" class="input" maxlength="20" placeholder="例如：林墨"></label><label><span class="label">身份 / ROLE</span><input id="profile-role" class="input" maxlength="30" placeholder="例如：见习律师、法学生"></label><label><span class="label">擅长方向 / PRACTICE</span><input id="profile-practice" class="input" maxlength="40" placeholder="合同审查、劳动争议"></label><label><span class="label">所在地区 / REGION</span><input id="profile-region" class="input" maxlength="30" placeholder="上海 / 线上"></label></div><label><span class="label">个人简介 / BIO</span><textarea id="profile-bio" class="textarea" maxlength="160" placeholder="告诉社区你关心的法律问题和希望一起讨论的方向。"></textarea></label><div class="cat-state-note">${catHTML('gold','🔒','small')}<span>身份资料仅保存在当前浏览器，不会自动上传到服务器。你可以随时点击右上角身份卡修改。</span></div><button class="btn btn-primary" style="width:100%;justify-content:center" onclick="savePlayerProfile()">盖章并进入 ARGUS+ →</button></section></div>
+  document.body.insertAdjacentHTML('beforeend',`<div class="identity-overlay" id="identity-overlay"><section class="identity-card" role="dialog" aria-modal="true" aria-labelledby="identity-title"><button class="modal-close" id="identity-close" onclick="closeIdentityCard()">×</button><div class="identity-hero"><img class="identity-cat-art" src="assets/lawyer-cat-transparent.png" alt="戴蓝色眼镜、穿紫金律师袍的猫咪"><div><span class="tag tag-yellow">ARGUS+ PLAYER FILE · 001</span><h2 class="identity-title" id="identity-title">创建律师猫身份卡</h2><p>你的称呼、身份、地区和头像会出现在法庭席位与社区个人资料中。</p></div></div><div class="avatar-upload-panel"><img id="avatar-preview" class="avatar-preview" src="assets/lawyer-cat-transparent.png" alt="头像预览"><div><strong>玩家头像</strong><p style="margin:.25rem 0;font-size:.75rem">可上传 JPG、PNG 或 WebP；只保存在当前浏览器。</p><button class="btn btn-secondary" type="button" style="padding:.45rem .7rem;box-shadow:none" onclick="document.getElementById('profile-avatar-input').click()">更换头像</button><input id="profile-avatar-input" type="file" accept="image/png,image/jpeg,image/webp" hidden onchange="handleAvatarChange(event)"></div></div><div class="identity-grid"><label><span class="label">昵称 / NAME *</span><input id="profile-name" class="input" maxlength="20" placeholder="例如：林墨"></label><label><span class="label">身份 / ROLE</span><input id="profile-role" class="input" maxlength="30" placeholder="例如：见习律师、法学生"></label><label><span class="label">擅长方向 / PRACTICE</span><input id="profile-practice" class="input" maxlength="40" placeholder="合同审查、劳动争议"></label><label><span class="label">所在地区 / REGION</span><span class="region-pickers"><select id="profile-province" class="input" onchange="populateProfileCities()"></select><select id="profile-city" class="input"></select></span></label></div><label><span class="label">个人简介 / BIO</span><textarea id="profile-bio" class="textarea" maxlength="160" placeholder="告诉社区你关心的法律问题和希望一起讨论的方向。"></textarea></label><div class="cat-state-note">${catHTML('gold','🔒','small')}<span>身份资料与头像仅保存在当前浏览器，不会自动上传到服务器。你可以随时点击右上角身份卡修改。</span></div><button class="btn btn-primary" style="width:100%;justify-content:center" onclick="savePlayerProfile()">盖章并进入 ARGUS+ →</button></section></div>
   <div class="modal-overlay" id="profile-modal"><div class="modal-box"><button class="modal-close" onclick="closeProfileModal()">×</button><div id="profile-modal-content"></div></div></div>
   <div class="modal-overlay" id="friend-chat-modal"><div class="modal-box"><button class="modal-close" onclick="closeFriendChat()">×</button><div class="modal-title" id="friend-chat-title">猫咪律师私聊</div><div class="chat-log" id="friend-chat-log"></div><div style="display:flex;gap:.5rem;margin-top:.75rem"><input id="friend-chat-input" class="input" style="margin:0" placeholder="输入消息…" onkeypress="if(event.key==='Enter')sendFriendMessage()"><button class="btn btn-primary" style="box-shadow:none" onclick="sendFriendMessage()">发送</button></div><div class="privacy-hint" style="margin-top:.6rem">当前为本机演示私聊，不会向真实用户发送消息。</div></div></div>`);
 }
 function openIdentityCard(){
   ensureSocialModals(); const p=playerProfile||{};
-  document.getElementById('profile-name').value=p.name||'';document.getElementById('profile-role').value=p.role||'';document.getElementById('profile-practice').value=p.practice||'';document.getElementById('profile-region').value=p.region||'';document.getElementById('profile-bio').value=p.bio||'';
+  document.getElementById('profile-name').value=p.name||'';document.getElementById('profile-role').value=p.role||'';document.getElementById('profile-practice').value=p.practice||'';document.getElementById('profile-bio').value=p.bio||'';
+  initProfileRegions(p.province||'',p.city||p.region||'');pendingAvatarData=p.avatarData||'';document.getElementById('avatar-preview').src=pendingAvatarData||'assets/lawyer-cat-transparent.png';
   selectedCatStyle=p.cat||'blue';
   document.getElementById('identity-close').style.display=playerProfile?'block':'none';document.getElementById('identity-overlay').classList.add('visible');setTimeout(()=>document.getElementById('profile-name').focus(),50);
 }
 function closeIdentityCard(){if(playerProfile)document.getElementById('identity-overlay').classList.remove('visible');}
 function chooseCat(style,button){selectedCatStyle=style;document.querySelectorAll('.avatar-option').forEach(b=>b.classList.remove('selected'));button.classList.add('selected');}
+const chinaRegions={北京:['北京市'],天津:['天津市'],河北:['石家庄市','唐山市','保定市','其他'],山西:['太原市','大同市','其他'],内蒙古:['呼和浩特市','包头市','其他'],辽宁:['沈阳市','大连市','其他'],吉林:['长春市','吉林市','其他'],黑龙江:['哈尔滨市','齐齐哈尔市','其他'],上海:['上海市'],江苏:['南京市','苏州市','无锡市','常州市','其他'],浙江:['杭州市','宁波市','温州市','其他'],安徽:['合肥市','芜湖市','其他'],福建:['福州市','厦门市','泉州市','其他'],江西:['南昌市','赣州市','其他'],山东:['济南市','青岛市','烟台市','其他'],河南:['郑州市','洛阳市','其他'],湖北:['武汉市','宜昌市','其他'],湖南:['长沙市','株洲市','其他'],广东:['广州市','深圳市','珠海市','佛山市','东莞市','其他'],广西:['南宁市','桂林市','其他'],海南:['海口市','三亚市','其他'],重庆:['重庆市'],四川:['成都市','绵阳市','其他'],贵州:['贵阳市','遵义市','其他'],云南:['昆明市','大理市','其他'],西藏:['拉萨市','其他'],陕西:['西安市','咸阳市','其他'],甘肃:['兰州市','其他'],青海:['西宁市','其他'],宁夏:['银川市','其他'],新疆:['乌鲁木齐市','其他'],香港:['香港'],澳门:['澳门'],台湾:['台北市','高雄市','其他'],海外:['线上/海外']};
+function initProfileRegions(province='',city=''){const sel=document.getElementById('profile-province');sel.innerHTML='<option value="">选择省份</option>'+Object.keys(chinaRegions).map(p=>`<option ${p===province?'selected':''}>${p}</option>`).join('');populateProfileCities(city);}
+function populateProfileCities(preferred=''){const p=document.getElementById('profile-province').value,c=document.getElementById('profile-city'),cities=chinaRegions[p]||[];c.innerHTML='<option value="">选择城市</option>'+cities.map(v=>`<option ${v===preferred?'selected':''}>${v}</option>`).join('');}
+function handleAvatarChange(event){const file=event.target.files[0];if(!file)return;if(file.size>3*1024*1024){alert('头像请控制在 3MB 以内');event.target.value='';return;}const reader=new FileReader();reader.onload=()=>{const img=new Image();img.onload=()=>{const canvas=document.createElement('canvas'),size=320;canvas.width=size;canvas.height=size;const ctx=canvas.getContext('2d'),scale=Math.max(size/img.width,size/img.height),w=img.width*scale,h=img.height*scale;ctx.drawImage(img,(size-w)/2,(size-h)/2,w,h);pendingAvatarData=canvas.toDataURL('image/jpeg',.86);document.getElementById('avatar-preview').src=pendingAvatarData;};img.src=reader.result;};reader.readAsDataURL(file);}
 function savePlayerProfile(){
   const name=document.getElementById('profile-name').value.trim();if(!name){alert('请填写昵称');return;}
-  playerProfile={name,role:document.getElementById('profile-role').value.trim()||'见习律师',practice:document.getElementById('profile-practice').value.trim()||'综合法律训练',region:document.getElementById('profile-region').value.trim()||'线上',bio:document.getElementById('profile-bio').value.trim()||'正在 ARGUS+ 训练证据与辩论能力。',cat:selectedCatStyle};
+  const province=document.getElementById('profile-province').value,city=document.getElementById('profile-city').value;
+  playerProfile={name,role:document.getElementById('profile-role').value.trim()||'见习律师',practice:document.getElementById('profile-practice').value.trim()||'综合法律训练',province,city,region:[province,city].filter(Boolean).join(' · ')||'线上',bio:document.getElementById('profile-bio').value.trim()||'正在 ARGUS+ 训练证据与辩论能力。',cat:selectedCatStyle,avatarData:pendingAvatarData};
   localStorage.setItem('argus-player-profile',JSON.stringify(playerProfile));document.getElementById('identity-overlay').classList.remove('visible');renderPlayerBadge();renderCommunity();
 }
 
@@ -1679,7 +1731,30 @@ function sendFriendMessage(){const input=document.getElementById('friend-chat-in
 function closeFriendChat(){document.getElementById('friend-chat-modal').classList.remove('visible');}
 submitShare=function(){const title=document.getElementById('share-title').value.trim(),body=document.getElementById('share-body').value.trim(),rawTags=document.getElementById('share-tags').value.trim();if(!title||!body){alert('请填写标题和内容');return;}const tags=(rawTags.match(/#[^#\s]+/g)||['#新分享']).slice(0,5);feedData.unshift({author:'你',time:'刚刚',body:`<strong>${esc(title)}</strong><br>${esc(body)}`,tags,likes:0,comments:0,commentList:[],liked:false});closeShareModal();['share-title','share-body','share-tags'].forEach(id=>document.getElementById(id).value='');activeCommunityTag='';renderCommunity();};
 
-ensureSocialModals();loadPlayerProfile();addScreenCats();renderCommunity();
+const contractReviewRules=[
+ {name:'主体与授权',keys:/法定代表人|统一社会信用代码|签约主体|授权代表|授权委托|主体资格|经营资质|许可证|营业执照/,need:9,risk:'主体信息、签约权限或履约资质可能未形成完整核验链，存在合同效力及履行能力风险。',direction:'补齐统一社会信用代码、地址、联系人与授权文件；涉及特许行业的，核验许可期限和经营范围。',revision:'双方应在签署前提供有效主体证明、授权文件及履约所需资质；文件失效或信息变更时，应在五个工作日内书面通知对方。'},
+ {name:'标的与范围',keys:/标的|服务内容|货物|产品|商铺|房屋|面积|位置|用途/,need:8,risk:'合同标的、范围、数量、质量或用途描述不够可核验，可能导致履行边界争议。',direction:'以附件、清单或图纸明确标的、规格、面积、用途及交付状态，并确定文件冲突时的适用顺序。',revision:'合同标的及履行范围以双方盖章确认的附件清单为准；附件应载明名称、规格、数量、位置、现状及允许用途。'},
+ {name:'期限与节点',keys:/期限|日期|及时|尽快|届时|另行协商|工作日|完成/,need:9,risk:'履行期限主观且不可直接核验，容易引发迟延履行争议。关键事项留待后续确定，合同履行条件尚未闭合。',direction:'改为明确日期、工作日数量及期限起算点；增加确认方式、反馈期限以及协商不成时的处理机制。',revision:'相关事项应于明确日期或触发事件发生之日起___个工作日内完成；一方应以书面方式确认，另一方应在收到后___个工作日内反馈，逾期未反馈的处理方式为___。'},
+ {name:'价款、支付与发票',keys:/价款|租金|费用|支付|付款|收款|发票|税|账户/,need:9,risk:'价款构成、支付条件、结算周期或发票安排不完整，可能造成额外收费、付款条件失衡或税务风险。',direction:'明确含税总价、费用边界、付款节点、验收与开票的先后关系、账户变更验证以及逾期责任。',revision:'合同含税总价为人民币___元，已包含履约所需全部费用。付款以验收合格并收到合法有效发票为前提；收款账户变更须经加盖公章的书面通知及复核。'},
+ {name:'交付与验收',keys:/交付|验收|合格|签收|异议|整改/,need:9,risk:'交付标准、验收程序或异议期限不清，容易出现“交付即视为合格”或久拖不验的争议。',direction:'列明交付资料、客观验收标准、验收期限、整改复验和逾期处理；不得仅以沉默推定实质合格。',revision:'交付时应同步提交约定资料。接收方应在___个工作日内按附件标准验收并书面反馈；不合格的，交付方应在___日内整改并申请复验。'},
+ {name:'保证金与押金',keys:/保证金|押金|保函|扣除|退还/,need:8,risk:'保证金用途、扣划条件、补足及退还期限不明，可能造成任意扣款或担保失效。',direction:'明确金额、用途、扣划证据与通知程序、补足期限、退还条件及逾期责任；保函还需约定有效期和续展。',revision:'保证金仅可用于抵扣本合同项下已到期且有书面依据的款项；扣划前应通知并说明依据。合同终止且结清后___个工作日内退还余额。'},
+ {name:'违约责任',keys:/违约|赔偿|损失|违约金|罚款|责任/,need:10,risk:'责任触发条件、损失范围或违约金标准可能失衡，且缺少催告、整改和责任上限安排。',direction:'让责任与具体义务一一对应，设置催告及合理整改期；区分直接损失与可得利益，并检查双方权责是否基本平衡。',revision:'一方违约的，守约方应书面催告并给予___日整改期；逾期未改的，违约方按___承担责任。赔偿以有证据证明且与违约具有直接因果关系的损失为限。'},
+ {name:'解除、终止与交接',keys:/解除|终止|退租|撤场|届满|续租|退出|交还/,need:10,risk:'解除事由、通知期限及退出交接不完整，可能造成单方任意退出、费用悬而未决或资料资产无法移交。',direction:'列明一般解除和重大违约解除条件，设置通知/补救期，并同步约定结算、退款、资料交接和存续条款。',revision:'发生约定重大违约且经书面催告___日仍未改正的，守约方有权解除。解除后___日内完成费用结算、资料和财物交接，保密、知识产权及争议解决条款继续有效。'},
+ {name:'知识产权、保密与数据',keys:/知识产权|著作权|商标|保密|秘密|个人信息|数据|隐私|监控/,need:9,risk:'成果归属、授权边界、保密例外或个人信息处理规则不清，可能引发侵权、泄密和数据合规风险。',direction:'区分既有成果与新成果；明确许可主体、地域、期限和场景；个人信息按最小必要处理并约定安全事件通知。',revision:'各方既有知识产权仍归原权利人所有。项目成果归属及许可范围以本条为准。处理个人信息应限于履约必要范围，发生安全事件应立即通知并采取补救措施。'},
+ {name:'不可抗力与情势变化',keys:/不可抗力|疫情|政策|政府行为|意外事件/,need:7,risk:'不可抗力的通知、举证、减损和费用处理缺失，可能被用于不当免责或导致已付款项无法结算。',direction:'约定及时通知、合理证明和减损义务；按实际影响部分免责，并明确持续超过一定期限时的解除及退款。',revision:'受影响方应在事件发生后___日内通知并在合理期限内举证、减损。仅就不可避免且直接受影响部分免责；持续超过___日的，任一方可解除并据实结算。'},
+ {name:'争议解决与送达',keys:/争议|仲裁|法院|管辖|通知|送达|地址/,need:8,risk:'争议条款可能同时约定仲裁与诉讼、违反专属管辖，或缺少有效送达规则。',direction:'在仲裁或诉讼中择一；核查不动产、建设工程等专属管辖，并约定地址、电子送达及变更通知。',revision:'因本合同产生的争议，协商不成的，向有管辖权的人民法院提起诉讼。合同载明地址及电子邮箱为有效送达地址，变更应提前书面通知。'},
+ {name:'商铺租赁专项',keys:/商铺|租赁|承租|出租|装修|转租|消防|开业率|排他|零售额|预付卡/,need:10,risk:'商铺租赁的用途资质、交付装修、消防、经营管理或特殊权利可能未与真实经营条件闭合，存在一签即违约或运营受阻风险。',direction:'核验产权/出租权、规划用途和证照；明确租期与租金起算、交付条件、装修消防责任、转租续租；对逃生、排他、开业率和品牌绑定设置条件、范围、期限及可控后果。',revision:'承租用途、商铺范围及交付条件以附件为准。承租方应依法取得经营及消防所需许可。任何排他、开业率、提前退出或品牌绑定安排，均须同时明确生效条件、适用范围、期限、整改期及责任上限。'}
+];
+function upgradeAuditWorkspace(){
+ const screen=document.getElementById('screen-audit');if(!screen)return;
+ screen.classList.add('professional-audit');screen.innerHTML=`<div class="review-hero"><h2>合同猎魔 · 条款审查台</h2><p>按“背景—地位—原文—修改参考”逐条审查；审查逻辑已融合通用合同标准与商铺租赁专项培训。</p></div><div class="review-intake"><label class="full"><span class="review-label">(1) 合同背景简述</span><textarea id="audit-background" class="review-control" rows="3" placeholder="例如：我方作为商场出租方，拟与餐饮品牌签署三年商铺租赁合同，项目尚在装修期。"></textarea></label><label><span class="review-label">(2) 我方合同地位</span><select id="audit-position" class="review-control"><option>甲方</option><option>乙方</option><option>其他</option></select></label><label><span class="review-label">上传原文件</span><div class="review-upload" onclick="document.getElementById('audit-file-input').click()"><strong id="audit-doc-status">选择 PDF / Word / PPT / TXT</strong><br><small>支持 DOCX、PPTX 原文解析；兼容接收 DOC、PPT</small><input type="file" id="audit-file-input" hidden accept=".pdf,.doc,.docx,.ppt,.pptx,.txt" onchange="handleProfessionalAuditFile(event)"></div></label><label class="full"><span class="review-label">(3) 合同原文</span><textarea id="audit-text" class="review-control" rows="12" placeholder="粘贴完整合同原文，或在上方上传文件。系统会保留原文并逐条标亮需要修改的位置。"></textarea></label><div class="review-toolbar full"><button class="review-run" id="audit-btn" onclick="runProfessionalAudit()">🐾 开始猎魔审查</button><button class="btn btn-secondary" onclick="loadProfessionalSample()">加载租赁示例</button><span id="audit-progress">等待原文</span></div></div><div class="review-summary" id="review-summary"></div><div class="review-desk" id="review-desk"><div class="review-columns"><div>(3) 合同原文 · 风险处高亮</div><div>(4) 修改参考文本 · 同行对照</div></div><div id="review-rows"><div class="review-empty">审查结果会在这里逐条对齐。</div></div></div><p class="review-disclaimer">提示：本工具用于审查训练和起草辅助；规则来自所提供的通用审查标准及商铺租赁培训资料，不能替代执业律师结合完整事实作出的正式法律意见。</p>`;
+}
+async function handleProfessionalAuditFile(event){const file=event.target.files[0];if(!file)return;document.getElementById('audit-doc-status').textContent=`正在读取 ${file.name}…`;try{const text=await readFileText(file);document.getElementById('audit-text').value=text;document.getElementById('audit-doc-status').textContent=`已读取 ${file.name}`;}catch(e){document.getElementById('audit-doc-status').textContent=e.message;}}
+function splitReviewClauses(text){const lines=text.split(/\n+/).map(v=>v.trim()).filter(Boolean);const out=[];lines.forEach(line=>{const parts=line.split(/(?<=[。；！？])|(?=第[一二三四五六七八九十百\d]+条)/).map(v=>v.trim()).filter(Boolean);out.push(...parts);});return out.slice(0,180);}
+function runProfessionalAudit(){const text=document.getElementById('audit-text').value.trim(),background=document.getElementById('audit-background').value.trim(),position=document.getElementById('audit-position').value;if(!text){alert('请粘贴或上传合同原文');return;}const clauses=splitReviewClauses(text);const rows=clauses.map((clause,index)=>{let matches=contractReviewRules.filter(r=>r.keys.test(clause));if(!matches.length&&(/有权|应当|不得|负责|承担/.test(clause)&&clause.length>45))matches=[contractReviewRules[6]];return{clause,index,matches:matches.slice(0,2)};});const risky=rows.filter(r=>r.matches.length),high=risky.filter(r=>Math.max(...r.matches.map(m=>m.need))>=9);document.getElementById('review-summary').innerHTML=`<div class="review-stat"><small>合同背景</small><strong>${esc(background||'未填写')}</strong></div><div class="review-stat"><small>我方地位</small><strong>${position}</strong></div><div class="review-stat"><small>识别条款</small><strong>${clauses.length} 条</strong></div><div class="review-stat"><small>高必要度修改</small><strong>${high.length} 条</strong></div>`;document.getElementById('review-summary').classList.add('visible');document.getElementById('review-desk').classList.add('visible');document.getElementById('audit-progress').textContent=`猎魔完成：发现 ${risky.length} 处需重点核验`;document.getElementById('review-rows').innerHTML=rows.map(r=>{if(!r.matches.length)return `<div class="review-row"><div class="review-cell"><span class="review-necessity">已核验</span><div class="review-original">${esc(r.clause)}</div></div><div class="review-cell">本轮规则未发现明确修改触发点，仍需结合附件与交易事实复核。</div></div>`;const risk=r.matches.map(m=>m.risk).join(' '),direction=r.matches.map(m=>m.direction).join(' '),revision=r.matches.map(m=>m.revision).join('\n'),need=Math.max(...r.matches.map(m=>m.need));return `<div class="review-row"><div class="review-cell"><span class="review-necessity">修改必要度 ${need}/10</span> ${r.matches.map(m=>`<span class="review-chip">${m.name}</span>`).join('')}<div class="review-original risky">${esc(r.clause)}</div></div><div class="review-cell"><span class="review-chip">存在的问题/风险</span><p>${esc(risk)}</p><span class="review-chip">修改方向</span><p>${esc(direction)}</p><span class="review-chip">修改参考文本</span><p>${esc(revision)}</p></div></div>`;}).join('');}
+function loadProfessionalSample(){document.getElementById('audit-background').value='我方作为商场出租方，拟与餐饮品牌签署三年商铺租赁合同。';document.getElementById('audit-position').value='甲方';document.getElementById('audit-text').value='第一条 乙方承租甲方商铺用于餐饮经营，具体面积和交付条件另行协商。\n第二条 租赁期限自商铺交付之日起三年，乙方应尽快完成装修并开业。\n第三条 乙方应按甲方通知的金额和日期支付租金及其他费用。\n第四条 如乙方违约，甲方有权没收全部保证金，并要求乙方赔偿全部损失。\n第五条 双方发生争议，可向仲裁机构仲裁或向法院起诉。';}
+
+upgradeAuditWorkspace();ensureSocialModals();loadPlayerProfile();addScreenCats();renderCommunity();
 window.addEventListener('load',()=>{if(!playerProfile)setTimeout(openIdentityCard,280);});
 </script>
 </body>
