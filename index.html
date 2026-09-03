@@ -233,6 +233,63 @@ body { font-family: 'Inter', sans-serif; background: var(--paper); color: var(--
 .feed-action.liked { color:var(--error-red); font-weight:700; }
 @media (max-width:700px) { .ai-grid,.card-deck { grid-template-columns:1fr; } .hp-panel { gap:.5rem; } .scene-board { min-height:260px; } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; } }
+
+/* ===== CAT COURT + PLAYER IDENTITY ===== */
+.player-card-button { display:flex; align-items:center; gap:.55rem; border:0; background:transparent; cursor:pointer; text-align:left; color:var(--ink); }
+.player-card-button small { display:block; font-family:'Space Mono',monospace; font-size:.58rem; color:var(--periwinkle-dark); }
+.cat-avatar { --cat:#fffaf0; --cat-accent:var(--periwinkle); position:relative; width:54px; height:54px; flex:0 0 54px; }
+.cat-avatar.small { width:38px; height:38px; flex-basis:38px; }
+.cat-head { position:absolute; inset:10px 5px 2px; background:var(--cat); border:3px solid var(--ink); border-radius:46% 46% 42% 42%; box-shadow:3px 3px 0 var(--ink); }
+.cat-head:before,.cat-head:after { content:''; position:absolute; width:17px; height:17px; top:-10px; background:var(--cat); border:3px solid var(--ink); transform:rotate(45deg); z-index:-1; }
+.cat-head:before { left:1px; }.cat-head:after { right:1px; }
+.cat-eyes:before,.cat-eyes:after { content:''; position:absolute; top:16px; width:5px; height:7px; background:var(--ink); border-radius:50%; }
+.cat-eyes:before { left:11px; }.cat-eyes:after { right:11px; }
+.cat-mouth { position:absolute; left:50%; top:27px; width:12px; height:6px; transform:translateX(-50%); border-bottom:2px solid var(--ink); border-radius:50%; }
+.cat-badge { position:absolute; right:-3px; bottom:-3px; z-index:2; width:21px; height:21px; display:grid; place-items:center; background:var(--cat-accent); color:white; border:2px solid var(--ink); border-radius:50%; font-size:11px; }
+.cat-avatar.orange { --cat:#ffd7b7; --cat-accent:var(--flame-orange); }.cat-avatar.gray { --cat:#d7d5d1; --cat-accent:var(--ink); }.cat-avatar.blue { --cat:#d9e2ff; --cat-accent:var(--electric-blue); }.cat-avatar.gold { --cat:#fff0a8; --cat-accent:var(--signal-yellow); }
+.cat-avatar.judge .cat-head:after { box-shadow:9px -4px 0 #eee,14px 2px 0 #eee,-20px -3px 0 #eee; }
+.cat-avatar.angry .cat-eyes:before { transform:rotate(25deg); }.cat-avatar.angry .cat-eyes:after { transform:rotate(-25deg); }
+.cat-avatar.wink .cat-eyes:after { height:2px; top:19px; border-radius:0; }
+.identity-overlay { position:fixed; inset:0; z-index:12000; display:none; place-items:center; padding:1rem; background:rgba(23,23,23,.82); }
+.identity-overlay.visible { display:grid; }
+.identity-card { width:min(680px,100%); max-height:92vh; overflow:auto; background:var(--paper); border:4px solid var(--ink); box-shadow:14px 14px 0 var(--electric-blue); padding:1.5rem; position:relative; }
+.identity-hero { display:grid; grid-template-columns:100px 1fr; gap:1rem; align-items:center; border-bottom:4px solid var(--ink); padding-bottom:1rem; margin-bottom:1rem; }
+.identity-hero .cat-avatar { transform:scale(1.55); margin:auto; }
+.identity-title { font-family:'Archivo Black',sans-serif; font-size:clamp(2rem,7vw,3.5rem); line-height:.9; text-transform:uppercase; }
+.identity-grid { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; }
+.avatar-picker { display:flex; gap:.6rem; flex-wrap:wrap; margin:.5rem 0 1rem; }
+.avatar-option { border:2px solid transparent; padding:.35rem; background:transparent; cursor:pointer; }
+.avatar-option.selected { border-color:var(--electric-blue); background:var(--signal-yellow); }
+.cat-state-note { display:flex; gap:.65rem; align-items:center; padding:.65rem .8rem; margin:.5rem 0 1rem; border:2px dashed var(--ink); background:var(--paper-bright); font-size:.75rem; }
+.court-back { margin-right:.8rem; min-height:44px; padding:.55rem .8rem; border:2px solid var(--ink); background:var(--paper-bright); box-shadow:3px 3px 0 var(--ink); font-family:'Space Mono',monospace; cursor:pointer; }
+.court-title-row { display:flex; align-items:center; }
+.cat-court-stage { display:grid; grid-template-columns:1fr 110px 1fr; gap:1rem; align-items:end; padding:1rem; margin-bottom:.75rem; min-height:165px; border:3px solid var(--ink); background:linear-gradient(var(--periwinkle) 0 63%,#7c5e42 63%); position:relative; overflow:hidden; }
+.cat-court-stage:before { content:'ARGUS+ CAT COURT'; position:absolute; left:50%; top:.45rem; transform:translateX(-50%) rotate(-1deg); background:var(--signal-yellow); border:2px solid var(--ink); padding:.25rem .6rem; font-family:'Space Mono',monospace; font-size:.6rem; }
+.court-cat { display:flex; align-items:center; gap:.7rem; background:var(--paper-bright); border:3px solid var(--ink); padding:.65rem; box-shadow:5px 5px 0 var(--ink); }
+.court-cat.enemy { flex-direction:row-reverse; text-align:right; }
+.judge-bench { text-align:center; background:var(--ink); color:white; border:3px solid var(--ink); padding:.55rem; font-family:'Space Mono',monospace; font-size:.6rem; }
+.judge-bench .cat-avatar { margin:-30px auto 4px; }
+.court-cat.attacking { animation:catPounce .35s ease; }
+@keyframes catPounce { 50% { transform:translateX(20px) rotate(2deg) scale(1.05); } }
+.argument-card { position:relative; padding-left:66px; overflow:hidden; background:var(--paper); }
+.argument-card .cat-avatar { position:absolute; left:8px; bottom:8px; transform:rotate(-4deg); }
+.argument-card:nth-child(2) { background:#fff4bd; }.argument-card:nth-child(3) { background:#dfe5ff; }
+.argument-card:hover .cat-avatar { transform:translateY(-4px) rotate(3deg); }
+.screen-cat { position:absolute; right:2rem; top:5.2rem; opacity:.94; transform:rotate(3deg); z-index:-0; }
+.screen { position:relative; }
+.profile-avatar-btn { border:0; background:transparent; padding:0; cursor:pointer; }
+.post-author-row { display:flex; align-items:center; gap:.7rem; }
+.post-author-button { border:0; background:transparent; text-align:left; cursor:pointer; font:inherit; }
+.profile-panel { display:grid; grid-template-columns:90px 1fr; gap:1rem; margin:1rem 0; padding:1rem; border:2px dashed var(--ink); background:var(--paper-bright); }
+.profile-panel .cat-avatar { transform:scale(1.3); margin:auto; }
+.friend-actions { display:flex; gap:.6rem; flex-wrap:wrap; }
+.chat-log { min-height:170px; max-height:280px; overflow:auto; padding:.8rem; border:2px solid var(--ink); background:var(--paper-bright); }
+.chat-message { max-width:82%; padding:.5rem .7rem; margin:.45rem 0; background:var(--paper); border:2px solid var(--ink); }
+.chat-message.me { margin-left:auto; background:#dfe5ff; }
+.tag-button { cursor:pointer; border:0; }
+.tag-filter-bar { display:none; justify-content:space-between; align-items:center; margin-bottom:.8rem; padding:.7rem; border:2px solid var(--ink); background:var(--signal-yellow); }
+.tag-filter-bar.visible { display:flex; }
+@media(max-width:700px){.identity-grid,.cat-court-stage{grid-template-columns:1fr}.cat-court-stage{padding-top:2.5rem}.judge-bench{order:-1}.court-cat.enemy{flex-direction:row}.screen-cat{display:none}.profile-panel{grid-template-columns:1fr}.identity-hero{grid-template-columns:1fr;text-align:center}}
 </style>
 </head>
 <body>
@@ -523,7 +580,7 @@ body { font-family: 'Inter', sans-serif; background: var(--paper); color: var(--
 <!-- ==================== SCREEN: COMMUNITY ==================== -->
 <section id="screen-community" class="screen">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-    <h2 style="font-family:'Archivo Black',sans-serif;font-size:1.8rem;">社区广场 <span style="font-size:1rem;opacity:0.6;">Community</span></h2>
+    <h2 style="font-family:'Archivo Black',sans-serif;font-size:1.8rem;">社区广场 <span style="font-size:1rem;opacity:0.6;">Community Square</span></h2>
     <button class="btn btn-primary" onclick="openShareModal()">📝 分享我的案件</button>
   </div>
 
@@ -1535,6 +1592,90 @@ injectAISettings();
 document.querySelector('#screen-forge .card-header span:first-child').textContent='🧠 文件驱动案件配置';
 document.querySelector('#forge-preview > div div:last-child').textContent='上传原始文件后，系统会提取真实内容并配置案件；不会另行编造合同。';
 renderCommunity();
+</script>
+<script>
+// ==================== CAT-ZINE IDENTITY + SOCIAL LAYER ====================
+let playerProfile = null;
+let selectedCatStyle = 'blue';
+let activeCommunityTag = '';
+let activeChatUser = '';
+const chatThreads = {};
+
+const communityProfiles = {
+  '法外狂徒张三':{role:'刑民交叉律师',bio:'喜欢用证据链拆掉看似完整的故事。',skills:['证据审查','交叉质询'],cat:'orange'},
+  '合同猎魔人':{role:'企业合规顾问',bio:'每天拆一条霸王条款，维护公平交易。',skills:['合同审查','个人信息'],cat:'gray'},
+  '证据收藏家':{role:'诉讼律师助理',bio:'原件、时间戳和完整上下文，一个都不能少。',skills:['电子证据','著作权'],cat:'gold'},
+  '仲裁员小王':{role:'商事仲裁研究者',bio:'关注跨境电商、程序策略和争议解决。',skills:['仲裁','跨境电商'],cat:'blue'}
+};
+
+function catHTML(style='blue',badge='⚖',mood='') {
+  return `<span class="cat-avatar ${esc(style)} ${esc(mood)}" aria-hidden="true"><span class="cat-head"><span class="cat-eyes"></span><span class="cat-mouth"></span></span><span class="cat-badge">${badge}</span></span>`;
+}
+function loadPlayerProfile(){
+  try{playerProfile=JSON.parse(localStorage.getItem('argus-player-profile')||'null');}catch(e){playerProfile=null;}
+  if(playerProfile) selectedCatStyle=playerProfile.cat||'blue';
+  renderPlayerBadge();
+}
+function renderPlayerBadge(){
+  const host=document.querySelector('.user-badge'); if(!host)return;
+  const p=playerProfile||{name:'创建身份卡',role:'见习律师',cat:selectedCatStyle};
+  host.innerHTML=`<button class="player-card-button" onclick="openIdentityCard()">${catHTML(p.cat,'ID','small')}<span><strong>${esc(p.name)}</strong><small>${esc(p.role)} · 点击编辑身份卡</small></span></button><span class="user-rank">⭐ <span id="profile-score">1,240</span>分</span>`;
+}
+function ensureSocialModals(){
+  if(document.getElementById('identity-overlay'))return;
+  document.body.insertAdjacentHTML('beforeend',`<div class="identity-overlay" id="identity-overlay"><section class="identity-card" role="dialog" aria-modal="true" aria-labelledby="identity-title"><button class="modal-close" id="identity-close" onclick="closeIdentityCard()">×</button><div class="identity-hero">${catHTML('blue','ID','wink')}<div><span class="tag tag-yellow">ARGUS+ PLAYER FILE · 001</span><h2 class="identity-title" id="identity-title">创建律师猫身份卡</h2><p>你的称呼、身份和擅长方向会出现在法庭席位与社区个人资料中。</p></div></div><div class="avatar-picker" id="avatar-picker">${['blue','orange','gray','gold'].map((x,i)=>`<button class="avatar-option ${i===0?'selected':''}" data-cat="${x}" onclick="chooseCat('${x}',this)" aria-label="选择${x}猫咪">${catHTML(x,['⚖','📎','§','✦'][i],i===0?'wink':'')}</button>`).join('')}</div><div class="identity-grid"><label><span class="label">昵称 / NAME *</span><input id="profile-name" class="input" maxlength="20" placeholder="例如：林墨"></label><label><span class="label">身份 / ROLE</span><input id="profile-role" class="input" maxlength="30" placeholder="例如：见习律师、法学生"></label><label><span class="label">擅长方向 / PRACTICE</span><input id="profile-practice" class="input" maxlength="40" placeholder="合同审查、劳动争议"></label><label><span class="label">所在地区 / REGION</span><input id="profile-region" class="input" maxlength="30" placeholder="上海 / 线上"></label></div><label><span class="label">个人简介 / BIO</span><textarea id="profile-bio" class="textarea" maxlength="160" placeholder="告诉社区你关心的法律问题和希望一起讨论的方向。"></textarea></label><div class="cat-state-note">${catHTML('gold','🔒','small')}<span>身份资料仅保存在当前浏览器，不会自动上传到服务器。你可以随时点击右上角身份卡修改。</span></div><button class="btn btn-primary" style="width:100%;justify-content:center" onclick="savePlayerProfile()">盖章并进入 ARGUS+ →</button></section></div>
+  <div class="modal-overlay" id="profile-modal"><div class="modal-box"><button class="modal-close" onclick="closeProfileModal()">×</button><div id="profile-modal-content"></div></div></div>
+  <div class="modal-overlay" id="friend-chat-modal"><div class="modal-box"><button class="modal-close" onclick="closeFriendChat()">×</button><div class="modal-title" id="friend-chat-title">猫咪律师私聊</div><div class="chat-log" id="friend-chat-log"></div><div style="display:flex;gap:.5rem;margin-top:.75rem"><input id="friend-chat-input" class="input" style="margin:0" placeholder="输入消息…" onkeypress="if(event.key==='Enter')sendFriendMessage()"><button class="btn btn-primary" style="box-shadow:none" onclick="sendFriendMessage()">发送</button></div><div class="privacy-hint" style="margin-top:.6rem">当前为本机演示私聊，不会向真实用户发送消息。</div></div></div>`);
+}
+function openIdentityCard(){
+  ensureSocialModals(); const p=playerProfile||{};
+  document.getElementById('profile-name').value=p.name||'';document.getElementById('profile-role').value=p.role||'';document.getElementById('profile-practice').value=p.practice||'';document.getElementById('profile-region').value=p.region||'';document.getElementById('profile-bio').value=p.bio||'';
+  selectedCatStyle=p.cat||'blue';document.querySelectorAll('.avatar-option').forEach(b=>b.classList.toggle('selected',b.dataset.cat===selectedCatStyle));
+  document.getElementById('identity-close').style.display=playerProfile?'block':'none';document.getElementById('identity-overlay').classList.add('visible');setTimeout(()=>document.getElementById('profile-name').focus(),50);
+}
+function closeIdentityCard(){if(playerProfile)document.getElementById('identity-overlay').classList.remove('visible');}
+function chooseCat(style,button){selectedCatStyle=style;document.querySelectorAll('.avatar-option').forEach(b=>b.classList.remove('selected'));button.classList.add('selected');}
+function savePlayerProfile(){
+  const name=document.getElementById('profile-name').value.trim();if(!name){alert('请填写昵称');return;}
+  playerProfile={name,role:document.getElementById('profile-role').value.trim()||'见习律师',practice:document.getElementById('profile-practice').value.trim()||'综合法律训练',region:document.getElementById('profile-region').value.trim()||'线上',bio:document.getElementById('profile-bio').value.trim()||'正在 ARGUS+ 训练证据与辩论能力。',cat:selectedCatStyle};
+  localStorage.setItem('argus-player-profile',JSON.stringify(playerProfile));document.getElementById('identity-overlay').classList.remove('visible');renderPlayerBadge();renderCommunity();
+}
+
+function addScreenCats(){
+  const specs=[['forge','blue','📚','检查卷宗的白猫'],['audit','gray','🔍','巡查条款的白猫'],['campaign','orange','⚖','准备开庭的白猫'],['community','gold','💬','整理社区消息的白猫']];
+  specs.forEach(([id,style,badge,label])=>{const s=document.getElementById('screen-'+id);if(s&&!s.querySelector('.screen-cat'))s.insertAdjacentHTML('afterbegin',`<div class="screen-cat" title="${label}">${catHTML(style,badge,'wink')}</div>`);});
+  const gb=document.querySelector('.glassbox-header');if(gb&&!gb.querySelector('.cat-avatar'))gb.insertAdjacentHTML('afterbegin',catHTML('gray','⚖','judge small'));
+}
+
+function injectDebateControls(){
+  const flow=document.getElementById('debate-flow');if(document.getElementById('debate-controls'))return;
+  flow.insertAdjacentHTML('beforebegin',`<div id="debate-controls"><div class="cat-court-stage" aria-label="猫咪模拟法庭"><div class="court-cat" id="player-court-cat">${catHTML(playerProfile?.cat||'blue','⚔','wink')}<div><strong>${esc(playerProfile?.name||'玩家律师猫')}</strong><small>你的代理席</small></div></div><div class="judge-bench">${catHTML('gray','⚖','judge')}<strong>法官猫</strong><br>维持秩序 / 评估证据</div><div class="court-cat enemy" id="enemy-court-cat">${catHTML('orange','!','angry')}<div><strong>对方律师猫</strong><small>动态反驳席</small></div></div></div><div class="mode-switch"><button class="active" onclick="setDebateMode('free',this)">自由辩论</button><button onclick="setDebateMode('card',this)">猫咪话术卡组</button></div><div class="hp-panel"><div>${esc(playerProfile?.name||'你的猫咪')}说服力 <span id="player-hp-text">100</span><div class="hp-track"><div id="player-hp" class="hp-fill"></div></div></div><div>对方猫咪说服力 <span id="enemy-hp-text">100</span><div class="hp-track"><div id="enemy-hp" class="hp-fill enemy"></div></div></div></div></div>`);
+  flow.parentElement.insertAdjacentHTML('beforeend',`<div id="card-deck" class="card-deck"><button class="argument-card" onclick="playCard('evidence',24)">${catHTML('gold','📎','small wink')}<strong>卷宗猫 · 证据突袭</strong>从原件中扑出关键事实，质疑对方叙述。<span class="card-cost">伤害 24 · 需选证据</span></button><button class="argument-card" onclick="playCard('law',20)">${catHTML('gray','§','small judge')}<strong>法条猫 · 规则压制</strong>把构成要件逐项扣回案件事实。<span class="card-cost">伤害 20</span></button><button class="argument-card" onclick="playCard('question',16)">${catHTML('blue','?','small wink')}<strong>侦探猫 · 交叉质询</strong>追问时间、金额和证据形成过程。<span class="card-cost">伤害 16</span></button></div>`);
+}
+const catCourtStartLevel=startLevel;
+startLevel=function(levelId){catCourtStartLevel(levelId);const head=document.querySelector('#courtroom-interface > div:first-child > div:first-child');if(head&&!document.getElementById('court-back')){head.classList.add('court-title-row');head.insertAdjacentHTML('afterbegin','<button class="court-back" id="court-back" onclick="exitCourtroom()">← 返回关卡</button>');}const player=document.getElementById('player-court-cat');if(player)player.innerHTML=`${catHTML(playerProfile?.cat||'blue','⚔','wink')}<div><strong>${esc(playerProfile?.name||'玩家律师猫')}</strong><small>你的代理席</small></div>`;};
+function playCard(type,damage){if(type==='evidence'&&!selectedEvidence.length){alert('卷宗猫需要证据：先从左侧场景或原文件搜集并选中一份证据。');return;}const player=document.getElementById('player-court-cat');player?.classList.add('attacking');setTimeout(()=>player?.classList.remove('attacking'),380);const map={evidence:'卷宗猫提交刚刚从原场景与原文件中搜集的证据，要求对方解释其抗辩为何与原件不一致。',law:'法条猫主张：应把强制性规则的每个构成要件与本案事实逐项对应，不能用格式条款排除法定权利。',question:'侦探猫质询：请明确所称事实的时间、金额计算依据，以及证据从形成到提交的完整过程。'};submitArgument(map[type],damage);}
+
+function profileFor(author){if(author==='你'&&playerProfile)return{role:playerProfile.role,bio:playerProfile.bio,skills:[playerProfile.practice],cat:playerProfile.cat};return communityProfiles[author]||{role:'ARGUS+ 社区成员',bio:'正在通过模拟案件训练法律推理。',skills:['案例讨论'],cat:'blue'};}
+function renderCommunity(){
+  document.getElementById('leaderboard-body').innerHTML=leaderboardData.map(u=>`<div class="leaderboard-row"><div class="leaderboard-rank ${u.rank<=3?['gold','silver','bronze'][u.rank-1]:''}">${u.rank}</div><button class="profile-avatar-btn" onclick="openCommunityProfile('${esc(u.name)}')">${catHTML(profileFor(u.name).cat,'#','small')}</button><div class="leaderboard-info"><div class="leaderboard-name">${esc(u.name)}</div><div class="leaderboard-meta">${u.title} · 关卡 ${u.level}</div></div><div class="leaderboard-score">${u.score}</div></div>`).join('');
+  const feed=document.getElementById('community-feed');if(!document.getElementById('tag-filter-bar'))feed.insertAdjacentHTML('beforebegin','<div class="tag-filter-bar" id="tag-filter-bar"><strong id="tag-filter-label"></strong><button class="btn btn-secondary" style="padding:.4rem .7rem;box-shadow:none" onclick="clearTagFilter()">查看全部</button></div>');
+  const posts=feedData.map((p,i)=>({...p,_index:i})).filter(p=>!activeCommunityTag||p.tags.includes(activeCommunityTag));
+  feed.innerHTML=posts.map(p=>{const profile=profileFor(p.author);return `<article class="feed-card"><div class="feed-header"><div class="post-author-row"><button class="profile-avatar-btn" onclick="openCommunityProfile('${esc(p.author)}')">${catHTML(profile.cat,'💬','small')}</button><button class="post-author-button" onclick="openCommunityProfile('${esc(p.author)}')"><strong>${esc(p.author)}</strong><small style="display:block">${esc(profile.role)}</small></button></div><span class="feed-time">${esc(p.time)}</span></div><div class="feed-body">${p.body}</div><div>${p.tags.map(t=>`<button class="tag tag-purple tag-button" onclick="filterByTag('${esc(t)}')">${esc(t)}</button>`).join('')}</div><div class="feed-actions"><button class="feed-action ${p.liked?'liked':''}" onclick="toggleLike(${p._index})">${p.liked?'♥':'♡'} ${p.likes}</button><button class="feed-action" onclick="toggleComments(${p._index})">💬 ${p.commentList?.length||0}</button><button class="feed-action" onclick="openCommunityProfile('${esc(p.author)}')">查看作者</button></div><div class="comment-panel" id="comments-${p._index}">${(p.commentList||[]).map(c=>`<div class="comment-item"><strong>社区成员</strong> ${esc(c)}</div>`).join('')}<div style="display:flex;gap:.4rem"><input class="input" id="comment-input-${p._index}" style="margin:0" aria-label="评论内容" placeholder="像 Discord 线程一样继续讨论…"><button class="btn btn-primary" style="box-shadow:none;padding:.55rem" onclick="addComment(${p._index})">发送</button></div></div></article>`;}).join('')||'<div class="status-strip">这个标签下暂时没有更多帖子。</div>';
+}
+function filterByTag(tag){activeCommunityTag=tag;renderCommunity();const bar=document.getElementById('tag-filter-bar');bar.classList.add('visible');document.getElementById('tag-filter-label').textContent=`正在浏览 ${tag} 频道`;}
+function clearTagFilter(){activeCommunityTag='';renderCommunity();document.getElementById('tag-filter-bar').classList.remove('visible');}
+function openCommunityProfile(author){ensureSocialModals();const p=profileFor(author),isFriend=(JSON.parse(localStorage.getItem('argus-friends')||'[]')).includes(author);document.getElementById('profile-modal-content').innerHTML=`<div class="modal-title">社区律师档案</div><div class="profile-panel">${catHTML(p.cat,'ID','wink')}<div><span class="tag tag-yellow">COMMUNITY MEMBER</span><h2>${esc(author)}</h2><strong>${esc(p.role)}</strong><p>${esc(p.bio)}</p><div>${p.skills.map(s=>`<button class="tag tag-purple tag-button" onclick="closeProfileModal();filterByTag('#${esc(s)}')">#${esc(s)}</button>`).join('')}</div></div></div><div class="friend-actions"><button class="btn btn-primary" onclick="addFriend('${esc(author)}',this)">${isFriend?'✓ 已是好友':'＋ 添加好友'}</button><button class="btn btn-secondary" onclick="startFriendChat('${esc(author)}')">💬 开始对话</button></div>`;document.getElementById('profile-modal').classList.add('visible');}
+function closeProfileModal(){document.getElementById('profile-modal').classList.remove('visible');}
+function addFriend(author,button){const list=JSON.parse(localStorage.getItem('argus-friends')||'[]');if(!list.includes(author))list.push(author);localStorage.setItem('argus-friends',JSON.stringify(list));button.textContent='✓ 已是好友';button.disabled=true;}
+function startFriendChat(author){activeChatUser=author;closeProfileModal();document.getElementById('friend-chat-title').innerHTML=`${catHTML(profileFor(author).cat,'💬','small')} 和 ${esc(author)} 对话`;chatThreads[author]=chatThreads[author]||[`你好，我是 ${author}。想从哪个案件或证据问题开始聊？`];renderFriendChat();document.getElementById('friend-chat-modal').classList.add('visible');setTimeout(()=>document.getElementById('friend-chat-input').focus(),30);}
+function renderFriendChat(){document.getElementById('friend-chat-log').innerHTML=(chatThreads[activeChatUser]||[]).map((m,i)=>`<div class="chat-message ${i%2?'me':''}">${i%2?'<strong>你：</strong>':`<strong>${esc(activeChatUser)}：</strong>`}${esc(m)}</div>`).join('');}
+function sendFriendMessage(){const input=document.getElementById('friend-chat-input'),text=input.value.trim();if(!text)return;chatThreads[activeChatUser].push(text,`收到。我们可以把“${text.slice(0,24)}”拆成事实、证据和规则三栏继续讨论。`);input.value='';renderFriendChat();}
+function closeFriendChat(){document.getElementById('friend-chat-modal').classList.remove('visible');}
+submitShare=function(){const title=document.getElementById('share-title').value.trim(),body=document.getElementById('share-body').value.trim(),rawTags=document.getElementById('share-tags').value.trim();if(!title||!body){alert('请填写标题和内容');return;}const tags=(rawTags.match(/#[^#\s]+/g)||['#新分享']).slice(0,5);feedData.unshift({author:'你',time:'刚刚',body:`<strong>${esc(title)}</strong><br>${esc(body)}`,tags,likes:0,comments:0,commentList:[],liked:false});closeShareModal();['share-title','share-body','share-tags'].forEach(id=>document.getElementById(id).value='');activeCommunityTag='';renderCommunity();};
+
+ensureSocialModals();loadPlayerProfile();addScreenCats();renderCommunity();
+window.addEventListener('load',()=>{if(!playerProfile)setTimeout(openIdentityCard,280);});
 </script>
 </body>
 </html>
