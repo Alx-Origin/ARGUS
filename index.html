@@ -188,6 +188,51 @@ body { font-family: 'Inter', sans-serif; background: var(--paper); color: var(--
   .campaign-map { grid-template-columns: repeat(3, 1fr); }
   .masthead-nav { flex-wrap: wrap; }
 }
+
+/* ===== ARGUS+ EVIDENCE-FIRST UPGRADE ===== */
+:focus-visible { outline: 3px solid var(--electric-blue); outline-offset: 3px; }
+.status-strip { display:flex; gap:.65rem; align-items:center; flex-wrap:wrap; padding:.75rem; margin-bottom:1rem; background:var(--signal-yellow); border:2px solid var(--ink); font-family:'Space Mono',monospace; font-size:.7rem; }
+.ai-settings { display:none; margin-top:1rem; padding:1rem; border:2px dashed var(--periwinkle); background:var(--paper); }
+.ai-settings.visible { display:block; }
+.ai-grid { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; }
+.privacy-hint { font-size:.7rem; line-height:1.5; color:var(--periwinkle-dark); }
+.case-source { display:grid; grid-template-columns:1fr auto; gap:1rem; padding:.8rem; border:2px solid var(--ink); background:var(--paper-bright); margin-bottom:.65rem; }
+.case-source a { color:var(--electric-blue); font-family:'Space Mono',monospace; font-size:.7rem; font-weight:700; }
+.source-summary { font-size:.78rem; line-height:1.5; margin-top:.35rem; }
+.original-clause { padding:.75rem; margin:.6rem 0; background:#fff4d1; border-left:4px solid var(--flame-orange); font-size:.78rem; line-height:1.55; }
+.clause-label { display:block; font-family:'Space Mono',monospace; font-size:.62rem; color:var(--error-red); margin-bottom:.3rem; }
+.evidence-hub { display:grid; gap:.75rem; }
+.scene-board { min-height:210px; position:relative; overflow:hidden; border:3px solid var(--ink); background:linear-gradient(#d9d0bc 0 62%,#9a7657 62%); }
+.scene-board:before { content:'案发场景 · 点击带有虚线轮廓的物件搜证'; position:absolute; left:.6rem; top:.5rem; font-family:'Space Mono',monospace; font-size:.58rem; background:var(--paper-bright); padding:.3rem; border:1px solid var(--ink); }
+.scene-object { position:absolute; min-width:64px; min-height:48px; padding:.4rem; border:2px dashed var(--electric-blue); background:var(--paper-bright); cursor:pointer; font-size:.68rem; box-shadow:3px 3px 0 var(--ink); }
+.scene-object.found { border-style:solid; background:var(--leaf-green); color:white; }
+.source-document { max-height:260px; overflow:auto; padding:.8rem; border:2px solid var(--ink); background:var(--paper-bright); font-family:'Space Mono',monospace; font-size:.7rem; line-height:1.65; }
+.doc-hotspot { display:block; width:100%; text-align:left; border:0; border-left:4px solid var(--signal-yellow); background:#fff7ce; padding:.45rem; margin:.4rem 0; cursor:pointer; font:inherit; }
+.doc-hotspot.found { border-left-color:var(--leaf-green); background:#e3f2e7; }
+.evidence-inventory { display:grid; gap:.5rem; }
+.evidence-slot.locked { opacity:.48; filter:grayscale(1); cursor:not-allowed; }
+.mode-switch { display:flex; gap:.5rem; margin-bottom:.65rem; }
+.mode-switch button { flex:1; min-height:44px; border:2px solid var(--ink); background:var(--paper); font-family:'Space Mono',monospace; cursor:pointer; }
+.mode-switch button.active { background:var(--electric-blue); color:white; box-shadow:3px 3px 0 var(--ink); }
+.hp-panel { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:.75rem; font-family:'Space Mono',monospace; font-size:.65rem; }
+.hp-track { height:10px; background:var(--paper-muted); border:1px solid var(--ink); margin-top:.3rem; }
+.hp-fill { height:100%; width:100%; background:var(--leaf-green); transition:width .25s ease; }
+.hp-fill.enemy { background:var(--error-red); }
+.card-deck { display:none; grid-template-columns:repeat(3,1fr); gap:.5rem; margin-top:.75rem; }
+.card-deck.visible { display:grid; }
+.argument-card { min-height:118px; padding:.7rem; text-align:left; border:2px solid var(--ink); background:var(--paper-bright); box-shadow:3px 3px 0 var(--ink); cursor:pointer; }
+.argument-card:hover { transform:translate(-1px,-1px); }
+.argument-card strong { display:block; margin-bottom:.35rem; }
+.card-cost { color:var(--error-red); font-family:'Space Mono',monospace; font-size:.62rem; }
+.ai-thinking { padding:.6rem; border:2px dashed var(--periwinkle); font-family:'Space Mono',monospace; font-size:.68rem; animation:pulse 1s infinite; }
+.community-note { margin-top:1rem; padding:.75rem; border:2px dashed var(--paper-muted); font-size:.72rem; line-height:1.5; }
+.comment-panel { display:none; padding-top:.7rem; border-top:1px dashed var(--paper-muted); margin-top:.7rem; }
+.comment-panel.visible { display:block; }
+.comment-item { padding:.45rem .6rem; margin-bottom:.35rem; background:var(--paper); border-left:3px solid var(--periwinkle); font-size:.76rem; }
+.feed-action { cursor:pointer; border:0; background:transparent; font:inherit; padding:.35rem .5rem; }
+.feed-action.liked { color:var(--error-red); font-weight:700; }
+@media (max-width:700px) { .ai-grid,.card-deck { grid-template-columns:1fr; } .hp-panel { gap:.5rem; } .scene-board { min-height:260px; } }
+@media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; } }
 </style>
 </head>
 <body>
@@ -279,8 +324,8 @@ body { font-family: 'Inter', sans-serif; background: var(--paper); color: var(--
         <div class="file-list" id="forge-file-list" style="display:none;"></div>
 
         <div style="display:flex;gap:0.75rem;margin-top:1rem;">
-          <button class="btn btn-primary" onclick="forgeGenerate()">🧙‍♂️ AI 生成完整案件</button>
-          <button class="btn btn-secondary" onclick="forgeManual()">✍️ 手动进入法庭</button>
+          <button class="btn btn-primary" id="auto-case-btn" onclick="autoConfigureCase()">🧠 AI 自动配置案件</button>
+          <button class="btn btn-secondary" onclick="openAISettings()">⚙️ AI 服务设置</button>
         </div>
       </div>
     </div>
@@ -501,7 +546,7 @@ body { font-family: 'Inter', sans-serif; background: var(--paper); color: var(--
   </div>
 </section>
 
-<!-- Share Modal (with QR & External Link) -->
+<!-- Share Modal -->
 <div class="modal-overlay" id="share-modal">
   <div class="modal-box">
     <button class="modal-close" onclick="closeShareModal()">×</button>
@@ -513,22 +558,7 @@ body { font-family: 'Inter', sans-serif; background: var(--paper); color: var(--
     <span class="label">标签</span>
     <input type="text" id="share-tags" class="input" placeholder="#租房纠纷 #劳动法 #证据技巧">
     <button class="btn btn-primary" style="margin-top:1rem;" onclick="submitShare()">📝 发布到社区</button>
-    <div style="margin-top:1.5rem;padding-top:1rem;border-top:2px dashed var(--paper-muted);">
-      <div style="font-family:'Space Mono',monospace;font-size:0.7rem;text-transform:uppercase;color:var(--periwinkle);margin-bottom:0.75rem;">🔗 分享到社区外</div>
-      <div class="qr-container">
-        <canvas id="share-qr-canvas" class="qr-canvas" width="180" height="180"></canvas>
-        <div class="share-link-box">
-          <input type="text" id="share-link-input" class="share-link-input" value="https://argus.plus/case/8X3K9M" readonly>
-          <button class="share-link-btn" onclick="copyShareLink()">复制</button>
-        </div>
-        <div class="share-platforms">
-          <button class="share-platform" onclick="shareExternal('wechat')">💬 微信</button>
-          <button class="share-platform" onclick="shareExternal('weibo')">📢 微博</button>
-          <button class="share-platform" onclick="shareExternal('twitter')">🐦 X/Twitter</button>
-          <button class="share-platform" onclick="shareExternal('link')">🔗 复制链接</button>
-        </div>
-      </div>
-    </div>
+    <div class="community-note">帖子仅发布在当前设备的 ARGUS+ 社区演示数据中，不生成失效二维码或虚假外链。</div>
   </div>
 </div>
 
@@ -595,7 +625,7 @@ function addForgeFiles(files) {
       }
     }, 200);
 
-    forgeFiles.push({ name: file.name, size: file.size, type: file.type, id: fileId });
+    forgeFiles.push({ name: file.name, size: file.size, type: file.type, id: fileId, file });
   });
 }
 
@@ -648,17 +678,21 @@ function addAuditFiles(files) {
         bar.style.width = '100%';
         status.textContent = '✓ 已解析';
         status.className = 'file-item-status done';
-        // Auto-fill sample text after parse
-        if (!document.getElementById('audit-text').value.trim()) {
-          document.getElementById('audit-text').value = sampleContract;
-          document.getElementById('audit-doc-status').textContent = '已加载: ' + file.name;
-        }
+        // Extract the actual uploaded document. Never substitute the demo contract.
+        readFileText(file).then(text => {
+          document.getElementById('audit-text').value = text;
+          document.getElementById('audit-doc-status').textContent = '已解析原文件: ' + file.name;
+        }).catch(error => {
+          status.textContent = '需粘贴文本';
+          status.className = 'file-item-status error';
+          document.getElementById('audit-doc-status').textContent = error.message;
+        });
       } else {
         bar.style.width = progress + '%';
       }
     }, 250);
 
-    auditFiles.push({ name: file.name, size: file.size, type: file.type, id: fileId });
+    auditFiles.push({ name: file.name, size: file.size, type: file.type, id: fileId, file });
   });
 }
 
@@ -1295,6 +1329,210 @@ function submitShare() {
 
 // ==================== INIT ====================
 renderCampaignMap();
+renderCommunity();
+</script>
+<script>
+// ==================== ARGUS+ EVIDENCE-FIRST UPGRADE ====================
+let parsedForgeText = '';
+let generatedCase = null;
+let detectedMonsters = [];
+let debateMode = 'free';
+let playerHP = 100;
+let enemyHP = 100;
+let discoveredEvidence = [];
+let debateHistory = [];
+
+const realCaseLibrary = [
+  { keys:['退货','七天','网购','电商'], title:'胡某与韩某等信息网络买卖合同纠纷案', summary:'经营者仅标注“不支持七日无理由退货”，却不能证明商品性质确实不宜退货，法院认定该排除条款对消费者不具约束力。', url:'https://www.court.gov.cn/zixun/xiangqing/467931.html', source:'最高人民法院 · 网络消费民事典型案例' },
+  { keys:['加班','劳动','工资'], title:'劳动者订立放弃加班费协议后主张加班费案', summary:'用人单位以单方格式文本要求劳动者放弃加班费，免除自身法定责任、排除劳动者权利，相关约定被认定无效。', url:'https://www.court.gov.cn/zixun/xiangqing/319151.html', source:'最高人民法院 · 劳动人事争议典型案例' },
+  { keys:['隐私','个人信息','数据','人脸'], title:'郭兵诉杭州野生动物世界服务合同纠纷案', summary:'经营者升级年卡验证方式并处理人脸信息引发争议，法院判令删除相关面部特征信息并赔偿合同利益损失。', url:'https://www.court.gov.cn/zixun/xiangqing/329801.html', source:'最高人民法院 · 长三角一体化典型案例' },
+  { keys:['租赁','押金','退租','房东'], title:'房屋租赁押金争议类案检索入口', summary:'依据上传材料中的租赁、押金、验收和损耗关键词，前往人民法院案例库继续核验同类裁判；具体结论须结合合同原文和证据。', url:'https://rmfyalk.court.gov.cn/', source:'人民法院案例库 · 官方检索' }
+];
+
+const riskRules = [
+  { name:'信息饕餮', type:'隐私怪兽', severity:'high', rx:/个人信息|位置信息|生物识别|通讯录|人脸/i, vague:/可能|必要时|包括但不限于|无需另行/i, weakness:'《个人信息保护法》第6条、第17条', desc:'收集目的、范围或保存期限可能不够明确。' },
+  { name:'共享恶魔', type:'数据怪兽', severity:'high', rx:/共享|提供给第三方|合作伙伴|转让/i, weakness:'《个人信息保护法》第23条', desc:'向第三方提供个人信息时，应明确接收方、目的、方式、种类并依法取得单独同意。' },
+  { name:'免责魔像', type:'免责条款怪兽', severity:'high', rx:/不承担|概不负责|免除.*责任|自行承担/i, weakness:'《民法典》第496条、第497条', desc:'条款可能不合理地免除提供方责任或加重相对方责任。' },
+  { name:'单改暴君', type:'格式条款怪兽', severity:'medium', rx:/随时修改|单方变更|最终解释权|恕不另行通知/i, weakness:'《民法典》第496条、第497条', desc:'单方变更或最终解释安排可能排除对方主要权利。' },
+  { name:'违约金巨兽', type:'赔偿怪兽', severity:'medium', rx:/违约金|赔偿.*倍|每日.*%/i, weakness:'《民法典》第585条', desc:'约定违约金若过分高于实际损失，可请求适当减少。' },
+  { name:'管辖迷雾', type:'程序怪兽', severity:'medium', rx:/仲裁|管辖法院|争议提交/i, weakness:'《民事诉讼法》及相关司法解释', desc:'争议解决条款需核验机构名称、约定范围和提示说明是否明确。' },
+  { name:'续费幽灵', type:'消费怪兽', severity:'high', rx:/自动续费|默认续订|到期续费/i, weakness:'《消费者权益保护法实施条例》相关提示义务', desc:'自动续费应在消费者接受服务前和续费日期前以显著方式提醒。' }
+];
+
+levelCases[2] = {
+  title:'七天无理由 #002', meta:'一审 · 中国大陆 · 网络消费', side:'plaintiff',
+  plaintiff:'消费者胡某在网店购买普通手提包，收货后第3日申请无理由退货退款。',
+  defendant:'商家主张商品页已标注“不支持七天无理由退货”，消费者下单即表示接受。',
+  focus:['该商品是否属于法定不宜退货商品','商家单方提示能否排除法定退货权','消费者是否保持商品完好'],
+  sourceText:'商品订单\n下单时间：2026-08-11 20:32\n商品：女士手提包 ×1，金额899元\n商品页提示：本商品不支持七天无理由退货。\n售后记录\n签收时间：2026-08-14 16:20\n退货申请：2026-08-17 10:05，理由“不喜欢/不合适”\n商家回复：特殊商品，售出不退。\n开箱视频：吊牌完整、包装完好、无使用痕迹。',
+  evidence:[
+    {id:'E1',title:'商品订单与页面提示',desc:'含下单时间、商品性质及“不支持退货”提示',type:'doc',credibility:9,clue:'商品页提示'},
+    {id:'E2',title:'签收与售后时间线',desc:'签收后第3日提出退货申请',type:'chat',credibility:9,clue:'退货申请'},
+    {id:'E3',title:'开箱视频',desc:'可见吊牌、包装及商品状态',type:'img',credibility:8,clue:'开箱视频'}
+  ],
+  verdict:{winner:'消费者胜诉',confidence:86,steps:[
+    {content:'消费者在签收后七日内提出退货，且现有材料显示商品完好。',cite:'E2、E3'},
+    {content:'普通手提包并非法定当然不宜退货商品，经营者未证明其性质导致退货后价值重大贬损。',cite:'E1'},
+    {content:'适用《消费者权益保护法》第25条，经营者不得任意扩大不适用范围。',cite:'《消费者权益保护法》第25条'},
+    {content:'页面单方标注不足以排除消费者法定权利。',cite:'最高人民法院网络消费民事典型案例'}
+  ],award:'商家退还货款899元；消费者退还商品'}
+};
+
+function esc(value='') { const d=document.createElement('div'); d.textContent=String(value); return d.innerHTML; }
+function splitClauses(text) { return text.split(/\n+|(?<=[。！？；])\s*/).map(s=>s.trim()).filter(s=>s.length>5); }
+function moneyFrom(text) { return (text.match(/(?:人民币)?\s*\d[\d,]*(?:\.\d+)?\s*(?:元|万元)/)||[])[0] || '金额待核验'; }
+function caseTypeFrom(text) {
+  if (/退货|网购|消费者/.test(text)) return '网络消费合同纠纷';
+  if (/加班|工资|劳动/.test(text)) return '劳动争议';
+  if (/租赁|押金|房东|退租/.test(text)) return '房屋租赁合同纠纷';
+  if (/个人信息|隐私|数据/.test(text)) return '个人信息保护纠纷';
+  return '合同纠纷';
+}
+function relevantCases(text) {
+  const hits=realCaseLibrary.filter(c=>c.keys.some(k=>text.includes(k)));
+  return (hits.length?hits:realCaseLibrary.slice(0,2)).slice(0,3);
+}
+
+function injectAISettings() {
+  if (document.getElementById('ai-settings')) return;
+  const host=document.querySelector('#screen-forge .card-body');
+  host.insertAdjacentHTML('beforeend', `<div id="ai-settings" class="ai-settings" aria-label="AI 服务设置">
+    <div class="forge-section-title">真实 AI 服务（可选）</div>
+    <div class="ai-grid"><label><span class="label">兼容接口地址</span><input id="ai-endpoint" class="input" placeholder="https://你的安全后端/v1/chat/completions"></label><label><span class="label">模型</span><input id="ai-model" class="input" value="gpt-4.1-mini"></label></div>
+    <label><span class="label">临时 API 密钥</span><input id="ai-key" type="password" class="input" autocomplete="off" placeholder="仅保存在当前页面内存"></label>
+    <div class="privacy-hint">公开的 GitHub Pages 无法安全保存密钥。推荐填写你自己的代理后端；留空时使用浏览器本地解析和动态反驳，并明确标注“本地模式”。上传内容只有在你填写接口并点击自动配置/发送时才会传给该接口。</div>
+  </div>`);
+}
+function openAISettings(){ injectAISettings(); document.getElementById('ai-settings').classList.toggle('visible'); }
+function aiConfigured(){ return !!document.getElementById('ai-endpoint')?.value.trim(); }
+async function callAI(messages) {
+  const endpoint=document.getElementById('ai-endpoint')?.value.trim();
+  if(!endpoint) return null;
+  const key=document.getElementById('ai-key')?.value.trim();
+  const model=document.getElementById('ai-model')?.value.trim()||'gpt-4.1-mini';
+  const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json',...(key?{Authorization:`Bearer ${key}`}:{})},body:JSON.stringify({model,messages,temperature:.35})});
+  if(!res.ok) throw new Error(`AI 服务返回 ${res.status}`);
+  const data=await res.json(); return data.choices?.[0]?.message?.content || data.output_text || data.response || null;
+}
+async function readFileText(file) {
+  file=file.file||file;
+  const lower=file.name.toLowerCase();
+  if(lower.endsWith('.txt')||file.type.startsWith('text/')) return await file.text();
+  if(lower.endsWith('.pdf')) {
+    await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js','pdfjsLib');
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise; let out='';
+    for(let i=1;i<=pdf.numPages;i++){const p=await pdf.getPage(i),c=await p.getTextContent();out+=c.items.map(x=>x.str).join(' ')+'\n';} return out;
+  }
+  if(lower.endsWith('.docx')) { await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js','mammoth'); return (await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()})).value; }
+  throw new Error('该格式暂不支持浏览器提取；请改用 PDF、DOCX 或 TXT');
+}
+function loadScriptOnce(src,globalName){ if(window[globalName]) return Promise.resolve(); return new Promise((ok,bad)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>bad(new Error('解析组件加载失败'));document.head.appendChild(s);}); }
+
+async function autoConfigureCase() {
+  injectAISettings();
+  const btn=document.getElementById('auto-case-btn'), preview=document.getElementById('forge-preview');
+  btn.disabled=true; btn.textContent='白猫正在整理卷宗…';
+  preview.classList.add('ready'); preview.innerHTML='<div class="status-strip" role="status">🐈 正在读取原文件、识别当事人、时间线、金额、争议焦点和可搜集证据…</div>';
+  try {
+    const chunks=[]; for(const file of forgeFiles){ try{const t=await readFileText(file); if(t.trim()) chunks.push(`【文件：${file.name}】\n${t}`);}catch(e){chunks.push(`【文件：${file.name}】\n[未能提取：${e.message}]`);} }
+    parsedForgeText=chunks.join('\n\n');
+    const manual=[document.getElementById('forge-concept').value,document.getElementById('forge-plaintiff').value,document.getElementById('forge-defendant').value].join('\n');
+    const corpus=(parsedForgeText+'\n'+manual).trim(); if(!corpus) throw new Error('请至少上传一份文件，或填写案件概念');
+    const clauses=splitClauses(corpus), type=caseTypeFrom(corpus), amount=moneyFrom(corpus);
+    const plaintiff=document.getElementById('forge-plaintiff').value.trim()||`主张方：请求就${type}承担责任（从原文件继续核验身份）`;
+    const defendant=document.getElementById('forge-defendant').value.trim()||`相对方：对责任、金额或证据提出抗辩（从原文件继续核验身份）`;
+    const focus=[`核心事实与时间线是否由原始材料相互印证`,`争议金额 ${amount} 的计算和支付依据`,`关键格式条款是否被提示说明且合法有效`];
+    const evidence=clauses.slice(0,Math.min(6,clauses.length)).map((c,i)=>({id:`U${i+1}`,title:`原文件线索 ${i+1}`,desc:c.slice(0,70),type:/聊天|回复|通知/.test(c)?'chat':'doc',credibility:8,clue:c.slice(0,18)}));
+    generatedCase={title:`${type} · 自动配置案`,meta:`${document.getElementById('forge-level').selectedOptions[0].text} · ${document.getElementById('forge-region').selectedOptions[0].text} · 来源：上传原件`,side:document.getElementById('forge-side').value,plaintiff,defendant,focus,evidence,sourceText:parsedForgeText||corpus,verdict:{winner:'待裁决',confidence:0,steps:[],award:'需完成搜证与辩论后裁决'}};
+    let aiNote='本地解析模式：未调用外部模型。';
+    if(aiConfigured()) { const answer=await callAI([{role:'system',content:'你是中国法律教育产品的案件配置助手。只根据用户材料概括事实、当事人、时间线和争议焦点；不得编造合同条款、案例或确定性法律结论。用简短中文回答。'},{role:'user',content:corpus.slice(0,18000)}]); if(answer) aiNote=answer; }
+    const cases=relevantCases(corpus);
+    preview.innerHTML=`<div class="status-strip"><span>✓ ${aiConfigured()?'真实 AI 已完成材料映射':'本地解析已完成'}</span><span>${forgeFiles.length} 份文件</span><span>${clauses.length} 条文本片段</span></div>
+      <div class="forge-section"><div class="forge-section-title">从原文件提取的案件配置</div><div class="original-clause"><span class="clause-label">来源内容预览 · 不生成替代合同</span>${esc((parsedForgeText||corpus).slice(0,700))}${corpus.length>700?'…':''}</div><p style="font-size:.82rem;line-height:1.6">${esc(aiNote)}</p></div>
+      <div class="forge-section"><div class="forge-section-title">双方与争议焦点</div><p><strong style="color:var(--electric-blue)">主张方：</strong>${esc(plaintiff)}</p><p><strong style="color:var(--flame-orange)">相对方：</strong>${esc(defendant)}</p>${focus.map(f=>`<div class="audit-clause clean">• ${esc(f)}</div>`).join('')}</div>
+      <div class="forge-section"><div class="forge-section-title">类似真实案例 · 官方链接</div>${cases.map(c=>`<article class="case-source"><div><strong>${esc(c.title)}</strong><div class="source-summary">${esc(c.summary)}</div><small>${esc(c.source)}</small></div><a href="${c.url}" target="_blank" rel="noopener">查看原文 ↗</a></article>`).join('')}<div class="privacy-hint">案例由关键词检索匹配，不代替对案号、事实和裁判要旨的人工核验。</div></div>`;
+    document.getElementById('forge-actions').style.display='block';
+  } catch(e){ preview.innerHTML=`<div class="status-strip" style="background:#f8d9d9">解析未完成：${esc(e.message)}。已保留你的文件和输入，可调整后重试。</div>`; }
+  finally { btn.disabled=false; btn.textContent='🧠 AI 自动配置案件'; }
+}
+function forgeGenerate(){ return autoConfigureCase(); }
+function forgeManual(){ return autoConfigureCase(); }
+function enterCourtroomFromForge(){ if(!generatedCase){alert('请先自动配置案件');return;} goScreenById('campaign'); setTimeout(()=>startLevel(99),120); }
+
+function detectRisks(text){ const clauses=splitClauses(text); const found=[]; clauses.forEach((clause,idx)=>riskRules.forEach(rule=>{if(rule.rx.test(clause)&&(!rule.vague||rule.vague.test(clause))&&!found.some(m=>m.name===rule.name&&m.clause===clause)){found.push({...rule,id:`R${found.length+1}`,clauseIdx:idx,clause,fix:`请重写本条，明确适用对象、触发条件、责任边界、通知方式及退出机制，并对${rule.weakness}进行专项复核。`});}})); return found; }
+function startAudit(){
+  const text=document.getElementById('audit-text').value.trim(); if(!text){alert('请先粘贴合同文本或上传文件');return;}
+  const btn=document.getElementById('audit-btn'); btn.disabled=true; btn.textContent='🔍 正在逐条映射…'; document.getElementById('audit-scan-line').style.display='block';
+  detectedMonsters=detectRisks(text); const clauses=splitClauses(text);
+  setTimeout(()=>{btn.disabled=false;btn.textContent='🔍 重新扫描';document.getElementById('audit-scan-line').style.display='none';document.getElementById('audit-doc-status').textContent=`基于原文发现 ${detectedMonsters.length} 处`;
+    document.getElementById('audit-monster-count').textContent=`${detectedMonsters.length} 只`;
+    document.getElementById('audit-monster-list').innerHTML=detectedMonsters.length?detectedMonsters.map(m=>`<article class="monster-card" id="monster-${m.id}"><div style="display:flex;justify-content:space-between"><span class="monster-name">${m.name}</span><span class="tag ${m.severity==='high'?'tag-red':'tag-orange'}">${m.severity}</span></div><div class="monster-meta">${m.type} · 原文第 ${m.clauseIdx+1} 段</div><blockquote class="original-clause"><span class="clause-label">原合同对应条款 · 点击左侧文本可交叉核对</span>${esc(m.clause)}</blockquote><p style="font-size:.82rem;line-height:1.5">${esc(m.desc)}</p><div class="monster-weak">⚡ 核验依据：${esc(m.weakness)}</div><div style="display:flex;gap:.5rem"><button class="btn btn-primary" style="padding:.5rem;flex:1" onclick="showBattleTalk('${m.id}')">反驳话术</button><button class="btn btn-secondary" style="padding:.5rem;flex:1" onclick="slayMonster('${m.id}')">生成修订建议</button></div></article>`).join(''):'<div class="status-strip">未命中现有风险规则。此结果不等于合同无风险，建议接入 AI 或人工复核。</div>';
+    document.getElementById('audit-text').insertAdjacentHTML('afterend',`<div id="audit-clause-map" class="source-document" aria-label="原合同条款映射">${clauses.map((c,i)=>`<div class="audit-clause ${detectedMonsters.some(m=>m.clauseIdx===i)?'risk-high':'clean'}"><strong>第 ${i+1} 段</strong> ${esc(c)}</div>`).join('')}</div>`);
+    document.querySelectorAll('#audit-clause-map ~ #audit-clause-map').forEach(n=>n.remove());
+  },650);
+}
+function showBattleTalk(id){ const m=detectedMonsters.find(x=>x.id===id); if(!m)return; document.getElementById('battle-content').innerHTML=`<blockquote class="original-clause"><span class="clause-label">正在反驳的原条款</span>${esc(m.clause)}</blockquote><p><strong>质疑：</strong>请对方说明该条款如何履行显著提示与说明义务，以及为何没有不合理免除责任或排除主要权利。</p><p><strong>核验依据：</strong>${esc(m.weakness)}</p><p><strong>修订方向：</strong>${esc(m.fix)}</p>`;document.getElementById('battle-modal').classList.add('visible');}
+function slayMonster(id){const m=detectedMonsters.find(x=>x.id===id),card=document.getElementById('monster-'+id);if(!m||!card)return;card.insertAdjacentHTML('beforeend',`<div class="original-clause" style="border-left-color:var(--leaf-green)"><span class="clause-label" style="color:var(--leaf-green)">修订建议 · 需法律人员确认</span>${esc(m.fix)}</div>`);card.querySelectorAll('button').forEach(b=>b.disabled=true);}
+
+function sceneObjectsFor(c){return c.evidence.map((e,i)=>({...e,x:[8,58,34,72,15,48][i%6],y:[28,22,58,55,72,72][i%6]}));}
+function renderEvidenceHub(){
+  discoveredEvidence=[]; const board=document.getElementById('evidence-board'),src=currentCase.sourceText||currentCase.evidence.map(e=>`${e.title}：${e.desc}`).join('\n');
+  board.innerHTML=`<div class="evidence-hub"><div class="scene-board">${sceneObjectsFor(currentCase).map(e=>`<button class="scene-object" data-scene="${e.id}" style="left:${e.x}%;top:${e.y}%" onclick="discoverEvidence('${e.id}','scene')">${e.type==='img'?'📷':e.type==='chat'?'💬':'📄'} ${esc(e.title)}</button>`).join('')}</div><div><span class="label">原文件 · 点击高光片段取证</span><div class="source-document">${currentCase.evidence.map((e,i)=>`<button class="doc-hotspot" data-doc="${e.id}" onclick="discoverEvidence('${e.id}','document')"><strong>${esc(e.title)}</strong><br>${esc(findSourceSnippet(src,e.clue||e.desc))}</button>`).join('')}</div></div><div><span class="label">已收集证据</span><div class="evidence-inventory" id="evidence-inventory">${currentCase.evidence.map(e=>`<div class="evidence-slot locked" data-id="${e.id}" onclick="toggleEvidence('${e.id}')"><strong>${esc(e.title)}</strong><div>${esc(e.desc)}</div><span class="tag">尚未发现</span></div>`).join('')}</div></div></div>`;
+  document.getElementById('evidence-counter').textContent=`0/${currentCase.evidence.length}`;
+}
+function findSourceSnippet(src,clue){const lines=splitClauses(src);return (lines.find(l=>l.includes((clue||'').slice(0,8)))||lines[0]||clue||'原文件片段').slice(0,180);}
+function discoverEvidence(id,from){if(discoveredEvidence.includes(id))return;discoveredEvidence.push(id);document.querySelector(`[data-${from==='scene'?'scene':'doc'}="${id}"]`)?.classList.add('found');document.querySelector(`[data-${from==='scene'?'doc':'scene'}="${id}"]`)?.classList.add('found');const slot=document.querySelector(`#evidence-inventory [data-id="${id}"]`);slot?.classList.remove('locked');if(slot)slot.querySelector('.tag').textContent='已入证据库';document.getElementById('evidence-counter').textContent=`${discoveredEvidence.length}/${currentCase.evidence.length}`;}
+function toggleEvidence(id){if(!discoveredEvidence.includes(id))return;const el=document.querySelector(`#evidence-inventory [data-id="${id}"]`);if(selectedEvidence.includes(id)){selectedEvidence=selectedEvidence.filter(e=>e!==id);el.classList.remove('selected');}else{selectedEvidence.push(id);el.classList.add('selected');}}
+
+function injectDebateControls(){
+  const flow=document.getElementById('debate-flow'); if(document.getElementById('debate-controls')) return;
+  flow.insertAdjacentHTML('beforebegin',`<div id="debate-controls"><div class="mode-switch"><button class="active" onclick="setDebateMode('free',this)">自由模式</button><button onclick="setDebateMode('card',this)">话术卡牌模式</button></div><div class="hp-panel"><div>你的说服力 <span id="player-hp-text">100</span><div class="hp-track"><div id="player-hp" class="hp-fill"></div></div></div><div>对方说服力 <span id="enemy-hp-text">100</span><div class="hp-track"><div id="enemy-hp" class="hp-fill enemy"></div></div></div></div></div>`);
+  flow.parentElement.insertAdjacentHTML('beforeend',`<div id="card-deck" class="card-deck"><button class="argument-card" onclick="playCard('evidence',24)"><strong>📎 证据突袭</strong>引用已搜集的原件，质疑对方事实基础。<span class="card-cost">伤害 24 · 需至少1份证据</span></button><button class="argument-card" onclick="playCard('law',20)"><strong>⚖️ 法条压制</strong>用与本案争点相符的法条拆解抗辩。<span class="card-cost">伤害 20</span></button><button class="argument-card" onclick="playCard('question',16)"><strong>❓ 交叉质询</strong>逼迫对方补足时间、金额或程序细节。<span class="card-cost">伤害 16</span></button></div>`);
+}
+function setDebateMode(mode,btn){debateMode=mode;document.querySelectorAll('.mode-switch button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('card-deck').classList.toggle('visible',mode==='card');document.getElementById('debate-input').parentElement.style.display=mode==='free'?'flex':'none';}
+function updateHP(){document.getElementById('player-hp').style.width=playerHP+'%';document.getElementById('enemy-hp').style.width=enemyHP+'%';document.getElementById('player-hp-text').textContent=playerHP;document.getElementById('enemy-hp-text').textContent=enemyHP;}
+function localCounterResponse(text,evs){
+  const claim=/第\s*\d+\s*条|民法典|消费者权益|劳动合同法/.test(text)?'你引用了规范，但仍需说明该条与本案事实之间的构成要件对应。':'你的主张目前缺少明确的法律规则，请指出请求权基础。';
+  const evidence=evs.length?`你引用了 ${evs.join('、')}，我方质疑其形成时间、完整性以及与争点的关联。`:'你没有同时提交已搜集证据，我方认为这仍是单方陈述。';
+  const direct=/七日|退货/.test(text)?'此外，请证明商品保持完好且申请确在法定期间内提出。':/押金|损坏/.test(text)?'此外，押金扣除应以实际损失为限，但你方也需证明现状并非自身造成。':'请继续回答：具体行为、发生时间和损失金额分别是什么？';
+  return `${evidence}${claim}${direct}`;
+}
+async function opponentReply(text,evs){
+  if(aiConfigured()){try{return await callAI([{role:'system',content:'你扮演模拟法庭中的对方律师。只根据当前案件、玩家刚才的话和已提交证据作一段具体回应，指出逻辑或证据缺口并提出一个追问。不要预设台词，不要编造事实。'},{role:'user',content:JSON.stringify({case:{plaintiff:currentCase.plaintiff,defendant:currentCase.defendant,focus:currentCase.focus},player:text,evidence:evs,history:debateHistory.slice(-4)})}])||localCounterResponse(text,evs);}catch(e){return `AI 服务暂不可用（${e.message}）。本轮切换为本地动态反驳：${localCounterResponse(text,evs)}`;}}
+  return localCounterResponse(text,evs);
+}
+async function submitArgument(text,damage){const flow=document.getElementById('debate-flow'),evs=[...selectedEvidence];flow.innerHTML+=`<div class="debate-bubble debate-user"><div class="debate-sender">你的论点 · ${debateMode==='card'?'卡牌':'自由'}</div>${esc(text)}${evs.length?`<div>📎 ${evs.join('、')}</div>`:''}</div>`;enemyHP=Math.max(0,enemyHP-damage);updateHP();debateHistory.push({role:'玩家',text});selectedEvidence=[];document.querySelectorAll('.evidence-slot.selected').forEach(e=>e.classList.remove('selected'));flow.innerHTML+='<div class="ai-thinking">对方正在根据你刚才的论点组织回应…</div>';flow.scrollTop=flow.scrollHeight;const reply=await opponentReply(text,evs);flow.querySelector('.ai-thinking:last-of-type')?.remove();flow.innerHTML+=`<div class="debate-bubble debate-adversary"><div class="debate-sender">对手律师 · ${aiConfigured()?'实时 AI':'本地动态回应'}</div>${esc(reply)}</div>`;playerHP=Math.max(0,playerHP-(evs.length?8:14));updateHP();debateHistory.push({role:'对手',text:reply});debateRound++;document.getElementById('court-round-tag').textContent=`ROUND ${debateRound+1}`;flow.scrollTop=flow.scrollHeight;}
+function sendDebate(){const input=document.getElementById('debate-input'),text=input.value.trim();if(!text)return;input.value='';submitArgument(text,Math.min(24,10+Math.floor(text.length/12)+(selectedEvidence.length*5)));}
+function playCard(type,damage){if(type==='evidence'&&!selectedEvidence.length){alert('先在左侧场景或原文件中搜集证据，再从证据库选中至少一份。');return;}const map={evidence:'我方提交刚刚搜集的原始证据，要求对方说明其抗辩为何与原件记载不一致。',law:`我方依据与争议焦点直接相关的强制性规则，主张该条款不得排除法定权利。`,question:'请对方明确回答：所称事实发生的具体时间、金额计算依据及形成该证据的完整过程是什么？'};submitArgument(map[type],damage);}
+
+const originalStartLevel=startLevel;
+startLevel=function(levelId){
+  if(levelId===99&&generatedCase) levelCases[99]=generatedCase;
+  originalStartLevel(levelId);
+  if(levelId===99&&generatedCase){
+    currentCase=generatedCase;
+    document.getElementById('court-case-title').textContent=currentCase.title;
+    document.getElementById('court-case-meta').textContent=currentCase.meta;
+    document.getElementById('court-side-tag').textContent=currentCase.side==='plaintiff'?'原告律师':'被告律师';
+    document.getElementById('case-dossier').innerHTML=`<div style="margin-bottom:1rem"><strong style="color:var(--electric-blue)">原告主张：</strong><br>${esc(currentCase.plaintiff)}</div><div style="margin-bottom:1rem"><strong style="color:var(--flame-orange)">被告抗辩：</strong><br>${esc(currentCase.defendant)}</div><div><strong>争议焦点：</strong><br>${currentCase.focus.map(f=>`• ${esc(f)}`).join('<br>')}</div>`;
+  }
+  playerHP=100;enemyHP=100;debateHistory=[];renderEvidenceHub();injectDebateControls();setDebateMode('free',document.querySelector('.mode-switch button'));updateHP();
+  const flow=document.getElementById('debate-flow');flow.innerHTML=`<div class="debate-system">⚖️ 法庭已就绪 · 先在左侧场景和原文件中搜证，再开始陈述。</div><div class="debate-adversary"><div class="debate-sender">对手律师 · 动态回应已开启</div>请先陈述你的核心请求及其证据基础。我会针对你实际提交的内容回应。</div>`;
+};
+
+feedData.forEach((p,i)=>{p.id=i;p.liked=false;p.commentList=i===0?['证据链怎么搭的？','期待复盘。']:[];});
+function renderCommunity(){document.getElementById('leaderboard-body').innerHTML=leaderboardData.map(u=>`<div class="leaderboard-row"><div class="leaderboard-rank ${u.rank<=3?['gold','silver','bronze'][u.rank-1]:''}">${u.rank}</div><div class="leaderboard-avatar">${u.avatar}</div><div class="leaderboard-info"><div class="leaderboard-name">${esc(u.name)}</div><div class="leaderboard-meta">${u.title} · 关卡 ${u.level}</div></div><div class="leaderboard-score">${u.score}</div></div>`).join('');document.getElementById('community-feed').innerHTML=feedData.map((p,i)=>`<article class="feed-card"><div class="feed-header"><span class="feed-author">${esc(p.author)}</span><span class="feed-time">${esc(p.time)}</span></div><div class="feed-body">${p.body}</div><div>${p.tags.map(t=>`<span class="tag tag-purple">${esc(t)}</span>`).join('')}</div><div class="feed-actions"><button class="feed-action ${p.liked?'liked':''}" onclick="toggleLike(${i})">${p.liked?'♥':'♡'} ${p.likes}</button><button class="feed-action" onclick="toggleComments(${i})">💬 ${p.commentList?.length||0}</button><button class="feed-action" onclick="toggleComments(${i})">回复讨论</button></div><div class="comment-panel" id="comments-${i}">${(p.commentList||[]).map(c=>`<div class="comment-item"><strong>社区成员</strong> ${esc(c)}</div>`).join('')}<div style="display:flex;gap:.4rem"><input class="input" id="comment-input-${i}" style="margin:0" aria-label="评论内容" placeholder="像 Discord 线程一样继续讨论…"><button class="btn btn-primary" style="box-shadow:none;padding:.55rem" onclick="addComment(${i})">发送</button></div></div></article>`).join('');}
+function toggleLike(i){const p=feedData[i];p.liked=!p.liked;p.likes+=p.liked?1:-1;renderCommunity();}
+function toggleComments(i){document.getElementById('comments-'+i)?.classList.toggle('visible');}
+function addComment(i){const input=document.getElementById('comment-input-'+i),text=input.value.trim();if(!text)return;feedData[i].commentList=feedData[i].commentList||[];feedData[i].commentList.push(text);renderCommunity();setTimeout(()=>document.getElementById('comments-'+i)?.classList.add('visible'),0);}
+function openShareModal(){document.getElementById('share-modal').classList.add('visible');}
+const originalSubmitShare=submitShare;
+submitShare=function(){const before=feedData.length;originalSubmitShare();if(feedData.length>before){feedData[0].commentList=[];feedData[0].liked=false;feedData.forEach((p,i)=>p.id=i);renderCommunity();}};
+
+injectAISettings();
+document.querySelector('#screen-forge .card-header span:first-child').textContent='🧠 文件驱动案件配置';
+document.querySelector('#forge-preview > div div:last-child').textContent='上传原始文件后，系统会提取真实内容并配置案件；不会另行编造合同。';
 renderCommunity();
 </script>
 </body>
