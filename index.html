@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARGUS+ — 法庭闯关 & 合同猎魔</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #171717; --paper: #f5f0e6; --paper-bright: #fffdf7; --paper-muted: #ddd5c7;
+  --periwinkle: #5869b5; --electric-blue: #315cff; --flame-orange: #f05a28;
+  --signal-yellow: #f2cb45; --leaf-green: #407a57; --error-red: #b93636;
+  --royal-purple: #6b4c9a; --cyber-dark: #0a0a0f;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; overflow-x: hidden; }
+.grain { position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ===== MASTHEAD ===== */
+.masthead { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 2rem; border-bottom: 3px solid var(--ink); background: var(--paper-bright); position: sticky; top: 0; z-index: 100; flex-wrap: wrap; gap: 0.5rem; }
+.masthead-brand { display: flex; align-items: center; gap: 0.75rem; }
+.masthead-logo { font-family: 'Archivo Black', sans-serif; font-size: 1.6rem; letter-spacing: -0.02em; }
+.masthead-tag { font-family: 'Space Mono', monospace; font-size: 0.6rem; text-transform: uppercase; background: var(--royal-purple); color: var(--paper-bright); padding: 3px 10px; border: 2px solid var(--ink); border-radius: 3px; transform: rotate(-1deg); }
+.masthead-nav { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.nav-btn { font-family: 'Space Mono', monospace; font-size: 0.7rem; text-transform: uppercase; padding: 0.5rem 1rem; border: 2px solid var(--ink); background: var(--paper); cursor: pointer; border-radius: 3px; transition: all 0.15s ease; }
+.nav-btn:hover { transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--ink); }
+.nav-btn.active { background: var(--electric-blue); color: var(--paper-bright); box-shadow: 4px 4px 0 var(--ink); transform: translate(-2px, -2px); }
+.user-badge { display: flex; align-items: center; gap: 0.5rem; font-family: 'Space Mono', monospace; font-size: 0.7rem; }
+.user-rank { background: var(--signal-yellow); padding: 2px 8px; border: 2px solid var(--ink); border-radius: 3px; font-weight: 700; }
+
+/* ===== PANEL SYSTEM ===== */
+.screen { display: none; padding: 1.5rem 2rem; max-width: 1400px; margin: 0 auto; min-height: calc(100vh - 70px); }
+.screen.active { display: block; animation: fadeIn 0.4s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ===== SHARED COMPONENTS ===== */
+.card { background: var(--paper-bright); border: 3px solid var(--ink); border-radius: 8px; overflow: hidden; box-shadow: 6px 6px 0 rgba(23,23,23,0.15); }
+.card-header { background: var(--ink); color: var(--paper-bright); padding: 0.75rem 1rem; font-family: 'Space Mono', monospace; font-size: 0.7rem; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
+.card-body { padding: 1rem; }
+.btn { font-family: 'Space Mono', monospace; font-size: 0.75rem; text-transform: uppercase; padding: 0.75rem 1.5rem; border: 2px solid var(--ink); border-radius: 3px; cursor: pointer; box-shadow: 4px 4px 0 var(--ink); transition: all 0.15s ease; display: inline-flex; align-items: center; gap: 0.5rem; }
+.btn:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ink); }
+.btn:active { transform: translate(1px, 1px); box-shadow: 2px 2px 0 var(--ink); }
+.btn-primary { background: var(--electric-blue); color: var(--paper-bright); }
+.btn-secondary { background: var(--paper); color: var(--ink); }
+.btn-danger { background: var(--error-red); color: var(--paper-bright); }
+.btn-gold { background: var(--signal-yellow); color: var(--ink); }
+.tag { font-family: 'Space Mono', monospace; font-size: 0.6rem; text-transform: uppercase; padding: 2px 8px; border: 1.5px solid var(--ink); border-radius: 3px; display: inline-block; margin: 0 4px 4px 0; }
+.tag-blue { background: var(--electric-blue); color: var(--paper-bright); }
+.tag-orange { background: var(--flame-orange); color: var(--paper-bright); }
+.tag-yellow { background: var(--signal-yellow); color: var(--ink); }
+.tag-green { background: var(--leaf-green); color: var(--paper-bright); }
+.tag-purple { background: var(--royal-purple); color: var(--paper-bright); }
+.tag-red { background: var(--error-red); color: var(--paper-bright); }
+
+.input, .textarea, select { width: 100%; padding: 0.75rem; border: 2px solid var(--ink); border-radius: 3px; background: var(--paper-bright); font-family: 'Inter', sans-serif; font-size: 0.9rem; outline: none; margin-bottom: 0.75rem; }
+.input:focus, .textarea:focus, select:focus { border-color: var(--electric-blue); box-shadow: 0 0 0 3px rgba(49,92,255,0.15); }
+.textarea { min-height: 100px; resize: vertical; }
+.label { font-family: 'Space Mono', monospace; font-size: 0.65rem; text-transform: uppercase; color: var(--periwinkle); margin-bottom: 0.25rem; display: block; }
+
+/* ===== FILE UPLOAD DROPZONE ===== */
+.dropzone { background: var(--paper); border: 2px dashed var(--periwinkle); border-radius: 3px; padding: 1.5rem; text-align: center; transition: all 0.3s ease; cursor: pointer; }
+.dropzone:hover, .dropzone.dragover { border-color: var(--electric-blue); background: rgba(49,92,255,0.05); }
+.dropzone-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+.dropzone-text { font-family: 'Space Mono', monospace; font-size: 0.7rem; margin-bottom: 0.5rem; }
+.dropzone-hint { font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--periwinkle); }
+.file-list { margin-top: 0.75rem; }
+.file-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem; background: var(--paper-bright); border: 2px solid var(--ink); border-radius: 3px; margin-bottom: 0.5rem; font-size: 0.85rem; }
+.file-item-icon { font-size: 1.5rem; }
+.file-item-info { flex: 1; }
+.file-item-name { font-weight: 600; }
+.file-item-meta { font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--periwinkle); }
+.file-item-progress { width: 100%; height: 6px; background: var(--paper-muted); border-radius: 3px; margin-top: 0.25rem; overflow: hidden; }
+.file-item-progress-bar { height: 100%; background: var(--leaf-green); width: 0%; transition: width 0.3s ease; }
+.file-item-status { font-family: 'Space Mono', monospace; font-size: 0.6rem; }
+.file-item-status.done { color: var(--leaf-green); }
+.file-item-status.error { color: var(--error-red); }
+
+/* ===== SCREEN: CASE FORGE ===== */
+.forge-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.forge-form { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.forge-result { background: var(--paper); border: 2px dashed var(--paper-muted); border-radius: 3px; padding: 1.5rem; min-height: 300px; }
+.forge-result.ready { border-style: solid; border-color: var(--leaf-green); background: var(--paper-bright); }
+.forge-section { margin-bottom: 1.5rem; }
+.forge-section-title { font-family: 'Archivo Black', sans-serif; font-size: 1.1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+.forge-section-title::before { content: ''; display: block; width: 6px; height: 6px; background: var(--flame-orange); border: 1.5px solid var(--ink); border-radius: 50%; }
+
+/* ===== SCREEN: CONTRACT AUDIT ===== */
+.audit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.audit-text { font-size: 0.85rem; line-height: 1.7; }
+.audit-clause { padding: 0.75rem; margin-bottom: 0.5rem; border-left: 3px solid transparent; transition: all 0.3s ease; position: relative; }
+.audit-clause.risk-high { border-left-color: var(--error-red); background: rgba(185,54,54,0.06); }
+.audit-clause.risk-med { border-left-color: var(--flame-orange); background: rgba(240,90,40,0.06); }
+.audit-clause.clean { border-left-color: var(--leaf-green); }
+.monster-card { background: var(--paper); border: 2px solid var(--ink); border-radius: 3px; padding: 1rem; margin-bottom: 0.75rem; position: relative; transition: all 0.2s ease; }
+.monster-card:hover { transform: translate(-2px, -2px); box-shadow: 5px 5px 0 var(--ink); }
+.monster-card.slayed { opacity: 0.4; border-color: var(--leaf-green); transform: none; box-shadow: none; }
+.monster-name { font-family: 'Archivo Black', sans-serif; font-size: 1rem; color: var(--flame-orange); }
+.monster-meta { font-family: 'Space Mono', monospace; font-size: 0.65rem; margin-bottom: 0.5rem; }
+.monster-weak { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: var(--signal-yellow); margin: 0.5rem 0; }
+.hp-bar { width: 100%; height: 18px; background: var(--paper-muted); border: 2px solid var(--ink); border-radius: 3px; overflow: hidden; margin: 0.5rem 0; }
+.hp-fill { height: 100%; background: linear-gradient(90deg, var(--error-red), var(--flame-orange)); transition: width 0.6s ease; }
+
+/* ===== SCREEN: COURTROOM CAMPAIGN ===== */
+.campaign-map { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 2rem; }
+.level-node { aspect-ratio: 1; background: var(--paper-bright); border: 3px solid var(--ink); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; position: relative; }
+.level-node:hover:not(.locked) { transform: translate(-3px, -3px); box-shadow: 6px 6px 0 var(--ink); }
+.level-node.locked { opacity: 0.4; cursor: not-allowed; border-color: var(--paper-muted); }
+.level-node.current { background: var(--signal-yellow); }
+.level-node.completed { background: var(--leaf-green); color: var(--paper-bright); }
+.level-num { font-family: 'Archivo Black', sans-serif; font-size: 1.4rem; }
+.level-title { font-family: 'Space Mono', monospace; font-size: 0.6rem; text-transform: uppercase; text-align: center; padding: 0 0.5rem; margin-top: 0.25rem; }
+.level-stars { font-size: 0.8rem; margin-top: 0.25rem; }
+
+.courtroom { display: grid; grid-template-columns: 260px 1fr 300px; gap: 1rem; }
+.evidence-slot { background: var(--paper); border: 2px solid var(--ink); border-radius: 3px; padding: 0.75rem; margin-bottom: 0.5rem; cursor: pointer; font-size: 0.8rem; transition: all 0.15s ease; }
+.evidence-slot:hover { transform: translate(-2px, -2px); box-shadow: 3px 3px 0 var(--ink); }
+.evidence-slot.selected { background: var(--signal-yellow); }
+.debate-bubble { max-width: 90%; padding: 1rem; border: 2px solid var(--ink); border-radius: 3px; margin-bottom: 0.75rem; font-size: 0.9rem; line-height: 1.5; position: relative; }
+.debate-user { align-self: flex-end; background: var(--electric-blue); color: var(--paper-bright); box-shadow: 4px 4px 0 var(--ink); margin-left: auto; }
+.debate-adversary { align-self: flex-start; background: var(--paper-bright); box-shadow: 4px 4px 0 var(--ink); }
+.debate-system { align-self: center; background: var(--signal-yellow); font-family: 'Space Mono', monospace; font-size: 0.7rem; padding: 0.5rem 1rem; }
+.debate-sender { font-family: 'Space Mono', monospace; font-size: 0.6rem; text-transform: uppercase; margin-bottom: 0.4rem; opacity: 0.7; }
+.debate-area { display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto; padding: 0.5rem; }
+
+.glassbox-verdict { border: 3px solid var(--ink); border-radius: 8px; overflow: hidden; margin-top: 1rem; display: none; }
+.glassbox-verdict.visible { display: block; animation: slideDown 0.5s ease; }
+.glassbox-header { background: var(--leaf-green); color: var(--paper-bright); padding: 1rem; font-family: 'Archivo Black', sans-serif; display: flex; justify-content: space-between; }
+.glassbox-body { padding: 1rem; background: var(--paper-bright); }
+.glassbox-step { border-left: 4px solid var(--periwinkle); padding-left: 1rem; margin-bottom: 1rem; position: relative; }
+.glassbox-step::before { content: attr(data-step); position: absolute; left: -12px; top: 0; background: var(--periwinkle); color: var(--paper-bright); width: 20px; height: 20px; text-align: center; line-height: 20px; font-family: 'Space Mono', monospace; font-size: 0.6rem; border: 2px solid var(--ink); border-radius: 50%; }
+.score-board { display: flex; gap: 1rem; margin-top: 1rem; justify-content: center; }
+.score-pill { background: var(--paper-bright); border: 2px solid var(--ink); padding: 0.75rem 1.5rem; border-radius: 3px; text-align: center; }
+.score-pill-num { font-family: 'Archivo Black', sans-serif; font-size: 1.5rem; }
+.score-pill-label { font-family: 'Space Mono', monospace; font-size: 0.6rem; text-transform: uppercase; }
+
+/* ===== SCREEN: COMMUNITY ===== */
+.community-grid { display: grid; grid-template-columns: 320px 1fr; gap: 1.5rem; }
+.leaderboard-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border-bottom: 1px dashed var(--paper-muted); }
+.leaderboard-rank { font-family: 'Archivo Black', sans-serif; font-size: 1.2rem; width: 30px; text-align: center; }
+.leaderboard-rank.gold { color: var(--signal-yellow); }
+.leaderboard-rank.silver { color: #aaa; }
+.leaderboard-rank.bronze { color: #cd7f32; }
+.leaderboard-avatar { width: 36px; height: 36px; background: var(--periwinkle); border: 2px solid var(--ink); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+.leaderboard-info { flex: 1; }
+.leaderboard-name { font-weight: 700; font-size: 0.9rem; }
+.leaderboard-meta { font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--periwinkle); }
+.leaderboard-score { font-family: 'Archivo Black', sans-serif; font-size: 1.1rem; }
+
+.feed-card { background: var(--paper-bright); border: 2px solid var(--ink); border-radius: 3px; padding: 1rem; margin-bottom: 1rem; transition: all 0.15s ease; }
+.feed-card:hover { transform: translate(-2px, -2px); box-shadow: 5px 5px 0 var(--ink); }
+.feed-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.feed-author { font-weight: 700; font-size: 0.9rem; }
+.feed-time { font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--periwinkle); }
+.feed-body { font-size: 0.85rem; line-height: 1.5; margin-bottom: 0.75rem; }
+.feed-actions { display: flex; gap: 1rem; font-family: 'Space Mono', monospace; font-size: 0.65rem; }
+.feed-action { cursor: pointer; opacity: 0.7; transition: opacity 0.15s; }
+.feed-action:hover { opacity: 1; }
+
+/* ===== QR CODE & SHARE ===== */
+.qr-container { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 1.5rem; background: var(--paper); border: 2px solid var(--ink); border-radius: 3px; }
+.qr-canvas { border: 3px solid var(--ink); border-radius: 3px; background: var(--paper-bright); }
+.share-link-box { width: 100%; display: flex; gap: 0.5rem; }
+.share-link-input { flex: 1; padding: 0.6rem; border: 2px solid var(--ink); border-radius: 3px; background: var(--paper-bright); font-family: 'Space Mono', monospace; font-size: 0.75rem; }
+.share-link-btn { padding: 0.6rem 1rem; background: var(--electric-blue); color: var(--paper-bright); border: 2px solid var(--ink); border-radius: 3px; font-family: 'Space Mono', monospace; font-size: 0.7rem; cursor: pointer; box-shadow: 3px 3px 0 var(--ink); }
+.share-link-btn:hover { transform: translate(-2px, -2px); box-shadow: 5px 5px 0 var(--ink); }
+.share-platforms { display: flex; gap: 0.75rem; justify-content: center; margin-top: 0.5rem; }
+.share-platform { padding: 0.5rem 1rem; border: 2px solid var(--ink); border-radius: 3px; background: var(--paper-bright); cursor: pointer; font-family: 'Space Mono', monospace; font-size: 0.65rem; transition: all 0.15s ease; }
+.share-platform:hover { transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--ink); }
+
+/* ===== MODAL ===== */
+.modal-overlay { position: fixed; inset: 0; background: rgba(10,10,15,0.85); z-index: 200; display: none; align-items: center; justify-content: center; }
+.modal-overlay.visible { display: flex; animation: fadeIn 0.3s ease; }
+.modal-box { background: var(--paper-bright); border: 3px solid var(--ink); border-radius: 8px; padding: 2rem; max-width: 520px; width: 90%; box-shadow: 10px 10px 0 var(--ink); position: relative; }
+.modal-close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; background: var(--error-red); color: var(--paper-bright); border: 2px solid var(--ink); border-radius: 50%; cursor: pointer; font-family: 'Space Mono', monospace; font-size: 1rem; display: flex; align-items: center; justify-content: center; }
+.modal-title { font-family: 'Archivo Black', sans-serif; font-size: 1.4rem; margin-bottom: 1rem; }
+
+/* ===== ANIMATIONS ===== */
+@keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+.scan-line { position: absolute; left: 0; right: 0; height: 3px; background: var(--flame-orange); box-shadow: 0 0 15px var(--flame-orange); animation: scan 2s linear infinite; display: none; z-index: 10; }
+@keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1000px) {
+  .forge-grid, .audit-grid, .courtroom, .community-grid { grid-template-columns: 1fr; }
+  .campaign-map { grid-template-columns: repeat(3, 1fr); }
+  .masthead-nav { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <div class="masthead-brand">
+    <div class="masthead-logo">ARGUS+</div>
+    <span class="masthead-tag">法庭闯关 × 合同猎魔</span>
+  </div>
+  <nav class="masthead-nav">
+    <button class="nav-btn active" onclick="goScreen('forge')">⚖️ 案件工坊</button>
+    <button class="nav-btn" onclick="goScreen('audit')">📄 合同审查</button>
+    <button class="nav-btn" onclick="goScreen('campaign')">🎮 法庭闯关</button>
+    <button class="nav-btn" onclick="goScreen('community')">🏛️ 社区广场</button>
+  </nav>
+  <div class="user-badge">
+    <span>玩家: 见习律师</span>
+    <span class="user-rank">⭐ 1,240分</span>
+  </div>
+</header>
+
+<!-- ==================== SCREEN: CASE FORGE ==================== -->
+<section id="screen-forge" class="screen active">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+    <h2 style="font-family:'Archivo Black',sans-serif;font-size:1.8rem;">案件工坊 <span style="font-size:1rem;opacity:0.6;">Case Forge</span></h2>
+    <div class="tag tag-purple">LORE LOOM 融合</div>
+  </div>
+
+  <div class="forge-grid">
+    <!-- LEFT: Form + Upload -->
+    <div class="card">
+      <div class="card-header"><span>📝 自定义案件配置</span><span>INPUT PANEL</span></div>
+      <div class="card-body">
+        <div class="forge-form">
+          <div>
+            <span class="label">你的角色</span>
+            <select id="forge-side" class="input">
+              <option value="plaintiff">原告律师</option>
+              <option value="defendant">被告律师</option>
+            </select>
+          </div>
+          <div>
+            <span class="label">审级</span>
+            <select id="forge-level" class="input">
+              <option value="first">一审</option>
+              <option value="second">二审</option>
+              <option value="arbitration">仲裁</option>
+            </select>
+          </div>
+          <div>
+            <span class="label">适用地区</span>
+            <select id="forge-region" class="input">
+              <option value="cn">中国大陆</option>
+              <option value="hk">中国香港</option>
+              <option value="us">美国（示范） </option>
+            </select>
+          </div>
+          <div>
+            <span class="label">仲裁机构（如适用）</span>
+            <select id="forge-arb" class="input">
+              <option value="none">不适用</option>
+              <option value="ciETAC">中国国际经济贸易仲裁委员会</option>
+              <option value="bac">北京仲裁委员会</option>
+              <option value="sac">上海仲裁委员会</option>
+            </select>
+          </div>
+        </div>
+
+        <span class="label">案件概念描述</span>
+        <textarea id="forge-concept" class="textarea" placeholder="描述你的案件...
+例如：租客退房时房东以墙面有划痕为由扣留全部押金3000元，但划痕在入住前已存在"></textarea>
+
+        <span class="label">原告身份 / 主张</span>
+        <input type="text" id="forge-plaintiff" class="input" placeholder="例如：租客张某，主张房东无故扣留押金">
+
+        <span class="label">被告身份 / 抗辩</span>
+        <input type="text" id="forge-defendant" class="input" placeholder="例如：房东李某，抗辩墙面损坏需维修">
+
+        <!-- FILE UPLOAD -->
+        <span class="label">📎 上传证据/合同文件</span>
+        <div class="dropzone" id="forge-dropzone" onclick="document.getElementById('forge-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover');" ondragleave="this.classList.remove('dragover');" ondrop="handleForgeDrop(event)">
+          <div class="dropzone-icon">📎</div>
+          <div class="dropzone-text">拖拽文件到此处 或 点击上传</div>
+          <div class="dropzone-hint">支持：PDF / Word / TXT / 图片（最多5个文件）</div>
+          <input type="file" id="forge-file-input" style="display:none;" multiple accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg" onchange="handleForgeFiles(event)">
+        </div>
+        <div class="file-list" id="forge-file-list" style="display:none;"></div>
+
+        <div style="display:flex;gap:0.75rem;margin-top:1rem;">
+          <button class="btn btn-primary" onclick="forgeGenerate()">🧙‍♂️ AI 生成完整案件</button>
+          <button class="btn btn-secondary" onclick="forgeManual()">✍️ 手动进入法庭</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Preview -->
+    <div class="card">
+      <div class="card-header"><span>📋 案件预览</span><span>PREVIEW</span></div>
+      <div class="card-body">
+        <div id="forge-preview" class="forge-result">
+          <div style="text-align:center;padding:3rem 0;opacity:0.5;">
+            <div style="font-family:'Archivo Black',sans-serif;margin-bottom:0.5rem;">等待生成</div>
+            <div style="font-size:0.8rem;">配置案件信息并上传文件后，AI将自动生成完整背景、合同文本、双方主张与争议焦点</div>
+          </div>
+        </div>
+        <div id="forge-actions" style="display:none;margin-top:1rem;text-align:center;">
+          <button class="btn btn-gold" onclick="enterCourtroomFromForge()">⚔️ 以此案件进入法庭闯关 →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== SCREEN: CONTRACT AUDIT ==================== -->
+<section id="screen-audit" class="screen">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+    <h2 style="font-family:'Archivo Black',sans-serif;font-size:1.8rem;">合同猎魔 <span style="font-size:1rem;opacity:0.6;">Contract Audit</span></h2>
+    <div class="tag tag-orange">COMPLIANCE 融合</div>
+  </div>
+
+  <div class="audit-grid">
+    <!-- LEFT: Document + Upload -->
+    <div class="card" style="position:relative;">
+      <div class="scan-line" id="audit-scan-line"></div>
+      <div class="card-header"><span>📄 待审查文本</span><span id="audit-doc-status">等待上传</span></div>
+      <div class="card-body">
+        <!-- FILE UPLOAD -->
+        <div class="dropzone" id="audit-dropzone" onclick="document.getElementById('audit-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover');" ondragleave="this.classList.remove('dragover');" ondrop="handleAuditDrop(event)">
+          <div class="dropzone-icon">📄</div>
+          <div class="dropzone-text">拖拽合同文件到此处 或 点击上传</div>
+          <div class="dropzone-hint">支持：PDF / Word / TXT（自动解析文本）</div>
+          <input type="file" id="audit-file-input" style="display:none;" accept=".pdf,.doc,.docx,.txt" onchange="handleAuditFiles(event)">
+        </div>
+        <div class="file-list" id="audit-file-list" style="display:none;margin-bottom:1rem;"></div>
+
+        <div style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--periwinkle);margin-bottom:0.5rem;">或手动粘贴文本：</div>
+        <textarea id="audit-text" class="textarea" style="min-height:200px;font-size:0.8rem;line-height:1.7;" placeholder="在此粘贴合同或用户协议文本...
+
+示例：
+1. 信息收集：我们可能会收集您的位置信息以提供更好的服务。
+2. 信息共享：在必要时，我们可能向第三方合作伙伴共享您的信息。
+3. 政策变更：我们保留随时修改本政策的权利，恕不另行通知。"></textarea>
+        <div style="display:flex;gap:0.75rem;">
+          <button class="btn btn-primary" id="audit-btn" onclick="startAudit()">🔍 开始猎魔扫描</button>
+          <button class="btn btn-secondary" onclick="loadSampleContract()">📎 加载示例合同</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Monsters -->
+    <div class="card">
+      <div class="card-header"><span>👹 风险怪物图鉴</span><span id="audit-monster-count">0 只</span></div>
+      <div class="card-body" id="audit-monster-list">
+        <div style="text-align:center;padding:2rem 0;opacity:0.5;font-size:0.85rem;">
+          <div style="font-family:'Archivo Black',sans-serif;margin-bottom:0.5rem;">暂无怪物</div>
+          <div style="font-size:0.75rem;">上传合同文件或粘贴文本，点击「开始猎魔扫描」</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Battle Talk Modal -->
+  <div class="modal-overlay" id="battle-modal">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeBattleModal()">×</button>
+      <div class="modal-title">⚔️  battle 话术助手</div>
+      <div id="battle-content" style="font-size:0.9rem;line-height:1.6;"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== SCREEN: COURTROOM CAMPAIGN ==================== -->
+<section id="screen-campaign" class="screen">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+    <h2 style="font-family:'Archivo Black',sans-serif;font-size:1.8rem;">法庭闯关 <span style="font-size:1rem;opacity:0.6;">Campaign Mode</span></h2>
+    <div>
+      <span class="tag tag-blue">当前关卡: <span id="current-level-display">1</span></span>
+      <span class="tag tag-yellow">总得分: <span id="total-score">0</span></span>
+    </div>
+  </div>
+
+  <!-- Level Map -->
+  <div class="campaign-map" id="campaign-map">
+    <!-- Generated by JS -->
+  </div>
+
+  <!-- Courtroom Interface -->
+  <div id="courtroom-interface" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <div>
+        <div style="font-family:'Archivo Black',sans-serif;font-size:1.3rem;" id="court-case-title">案件标题</div>
+        <div style="font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--periwinkle);" id="court-case-meta">一审 · 中国大陆</div>
+      </div>
+      <div style="display:flex;gap:0.5rem;">
+        <span class="tag tag-blue" id="court-side-tag">原告律师</span>
+        <span class="tag tag-purple" id="court-round-tag">ROUND 1/3</span>
+      </div>
+    </div>
+
+    <div class="courtroom">
+      <!-- Left: Evidence -->
+      <div class="card">
+        <div class="card-header"><span>📎 证据板</span><span id="evidence-counter">0/0</span></div>
+        <div class="card-body" id="evidence-board">
+          <!-- JS populated -->
+        </div>
+      </div>
+
+      <!-- Center: Debate -->
+      <div>
+        <div class="card" style="margin-bottom:1rem;">
+          <div class="card-header"><span>⚔️ 辩论流</span><span>CHAT LOG</span></div>
+          <div class="card-body">
+            <div class="debate-area" id="debate-flow"></div>
+            <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
+              <input type="text" id="debate-input" class="input" style="margin:0;" placeholder="输入论点、引用法条或质疑对方..." onkeypress="if(event.key==='Enter')sendDebate()">
+              <button class="btn btn-primary" style="box-shadow:none;" onclick="sendDebate()">提交</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Glass-Box Verdict -->
+        <div class="glassbox-verdict" id="glassbox-verdict">
+          <div class="glassbox-header">
+            <span>🔍 GLASS-BOX 裁决</span>
+            <span id="verdict-confidence">置信度: --</span>
+          </div>
+          <div class="glassbox-body">
+            <div class="glassbox-step" data-step="1">
+              <div style="font-weight:700;margin-bottom:0.25rem;">事实认定</div>
+              <div id="gb-step-1" style="font-size:0.85rem;opacity:0.9;">...</div>
+            </div>
+            <div class="glassbox-step" data-step="2">
+              <div style="font-weight:700;margin-bottom:0.25rem;">证据权重</div>
+              <div id="gb-step-2" style="font-size:0.85rem;opacity:0.9;">...</div>
+            </div>
+            <div class="glassbox-step" data-step="3">
+              <div style="font-weight:700;margin-bottom:0.25rem;">法律适用</div>
+              <div id="gb-step-3" style="font-size:0.85rem;opacity:0.9;">...</div>
+            </div>
+            <div class="glassbox-step" data-step="4">
+              <div style="font-weight:700;margin-bottom:0.25rem;">争议焦点分析</div>
+              <div id="gb-step-4" style="font-size:0.85rem;opacity:0.9;">...</div>
+            </div>
+            <div style="background:var(--signal-yellow);border:2px solid var(--ink);padding:1rem;font-family:'Archivo Black',sans-serif;text-align:center;border-radius:3px;margin-top:1rem;" id="gb-award">等待裁决...</div>
+          </div>
+        </div>
+
+        <div class="score-board" id="score-board" style="display:none;">
+          <div class="score-pill">
+            <div class="score-pill-num" id="score-logic">0</div>
+            <div class="score-pill-label">逻辑分</div>
+          </div>
+          <div class="score-pill">
+            <div class="score-pill-num" id="score-evidence">0</div>
+            <div class="score-pill-label">证据分</div>
+          </div>
+          <div class="score-pill">
+            <div class="score-pill-num" id="score-law">0</div>
+            <div class="score-pill-label">法条分</div>
+          </div>
+          <div class="score-pill" style="background:var(--signal-yellow);">
+            <div class="score-pill-num" id="score-total">0</div>
+            <div class="score-pill-label">总分</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Case Info -->
+      <div class="card">
+        <div class="card-header"><span>📋 案件档案</span><span>DOSSIER</span></div>
+        <div class="card-body" id="case-dossier" style="font-size:0.85rem;line-height:1.6;">
+          <!-- JS populated -->
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:center;gap:1rem;margin-top:1.5rem;">
+      <button class="btn btn-secondary" onclick="exitCourtroom()">← 返回关卡地图</button>
+      <button class="btn btn-primary" id="btn-request-verdict" onclick="requestVerdict()">⚖️ 请求法官裁决</button>
+      <button class="btn btn-gold" id="btn-next-level" style="display:none;" onclick="nextLevel()">下一关 →</button>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== SCREEN: COMMUNITY ==================== -->
+<section id="screen-community" class="screen">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+    <h2 style="font-family:'Archivo Black',sans-serif;font-size:1.8rem;">社区广场 <span style="font-size:1rem;opacity:0.6;">Community</span></h2>
+    <button class="btn btn-primary" onclick="openShareModal()">📝 分享我的案件</button>
+  </div>
+
+  <div class="community-grid">
+    <!-- Left: Leaderboard -->
+    <div class="card">
+      <div class="card-header"><span>🏆 闯关排行榜</span><span>实时更新</span></div>
+      <div class="card-body" id="leaderboard-body">
+        <!-- JS populated -->
+      </div>
+    </div>
+
+    <!-- Right: Feed -->
+    <div>
+      <div style="font-family:'Space Mono',monospace;font-size:0.7rem;text-transform:uppercase;color:var(--periwinkle);margin-bottom:0.75rem;">最新动态</div>
+      <div id="community-feed">
+        <!-- JS populated -->
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Share Modal (with QR & External Link) -->
+<div class="modal-overlay" id="share-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeShareModal()">×</button>
+    <div class="modal-title">📝 分享案件到社区</div>
+    <span class="label">案件标题</span>
+    <input type="text" id="share-title" class="input" placeholder="给你的案件起个标题">
+    <span class="label">分享内容</span>
+    <textarea id="share-body" class="textarea" placeholder="分享案件背景、你的辩论策略、引用的法条，或向社区求助..."></textarea>
+    <span class="label">标签</span>
+    <input type="text" id="share-tags" class="input" placeholder="#租房纠纷 #劳动法 #证据技巧">
+    <button class="btn btn-primary" style="margin-top:1rem;" onclick="submitShare()">📝 发布到社区</button>
+    <div style="margin-top:1.5rem;padding-top:1rem;border-top:2px dashed var(--paper-muted);">
+      <div style="font-family:'Space Mono',monospace;font-size:0.7rem;text-transform:uppercase;color:var(--periwinkle);margin-bottom:0.75rem;">🔗 分享到社区外</div>
+      <div class="qr-container">
+        <canvas id="share-qr-canvas" class="qr-canvas" width="180" height="180"></canvas>
+        <div class="share-link-box">
+          <input type="text" id="share-link-input" class="share-link-input" value="https://argus.plus/case/8X3K9M" readonly>
+          <button class="share-link-btn" onclick="copyShareLink()">复制</button>
+        </div>
+        <div class="share-platforms">
+          <button class="share-platform" onclick="shareExternal('wechat')">💬 微信</button>
+          <button class="share-platform" onclick="shareExternal('weibo')">📢 微博</button>
+          <button class="share-platform" onclick="shareExternal('twitter')">🐦 X/Twitter</button>
+          <button class="share-platform" onclick="shareExternal('link')">🔗 复制链接</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== NAVIGATION ====================
+function goScreen(id) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+// ==================== FILE UPLOAD: CASE FORGE ====================
+let forgeFiles = [];
+
+function handleForgeFiles(event) {
+  const files = Array.from(event.target.files);
+  addForgeFiles(files);
+}
+
+function handleForgeDrop(event) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('dragover');
+  const files = Array.from(event.dataTransfer.files);
+  addForgeFiles(files);
+}
+
+function addForgeFiles(files) {
+  const list = document.getElementById('forge-file-list');
+  list.style.display = 'block';
+
+  files.forEach(file => {
+    const fileId = 'forge-file-' + Date.now() + Math.random();
+    const icon = file.name.endsWith('.pdf') ? '📕' : (file.name.endsWith('.doc') || file.name.endsWith('.docx') ? '📘' : (file.name.endsWith('.txt') ? '📄' : '🖼️'));
+
+    const item = document.createElement('div');
+    item.className = 'file-item';
+    item.id = fileId;
+    item.innerHTML = `
+      <div class="file-item-icon">${icon}</div>
+      <div class="file-item-info">
+        <div class="file-item-name">${file.name}</div>
+        <div class="file-item-meta">${(file.size / 1024).toFixed(1)} KB · ${file.type || '未知类型'}</div>
+        <div class="file-item-progress"><div class="file-item-progress-bar" id="${fileId}-bar"></div></div>
+      </div>
+      <div class="file-item-status" id="${fileId}-status">上传中...</div>
+    `;
+    list.appendChild(item);
+
+    // Simulate upload progress
+    let progress = 0;
+    const bar = document.getElementById(fileId + '-bar');
+    const status = document.getElementById(fileId + '-status');
+    const interval = setInterval(() => {
+      progress += Math.random() * 25;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+        bar.style.width = '100%';
+        status.textContent = '✓ 已解析';
+        status.className = 'file-item-status done';
+      } else {
+        bar.style.width = progress + '%';
+      }
+    }, 200);
+
+    forgeFiles.push({ name: file.name, size: file.size, type: file.type, id: fileId });
+  });
+}
+
+// ==================== FILE UPLOAD: CONTRACT AUDIT ====================
+let auditFiles = [];
+
+function handleAuditFiles(event) {
+  const files = Array.from(event.target.files);
+  addAuditFiles(files);
+}
+
+function handleAuditDrop(event) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('dragover');
+  const files = Array.from(event.dataTransfer.files);
+  addAuditFiles(files);
+}
+
+function addAuditFiles(files) {
+  const list = document.getElementById('audit-file-list');
+  list.style.display = 'block';
+
+  files.forEach(file => {
+    const fileId = 'audit-file-' + Date.now() + Math.random();
+    const icon = file.name.endsWith('.pdf') ? '📕' : (file.name.endsWith('.doc') || file.name.endsWith('.docx') ? '📘' : '📄');
+
+    const item = document.createElement('div');
+    item.className = 'file-item';
+    item.id = fileId;
+    item.innerHTML = `
+      <div class="file-item-icon">${icon}</div>
+      <div class="file-item-info">
+        <div class="file-item-name">${file.name}</div>
+        <div class="file-item-meta">${(file.size / 1024).toFixed(1)} KB</div>
+        <div class="file-item-progress"><div class="file-item-progress-bar" id="${fileId}-bar"></div></div>
+      </div>
+      <div class="file-item-status" id="${fileId}-status">解析中...</div>
+    `;
+    list.appendChild(item);
+
+    // Simulate parse progress
+    let progress = 0;
+    const bar = document.getElementById(fileId + '-bar');
+    const status = document.getElementById(fileId + '-status');
+    const interval = setInterval(() => {
+      progress += Math.random() * 20;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+        bar.style.width = '100%';
+        status.textContent = '✓ 已解析';
+        status.className = 'file-item-status done';
+        // Auto-fill sample text after parse
+        if (!document.getElementById('audit-text').value.trim()) {
+          document.getElementById('audit-text').value = sampleContract;
+          document.getElementById('audit-doc-status').textContent = '已加载: ' + file.name;
+        }
+      } else {
+        bar.style.width = progress + '%';
+      }
+    }, 250);
+
+    auditFiles.push({ name: file.name, size: file.size, type: file.type, id: fileId });
+  });
+}
+
+// ==================== QR CODE & EXTERNAL SHARE ====================
+function generateQR() {
+  const canvas = document.getElementById('share-qr-canvas');
+  const ctx = canvas.getContext('2d');
+  const size = 180;
+  const cells = 25;
+  const cellSize = size / cells;
+
+  // White background
+  ctx.fillStyle = '#fffdf7';
+  ctx.fillRect(0, 0, size, size);
+
+  // Draw QR-like pattern
+  for (let y = 0; y < cells; y++) {
+    for (let x = 0; x < cells; x++) {
+      // Corner markers
+      const isCorner = (x < 7 && y < 7) || (x > cells - 8 && y < 7) || (x < 7 && y > cells - 8);
+      if (isCorner) {
+        // Draw finder patterns
+        const cx = (x < 7) ? 3.5 : (x > cells - 8) ? cells - 4.5 : 3.5;
+        const cy = (y < 7) ? 3.5 : (y > cells - 8) ? cells - 4.5 : 3.5;
+        const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+        if (dist < 3.5 && dist > 2.5) ctx.fillStyle = '#171717';
+        else if (dist < 2.5 && dist > 1.5) ctx.fillStyle = '#fffdf7';
+        else if (dist < 1.5) ctx.fillStyle = '#171717';
+        else continue;
+      } else {
+        // Random data pattern seeded by position
+        const seed = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+        ctx.fillStyle = (seed - Math.floor(seed)) > 0.5 ? '#171717' : '#fffdf7';
+      }
+      ctx.fillRect(x * cellSize, y * cellSize, cellSize + 0.5, cellSize + 0.5);
+    }
+  }
+
+  // Add ARGUS+ logo in center
+  ctx.fillStyle = '#5869b5';
+  ctx.font = 'bold 10px "Space Mono", monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('ARGUS+', size / 2, size / 2 - 2);
+  ctx.font = '7px "Space Mono", monospace';
+  ctx.fillText('扫码查看案件', size / 2, size / 2 + 10);
+}
+
+function copyShareLink() {
+  const input = document.getElementById('share-link-input');
+  input.select();
+  document.execCommand('copy');
+  alert('链接已复制到剪贴板！');
+}
+
+function shareExternal(platform) {
+  const title = document.getElementById('share-title').value || 'ARGUS+ 案件分享';
+  const body = document.getElementById('share-body').value || '来看看这个有趣的法律案件！';
+  const url = document.getElementById('share-link-input').value;
+
+  const messages = {
+    wechat: `请复制以下链接分享到微信：
+${url}
+
+${title}
+${body}`,
+    weibo: `请复制以下链接分享到微博：
+${url}
+
+${title}
+${body}`,
+    twitter: `请复制以下链接分享到 X/Twitter：
+${url}
+
+${title}
+${body}`,
+    link: `链接已复制！
+${url}`
+  };
+
+  if (platform === 'link') {
+    copyShareLink();
+  } else {
+    alert(messages[platform]);
+  }
+}
+
+// ==================== DATA: LEVELS ====================
+const campaignLevels = [
+  { id: 1, title: "押金猎人", desc: "租房押金纠纷", difficulty: 1, locked: false, completed: true, stars: 3, score: 850 },
+  { id: 2, title: "七天无理由", desc: "电商退货争议", difficulty: 1, locked: false, completed: true, stars: 2, score: 720 },
+  { id: 3, title: "加班费幽灵", desc: "劳动仲裁入门", difficulty: 2, locked: false, completed: false, stars: 0, score: 0 },
+  { id: 4, title: "信息饕餮", desc: "隐私政策漏洞", difficulty: 2, locked: true, completed: false, stars: 0, score: 0 },
+  { id: 5, title: "版权窃贼", desc: "用户协议陷阱", difficulty: 3, locked: true, completed: false, stars: 0, score: 0 },
+  { id: 6, title: "竞业锁链", desc: "离职限制条款", difficulty: 3, locked: true, completed: false, stars: 0, score: 0 },
+  { id: 7, title: "格式条款恶魔", desc: "霸王条款识别", difficulty: 4, locked: true, completed: false, stars: 0, score: 0 },
+  { id: 8, title: "仲裁迷宫", desc: "仲裁程序争议", difficulty: 4, locked: true, completed: false, stars: 0, score: 0 },
+  { id: 9, title: "证据湮灭", desc: "举证责任翻转", difficulty: 5, locked: true, completed: false, stars: 0, score: 0 },
+  { id: 10, title: "终极审判", desc: "综合大案", difficulty: 5, locked: true, completed: false, stars: 0, score: 0 },
+];
+
+const levelCases = {
+  1: {
+    title: "租房押金纠纷 #001",
+    meta: "一审 · 中国大陆 · 民法典",
+    side: "plaintiff",
+    plaintiff: "租客张某，主张房东李某无故扣留押金3000元",
+    defendant: "房东李某，抗辩墙面划痕和家具损坏需维修",
+    focus: ["划痕是否为入住前已存在", "押金扣除是否有依据", "退租验收程序是否合法"],
+    evidence: [
+      { id: "E1", title: "租赁合同", desc: "租期1年，押金3000元，约定'无损坏全额退还'", type: "doc", credibility: 9 },
+      { id: "E2", title: "入住前照片", desc: "显示墙面已有细微划痕，家具存在旧损", type: "img", credibility: 7 },
+      { id: "E3", title: "退租验收视频", desc: "房东单方面验收，未让租客在场", type: "img", credibility: 8 },
+      { id: "E4", title: "维修报价单", desc: "房东提供：墙面重刷1500元，家具修复2000元", type: "doc", credibility: 4 },
+      { id: "E5", title: "聊天记录", desc: "租客要求共同验收，房东拒绝并称'我说是损坏就是损坏'", type: "chat", credibility: 8 }
+    ],
+    adversary: [
+      "对方律师，你方声称入住前就有划痕，但照片日期显示是入住后一周才拍摄，这能证明是原有瑕疵吗？",
+      "维修报价单由正规装修公司出具，墙面重刷和家具修复都是合理支出。你方认为报价虚高，有依据吗？",
+      "关于验收程序，合同并未约定必须双方共同验收。我方作为房屋所有权人，有权单方面检查。"
+    ],
+    verdict: {
+      winner: "原告部分胜诉", confidence: 78,
+      steps: [
+        { title: "事实认定", content: "入住前照片虽拍摄于入住后一周，但可佐证部分痕迹为旧损；退租视频显示房东单方面验收；聊天记录显示房东拒绝共同验收。", cite: "E002, E003, E005" },
+        { title: "证据权重", content: "维修报价单无明细、无公司盖章、无付款凭证，且金额明显超出合理范围，采信度低。", cite: "《民法典》第710条" },
+        { title: "法律适用", content: "承租人按照约定的方法或租赁物的性质使用租赁物，致使租赁物受到损耗的，不承担赔偿责任。", cite: "《民法典》第710条" },
+        { title: "争议焦点分析", content: "焦点一：损坏认定 → 墙面划痕属正常损耗，家具旧损非租客造成；焦点二：押金扣除 → 房东应举证实际损失，报价单不被采信；焦点三：验收程序 → 虽无约定，但单方面验收有违公平原则。", cite: "" }
+      ],
+      award: "房东退还押金2500元，扣除500元作为合理清洁费"
+    }
+  },
+  3: {
+    title: "加班费幽灵 #003",
+    meta: "仲裁 · 中国大陆 · 劳动法",
+    side: "plaintiff",
+    plaintiff: "员工王某，主张公司拖欠加班费共计4.8万元",
+    defendant: "科技公司，抗辩员工签署自愿放弃加班费协议",
+    focus: ["放弃加班费协议是否有效", "加班事实的举证责任", "加班费计算基数"],
+    evidence: [
+      { id: "E1", title: "劳动合同", desc: "合同期限2024.01-2026.01，月薪12000元，标准工时制", type: "doc", credibility: 9 },
+      { id: "E2", title: "打卡记录", desc: "过去6个月平均每周加班12小时", type: "doc", credibility: 9 },
+      { id: "E3", title: "'自愿放弃'协议", desc: "入职时签署，内容为'自愿放弃主张加班费权利'", type: "doc", credibility: 6 },
+      { id: "E4", title: "工资流水", desc: "从未发放过加班费", type: "doc", credibility: 9 },
+      { id: "E5", title: "同事证言", desc: "3名同事证明部门普遍存在加班且未获补偿", type: "chat", credibility: 7 }
+    ],
+    adversary: [
+      "对方引用的打卡记录只能证明在公司的时间，不能证明是在'工作'。你方如何证明这些时间是加班而非个人滞留？",
+      "关于自愿放弃协议，这是双方真实意思表示，且你方作为完全民事行为能力人，应当知晓签字后果。",
+      "同事证言与本案当事人存在利害关系，其证言证明力有限。你方是否有更直接的证据？"
+    ],
+    verdict: {
+      winner: "原告胜诉", confidence: 88,
+      steps: [
+        { title: "事实认定", content: "打卡记录显示规律性超时工作；工资流水证实未支付加班费；'自愿放弃'协议为入职时签署。", cite: "E002, E004, E003" },
+        { title: "证据权重", content: "'自愿放弃加班费'协议免除用人单位法定责任、排除劳动者权利，属于无效条款。", cite: "《劳动合同法》第26条、第31条" },
+        { title: "法律适用", content: "用人单位应当严格执行劳动定额标准，不得强迫或变相强迫劳动者加班。安排加班的，应当支付加班费。", cite: "《劳动合同法》第31条" },
+        { title: "争议焦点分析", content: "焦点一：放弃协议效力 → 无效；焦点二：加班事实 → 打卡记录+同事证言形成证据链；焦点三：赔偿金基数 → 应包含奖金，按12000元计算，共计4.8万元。", cite: "" }
+      ],
+      award: "公司支付拖欠加班费48,000元及25%经济补偿金12,000元"
+    }
+  }
+};
+
+// ==================== CASE FORGE ====================
+function forgeGenerate() {
+  const concept = document.getElementById('forge-concept').value.trim();
+  const plaintiff = document.getElementById('forge-plaintiff').value.trim();
+  const defendant = document.getElementById('forge-defendant').value.trim();
+  const level = document.getElementById('forge-level').value;
+  const region = document.getElementById('forge-region').value;
+  const arb = document.getElementById('forge-arb').value;
+
+  if (!concept) { alert('请先输入案件概念'); return; }
+
+  const preview = document.getElementById('forge-preview');
+  preview.classList.add('ready');
+
+  const levelText = { first: '一审', second: '二审', arbitration: '仲裁' }[level];
+  const regionText = { cn: '中国大陆', hk: '中国香港', us: '美国' }[region];
+  const arbText = arb === 'none' ? '' : document.querySelector(`#forge-arb option[value="${arb}"]`).textContent;
+
+  const fileSection = forgeFiles.length > 0 ? `
+    <div class="forge-section">
+      <div class="forge-section-title">已上传文件 (${forgeFiles.length}个)</div>
+      <div style="font-size:0.85rem;">
+        ${forgeFiles.map(f => `<div style="padding:0.4rem;background:var(--paper);border-left:3px solid var(--leaf-green);margin-bottom:0.4rem;">✓ ${f.name} (${(f.size/1024).toFixed(1)} KB)</div>`).join('')}
+      </div>
+    </div>
+  ` : '';
+
+  preview.innerHTML = `
+    <div class="forge-section">
+      <div class="forge-section-title">案件背景</div>
+      <div style="font-size:0.9rem;line-height:1.6;">${concept}</div>
+    </div>
+    <div class="forge-section">
+      <div class="forge-section-title">程序信息</div>
+      <div style="font-size:0.85rem;">
+        <span class="tag tag-blue">${levelText}</span>
+        <span class="tag tag-purple">${regionText}</span>
+        ${arbText ? `<span class="tag tag-yellow">${arbText}</span>` : ''}
+      </div>
+    </div>
+    <div class="forge-section">
+      <div class="forge-section-title">双方主张</div>
+      <div style="font-size:0.85rem;margin-bottom:0.5rem;"><strong style="color:var(--electric-blue);">原告：</strong>${plaintiff || '（待补充）'}</div>
+      <div style="font-size:0.85rem;"><strong style="color:var(--flame-orange);">被告：</strong>${defendant || '（待补充）'}</div>
+    </div>
+    <div class="forge-section">
+      <div class="forge-section-title">AI 生成的争议焦点</div>
+      <div style="font-size:0.85rem;">
+        <div style="padding:0.5rem;background:var(--paper);border-left:3px solid var(--periwinkle);margin-bottom:0.5rem;">• 事实认定：关键证据的真实性与关联性</div>
+        <div style="padding:0.5rem;background:var(--paper);border-left:3px solid var(--periwinkle);margin-bottom:0.5rem;">• 法律适用：相关法条的具体解释与适用边界</div>
+        <div style="padding:0.5rem;background:var(--paper);border-left:3px solid var(--periwinkle);">• 责任划分：双方过错程度与因果关系</div>
+      </div>
+    </div>
+    <div class="forge-section">
+      <div class="forge-section-title">关联合同/协议（AI生成）</div>
+      <div style="font-size:0.8rem;padding:0.75rem;background:var(--paper);border:1px dashed var(--paper-muted);border-radius:3px;">
+        <strong>《房屋租赁合同》节选：</strong><br>
+        第5条：租赁期满，乙方无违约行为且房屋无损坏的，甲方应在7日内全额退还押金。<br>
+        第8条：房屋及附属设施的自然损耗，乙方不承担赔偿责任。<br><br>
+        <span style="color:var(--flame-orange);font-family:'Space Mono',monospace;font-size:0.7rem;">⚠️ 检测到2处潜在漏洞，建议进入「合同审查」扫描</span>
+      </div>
+    </div>
+    ${fileSection}
+  `;
+
+  document.getElementById('forge-actions').style.display = 'block';
+}
+
+function forgeManual() {
+  alert('手动模式：直接进入法庭，所有字段可在庭内编辑');
+}
+
+function enterCourtroomFromForge() {
+  goScreenById('campaign');
+  setTimeout(() => startLevel(99), 300);
+}
+
+// ==================== CONTRACT AUDIT ====================
+const sampleContract = `1. 信息收集：我们可能会收集您的位置信息以提供更好的服务。
+2. 信息使用：您的个人信息可能被用于个性化推荐和广告投放。
+3. 信息共享：在必要时，我们可能向第三方合作伙伴共享您的信息。
+4. 信息保护：我们采用行业标准的安全措施保护您的数据。
+5. 用户权利：您有权访问、更正或删除您的个人信息。
+6. 未成年人保护：我们不对未成年人的信息收集承担特殊责任。
+7. 政策变更：我们保留随时修改本政策的权利，恕不另行通知。`;
+
+const auditMonsters = [
+  { id: "M1", name: "信息饕餮", type: "隐私怪兽", severity: "high", clauseIdx: 0, 
+    desc: "该条款未明确告知用户收集位置信息的具体目的和期限，属于过度收集个人信息。",
+    weakness: "《个人信息保护法》第6条、第17条", fix: "我们仅在您使用「附近门店」功能时收集您的精确位置信息，保存期限为30天，您可随时在设置中关闭。" },
+  { id: "M2", name: "共享恶魔", type: "数据怪兽", severity: "high", clauseIdx: 2,
+    desc: "向第三方共享信息未明确告知接收方身份、用途和用户选择权。", 
+    weakness: "《个人信息保护法》第23条", fix: "我们仅向以下列明的第三方（支付服务商、物流服务商）共享必要信息，且需获得您的单独同意。" },
+  { id: "M3", name: "免责魔像", type: "合规怪兽", severity: "high", clauseIdx: 5,
+    desc: "未成年人信息收集需获得监护人同意，该条款免除自身责任违法。",
+    weakness: "《个人信息保护法》第31条", fix: "我们严格遵循未成年人保护规定，收集14周岁以下未成年人信息需获得监护人明确同意。" },
+  { id: "M4", name: "霸王条款", type: "格式条款怪兽", severity: "medium", clauseIdx: 6,
+    desc: "单方变更权未以显著方式提示用户，且未约定变更通知方式。",
+    weakness: "《民法典》第496条", fix: "本政策重大变更将通过App推送通知您，您有权在变更生效前注销账户。" }
+];
+
+function loadSampleContract() {
+  document.getElementById('audit-text').value = sampleContract;
+}
+
+function startAudit() {
+  const text = document.getElementById('audit-text').value.trim();
+  if (!text) { alert('请先粘贴合同文本或上传文件'); return; }
+
+  const btn = document.getElementById('audit-btn');
+  btn.disabled = true;
+  btn.textContent = '🔍 扫描中...';
+  document.getElementById('audit-scan-line').style.display = 'block';
+  document.getElementById('audit-doc-status').textContent = '扫描中...';
+
+  // Parse clauses
+  const clauses = text.split('\n').filter(l => l.trim());
+  const container = document.getElementById('audit-monster-list');
+
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.textContent = '🔍 重新扫描';
+    document.getElementById('audit-scan-line').style.display = 'none';
+    document.getElementById('audit-doc-status').textContent = `发现 ${auditMonsters.length} 只怪物`;
+
+    // Render clauses with highlights
+    const clauseHTML = clauses.map((c, i) => {
+      const monster = auditMonsters.find(m => m.clauseIdx === i);
+      const riskClass = monster ? (monster.severity === 'high' ? 'risk-high' : 'risk-med') : 'clean';
+      const marker = monster ? `<span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-family:'Space Mono',monospace;font-size:0.6rem;padding:2px 8px;background:${monster.severity==='high'?'var(--error-red)':'var(--flame-orange)'};color:var(--paper-bright);border:1.5px solid var(--ink);border-radius:3px;">${monster.name}</span>` : '';
+      return `<div class="audit-clause ${riskClass}" style="position:relative;">${c}${marker}</div>`;
+    }).join('');
+
+    // Render monsters
+    const monsterHTML = auditMonsters.map(m => `
+      <div class="monster-card" id="monster-${m.id}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+          <span class="monster-name">${m.name}</span>
+          <span style="font-family:'Space Mono',monospace;font-size:0.65rem;background:${m.severity==='high'?'var(--error-red)':'var(--flame-orange)'};color:var(--paper-bright);padding:2px 8px;border:1.5px solid var(--ink);border-radius:3px;">${m.severity.toUpperCase()}</span>
+        </div>
+        <div class="monster-meta">${m.type} · 条款${m.clauseIdx + 1}</div>
+        <div style="font-size:0.85rem;line-height:1.5;margin-bottom:0.5rem;">${m.desc}</div>
+        <div class="monster-weak">⚡ 弱点: ${m.weakness}</div>
+        <div style="display:flex;gap:0.5rem;">
+          <button class="btn btn-primary" style="padding:0.5rem 1rem;font-size:0.65rem;flex:1;" onclick="showBattleTalk('${m.id}')">⚔️ battle话术</button>
+          <button class="btn btn-secondary" style="padding:0.5rem 1rem;font-size:0.65rem;flex:1;" onclick="slayMonster('${m.id}')">🛡️ 一键修复</button>
+        </div>
+      </div>
+    `).join('');
+
+    container.innerHTML = monsterHTML;
+    document.getElementById('audit-monster-count').textContent = `${auditMonsters.length} 只`;
+  }, 2000);
+}
+
+function showBattleTalk(monsterId) {
+  const m = auditMonsters.find(x => x.id === monsterId);
+  const content = `
+    <div style="margin-bottom:1rem;">
+      <strong style="color:var(--flame-orange);">对方可能的说辞：</strong><br>
+      "我们的条款已经明确告知了信息收集，用户点击同意即视为授权。"
+    </div>
+    <div style="margin-bottom:1rem;padding:1rem;background:var(--paper);border:2px solid var(--leaf-green);border-radius:3px;">
+      <strong style="color:var(--leaf-green);">你的反击话术：</strong><br>
+      "根据《个人信息保护法》第17条，告知应当清晰、准确、完整。贵方条款使用'可能'、'必要时'等模糊表述，未明确告知处理目的、方式和范围，属于未履行充分告知义务。"
+    </div>
+    <div style="font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--periwinkle);">
+      引证法条：${m.weakness}<br>
+      核心策略：抓住"明确性"和"必要性"两个要件
+    </div>
+  `;
+  document.getElementById('battle-content').innerHTML = content;
+  document.getElementById('battle-modal').classList.add('visible');
+}
+
+function closeBattleModal() {
+  document.getElementById('battle-modal').classList.remove('visible');
+}
+
+function slayMonster(monsterId) {
+  const card = document.getElementById('monster-' + monsterId);
+  card.classList.add('slayed');
+  card.querySelector('.btn-primary').textContent = '✓ 已修复';
+  card.querySelector('.btn-primary').disabled = true;
+  card.querySelector('.btn-secondary').style.display = 'none';
+}
+
+// ==================== COURTROOM CAMPAIGN ====================
+let currentLevel = 1;
+let currentCase = null;
+let debateRound = 0;
+let selectedEvidence = [];
+let totalScore = 0;
+
+function renderCampaignMap() {
+  const map = document.getElementById('campaign-map');
+  map.innerHTML = campaignLevels.map(lvl => {
+    let statusClass = lvl.locked ? 'locked' : (lvl.completed ? 'completed' : (lvl.id === currentLevel ? 'current' : ''));
+    let stars = lvl.completed ? '★'.repeat(lvl.stars) + '☆'.repeat(3 - lvl.stars) : '☆☆☆';
+    return `
+      <div class="level-node ${statusClass}" onclick="${lvl.locked ? '' : `startLevel(${lvl.id})`}">
+        <div class="level-num">${lvl.id}</div>
+        <div class="level-title">${lvl.title}</div>
+        <div class="level-stars">${stars}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function startLevel(levelId) {
+  if (levelId === 99) {
+    // Custom level from forge
+    currentCase = {
+      title: "自定义案件",
+      meta: "一审 · 中国大陆",
+      side: document.getElementById('forge-side').value,
+      plaintiff: document.getElementById('forge-plaintiff').value || "原告主张",
+      defendant: document.getElementById('forge-defendant').value || "被告抗辩",
+      focus: ["争议焦点待确定"],
+      evidence: [
+        { id: "E1", title: "合同文本", desc: "双方签署的合同原件", type: "doc", credibility: 9 },
+        { id: "E2", title: "聊天记录", desc: "双方沟通记录", type: "chat", credibility: 7 },
+        { id: "E3", title: "转账凭证", desc: "相关款项支付记录", type: "doc", credibility: 9 }
+      ],
+      adversary: ["请对方律师明确你的核心主张及法律依据。", "你方证据是否经过公证？来源是否合法？"],
+      verdict: { winner: "待裁决", confidence: 0, steps: [], award: "待裁决" }
+    };
+  } else {
+    currentCase = levelCases[levelId] || levelCases[1];
+    currentLevel = levelId;
+  }
+
+  debateRound = 0;
+  selectedEvidence = [];
+
+  document.getElementById('campaign-map').style.display = 'none';
+  document.getElementById('courtroom-interface').style.display = 'block';
+  document.getElementById('current-level-display').textContent = levelId === 99 ? '自定义' : currentLevel;
+  document.getElementById('glassbox-verdict').classList.remove('visible');
+  document.getElementById('score-board').style.display = 'none';
+  document.getElementById('btn-request-verdict').style.display = 'inline-flex';
+  document.getElementById('btn-next-level').style.display = 'none';
+
+  // Render case info
+  document.getElementById('court-case-title').textContent = currentCase.title;
+  document.getElementById('court-case-meta').textContent = currentCase.meta;
+  document.getElementById('court-side-tag').textContent = currentCase.side === 'plaintiff' ? '原告律师' : '被告律师';
+  document.getElementById('court-round-tag').textContent = 'ROUND 1/3';
+
+  document.getElementById('case-dossier').innerHTML = `
+    <div style="margin-bottom:1rem;"><strong style="color:var(--electric-blue);">原告主张：</strong><br>${currentCase.plaintiff}</div>
+    <div style="margin-bottom:1rem;"><strong style="color:var(--flame-orange);">被告抗辩：</strong><br>${currentCase.defendant}</div>
+    <div><strong>争议焦点：</strong><br>${currentCase.focus.map(f => `• ${f}`).join('<br>')}</div>
+  `;
+
+  // Render evidence
+  const board = document.getElementById('evidence-board');
+  board.innerHTML = currentCase.evidence.map(ev => `
+    <div class="evidence-slot" data-id="${ev.id}" onclick="toggleEvidence('${ev.id}')">
+      <div style="font-weight:700;font-size:0.85rem;">${ev.title}</div>
+      <div style="font-size:0.75rem;opacity:0.8;margin-top:0.25rem;">${ev.desc}</div>
+      <div style="margin-top:0.5rem;">
+        <span class="tag tag-${ev.type === 'doc' ? 'blue' : (ev.type === 'chat' ? 'yellow' : 'green')}">${ev.type}</span>
+        <span class="tag" style="background:var(--paper-muted);">可信度 ${ev.credibility}/10</span>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('evidence-counter').textContent = `0/${currentCase.evidence.length}`;
+
+  // Reset debate
+  const flow = document.getElementById('debate-flow');
+  flow.innerHTML = `
+    <div class="debate-system">⚖️ 法庭已就绪 · ${currentCase.title}</div>
+    <div class="debate-adversary">
+      <div class="debate-sender">对手律师 · Adversary Agent</div>
+      ${currentCase.adversary[0]}
+    </div>
+  `;
+}
+
+function toggleEvidence(id) {
+  const el = document.querySelector(`[data-id="${id}"]`);
+  if (!el) return;
+  if (selectedEvidence.includes(id)) {
+    selectedEvidence = selectedEvidence.filter(e => e !== id);
+    el.classList.remove('selected');
+  } else {
+    selectedEvidence.push(id);
+    el.classList.add('selected');
+  }
+  document.getElementById('evidence-counter').textContent = `${selectedEvidence.length}/${currentCase.evidence.length}`;
+}
+
+function sendDebate() {
+  const input = document.getElementById('debate-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const flow = document.getElementById('debate-flow');
+  flow.innerHTML += `
+    <div class="debate-bubble debate-user">
+      <div class="debate-sender">你的论点</div>
+      ${text}
+      ${selectedEvidence.length > 0 ? `<div style="margin-top:0.5rem;font-family:'Space Mono',monospace;font-size:0.65rem;opacity:0.8;">📎 引用证据: ${selectedEvidence.join(', ')}</div>` : ''}
+    </div>
+  `;
+  input.value = '';
+  selectedEvidence = [];
+  document.querySelectorAll('.evidence-slot').forEach(e => e.classList.remove('selected'));
+  document.getElementById('evidence-counter').textContent = `0/${currentCase.evidence.length}`;
+
+  debateRound++;
+  setTimeout(() => {
+    const line = currentCase.adversary[debateRound % currentCase.adversary.length];
+    flow.innerHTML += `
+      <div class="debate-bubble debate-adversary">
+        <div class="debate-sender">对手律师 · Adversary Agent</div>
+        ${line}
+      </div>
+    `;
+    document.getElementById('court-round-tag').textContent = `ROUND ${Math.min(debateRound + 1, 3)}/3`;
+    flow.scrollTop = flow.scrollHeight;
+  }, 800);
+
+  flow.scrollTop = flow.scrollHeight;
+}
+
+function requestVerdict() {
+  const v = currentCase.verdict;
+  document.getElementById('verdict-confidence').textContent = `置信度: ${v.confidence}%`;
+  document.getElementById('gb-award').textContent = v.award;
+
+  v.steps.forEach((step, i) => {
+    const el = document.getElementById(`gb-step-${i+1}`);
+    if (el) el.innerHTML = `${step.content}${step.cite ? `<br><span style="font-family:'Space Mono',monospace;font-size:0.75rem;color:var(--periwinkle);margin-top:0.25rem;display:block;">引用: ${step.cite}</span>` : ''}`;
+  });
+
+  document.getElementById('glassbox-verdict').classList.add('visible');
+
+  // Calculate score
+  const logicScore = Math.floor(Math.random() * 30) + 70;
+  const evidenceScore = Math.floor(Math.random() * 30) + 70;
+  const lawScore = Math.floor(Math.random() * 30) + 70;
+  const total = Math.floor((logicScore + evidenceScore + lawScore) / 3);
+
+  document.getElementById('score-logic').textContent = logicScore;
+  document.getElementById('score-evidence').textContent = evidenceScore;
+  document.getElementById('score-law').textContent = lawScore;
+  document.getElementById('score-total').textContent = total;
+  document.getElementById('score-board').style.display = 'flex';
+
+  totalScore += total;
+  document.getElementById('total-score').textContent = totalScore;
+
+  // Update level
+  const lvl = campaignLevels.find(l => l.id === currentLevel);
+  if (lvl && currentLevel !== 99) {
+    lvl.completed = true;
+    lvl.score = total;
+    lvl.stars = total >= 90 ? 3 : (total >= 75 ? 2 : 1);
+    const next = campaignLevels.find(l => l.id === currentLevel + 1);
+    if (next) next.locked = false;
+  }
+
+  document.getElementById('btn-request-verdict').style.display = 'none';
+  document.getElementById('btn-next-level').style.display = 'inline-flex';
+
+  const flow = document.getElementById('debate-flow');
+  flow.innerHTML += `<div class="debate-system">⚖️ 法官已作出裁决 · Glass-Box推理链已展开</div>`;
+  flow.scrollTop = flow.scrollHeight;
+}
+
+function nextLevel() {
+  exitCourtroom();
+  if (currentLevel < 10) {
+    setTimeout(() => startLevel(currentLevel + 1), 300);
+  }
+}
+
+function exitCourtroom() {
+  document.getElementById('courtroom-interface').style.display = 'none';
+  document.getElementById('campaign-map').style.display = 'grid';
+  renderCampaignMap();
+}
+
+function goScreenById(id) {
+  const navMap = { 'forge': 0, 'audit': 1, 'campaign': 2, 'community': 3 };
+  const navBtns = document.querySelectorAll('.nav-btn');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  if (navBtns[navMap[id]]) navBtns[navMap[id]].classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+// ==================== COMMUNITY ====================
+const leaderboardData = [
+  { rank: 1, name: "法外狂徒张三", avatar: "🦁", score: 2840, level: 8, title: "大律师" },
+  { rank: 2, name: "合同猎魔人", avatar: "🦉", score: 2650, level: 7, title: "资深律师" },
+  { rank: 3, name: "证据收藏家", avatar: "🦊", score: 2520, level: 7, title: "资深律师" },
+  { rank: 4, name: "条款拆解机", avatar: "🐺", score: 2310, level: 6, title: "执业律师" },
+  { rank: 5, name: "仲裁员小王", avatar: "🐱", score: 2180, level: 6, title: "执业律师" },
+  { rank: 6, name: "隐私守护者", avatar: "🐻", score: 1950, level: 5, title: "见习律师" },
+  { rank: 7, name: "劳动法先锋", avatar: "🐼", score: 1720, level: 4, title: "见习律师" },
+  { rank: 8, name: "你", avatar: "🐱", score: 1240, level: 3, title: "见习律师" },
+];
+
+const feedData = [
+  { author: "法外狂徒张三", time: "2分钟前", body: "刚刚通关第8关'仲裁迷宫'！对方律师的管辖权异议被我用《仲裁法》第6条直接拍回去了，Glass-Box推理链太爽了！", tags: ["#仲裁", "#管辖权异议"], likes: 24, comments: 5 },
+  { author: "合同猎魔人", time: "15分钟前", body: "分享一个今天猎到的大怪物：某大厂用户协议里的'信息饕餮'，过度收集生物识别信息，直接用《个保法》第28条秒杀。", tags: ["#隐私保护", "#个保法"], likes: 56, comments: 12 },
+  { author: "证据收藏家", time: "1小时前", body: "求助：第5关'版权窃贼'怎么打？对方一直咬定用户上传内容版权归平台，我引用了《著作权法》第11条但证据分上不去。", tags: ["#求助", "#著作权"], likes: 18, comments: 8 },
+  { author: "仲裁员小王", time: "2小时前", body: "在社区分享一个我自己生成的案件：跨境电商退货纠纷，适用了CIETAC仲裁规则，AI生成的对手律师质询非常刁钻，推荐大家也试试自定义案件！", tags: ["#自定义案件", "#跨境电商"], likes: 43, comments: 9 },
+];
+
+function renderCommunity() {
+  // Leaderboard
+  document.getElementById('leaderboard-body').innerHTML = leaderboardData.map(u => `
+    <div class="leaderboard-row">
+      <div class="leaderboard-rank ${u.rank <= 3 ? ['gold','silver','bronze'][u.rank-1] : ''}">${u.rank}</div>
+      <div class="leaderboard-avatar">${u.avatar}</div>
+      <div class="leaderboard-info">
+        <div class="leaderboard-name">${u.name}</div>
+        <div class="leaderboard-meta">${u.title} · 关卡 ${u.level}</div>
+      </div>
+      <div class="leaderboard-score">${u.score}</div>
+    </div>
+  `).join('');
+
+  // Feed
+  document.getElementById('community-feed').innerHTML = feedData.map(post => `
+    <div class="feed-card">
+      <div class="feed-header">
+        <span class="feed-author">${post.author}</span>
+        <span class="feed-time">${post.time}</span>
+      </div>
+      <div class="feed-body">${post.body}</div>
+      <div style="margin-bottom:0.75rem;">
+        ${post.tags.map(t => `<span class="tag tag-purple">${t}</span>`).join('')}
+      </div>
+      <div class="feed-actions">
+        <span class="feed-action">❤️ ${post.likes}</span>
+        <span class="feed-action">💬 ${post.comments}</span>
+        <span class="feed-action">↗️ 分享</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openShareModal() {
+  document.getElementById('share-modal').classList.add('visible');
+  // Generate QR when modal opens
+  setTimeout(generateQR, 100);
+}
+function closeShareModal() {
+  document.getElementById('share-modal').classList.remove('visible');
+}
+function submitShare() {
+  const title = document.getElementById('share-title').value;
+  const body = document.getElementById('share-body').value;
+  if (!title || !body) { alert('请填写标题和内容'); return; }
+
+  feedData.unshift({
+    author: "你", time: "刚刚",
+    body: `<strong>${title}</strong><br>${body}`,
+    tags: ["#新分享"], likes: 0, comments: 0
+  });
+  renderCommunity();
+  closeShareModal();
+  document.getElementById('share-title').value = '';
+  document.getElementById('share-body').value = '';
+}
+
+// ==================== INIT ====================
+renderCampaignMap();
+renderCommunity();
+</script>
+</body>
+</html>
