@@ -289,6 +289,10 @@ body { font-family: 'Inter', sans-serif; background: var(--paper); color: var(--
 .tag-button { cursor:pointer; border:0; }
 .tag-filter-bar { display:none; justify-content:space-between; align-items:center; margin-bottom:.8rem; padding:.7rem; border:2px solid var(--ink); background:var(--signal-yellow); }
 .tag-filter-bar.visible { display:flex; }
+.legacy-cat-avatar { width:48px; height:48px; flex:0 0 48px; display:grid; place-items:center; font-size:32px; line-height:1; background:var(--paper-bright); border:2px solid var(--ink); box-shadow:3px 3px 0 var(--ink); border-radius:8px; }
+.legacy-cat-avatar.small { width:38px; height:38px; flex-basis:38px; font-size:25px; box-shadow:2px 2px 0 var(--ink); }
+.identity-cat-art { width:110px; height:128px; object-fit:contain; display:block; margin:auto; filter:drop-shadow(5px 5px 0 rgba(23,23,23,.22)); }
+.identity-hero { grid-template-columns:130px 1fr; }
 @media(max-width:700px){.identity-grid,.cat-court-stage{grid-template-columns:1fr}.cat-court-stage{padding-top:2.5rem}.judge-bench{order:-1}.court-cat.enemy{flex-direction:row}.screen-cat{display:none}.profile-panel{grid-template-columns:1fr}.identity-hero{grid-template-columns:1fr;text-align:center}}
 </style>
 </head>
@@ -1609,7 +1613,8 @@ const communityProfiles = {
 };
 
 function catHTML(style='blue',badge='⚖',mood='') {
-  return `<span class="cat-avatar ${esc(style)} ${esc(mood)}" aria-hidden="true"><span class="cat-head"><span class="cat-eyes"></span><span class="cat-mouth"></span></span><span class="cat-badge">${badge}</span></span>`;
+  const cats={blue:'🐱',orange:'😼',gray:'🐈‍⬛',gold:'😺'};
+  return `<span class="legacy-cat-avatar ${String(mood).includes('small')?'small':''}" aria-hidden="true">${cats[style]||'🐱'}</span>`;
 }
 function loadPlayerProfile(){
   try{playerProfile=JSON.parse(localStorage.getItem('argus-player-profile')||'null');}catch(e){playerProfile=null;}
@@ -1623,14 +1628,14 @@ function renderPlayerBadge(){
 }
 function ensureSocialModals(){
   if(document.getElementById('identity-overlay'))return;
-  document.body.insertAdjacentHTML('beforeend',`<div class="identity-overlay" id="identity-overlay"><section class="identity-card" role="dialog" aria-modal="true" aria-labelledby="identity-title"><button class="modal-close" id="identity-close" onclick="closeIdentityCard()">×</button><div class="identity-hero">${catHTML('blue','ID','wink')}<div><span class="tag tag-yellow">ARGUS+ PLAYER FILE · 001</span><h2 class="identity-title" id="identity-title">创建律师猫身份卡</h2><p>你的称呼、身份和擅长方向会出现在法庭席位与社区个人资料中。</p></div></div><div class="avatar-picker" id="avatar-picker">${['blue','orange','gray','gold'].map((x,i)=>`<button class="avatar-option ${i===0?'selected':''}" data-cat="${x}" onclick="chooseCat('${x}',this)" aria-label="选择${x}猫咪">${catHTML(x,['⚖','📎','§','✦'][i],i===0?'wink':'')}</button>`).join('')}</div><div class="identity-grid"><label><span class="label">昵称 / NAME *</span><input id="profile-name" class="input" maxlength="20" placeholder="例如：林墨"></label><label><span class="label">身份 / ROLE</span><input id="profile-role" class="input" maxlength="30" placeholder="例如：见习律师、法学生"></label><label><span class="label">擅长方向 / PRACTICE</span><input id="profile-practice" class="input" maxlength="40" placeholder="合同审查、劳动争议"></label><label><span class="label">所在地区 / REGION</span><input id="profile-region" class="input" maxlength="30" placeholder="上海 / 线上"></label></div><label><span class="label">个人简介 / BIO</span><textarea id="profile-bio" class="textarea" maxlength="160" placeholder="告诉社区你关心的法律问题和希望一起讨论的方向。"></textarea></label><div class="cat-state-note">${catHTML('gold','🔒','small')}<span>身份资料仅保存在当前浏览器，不会自动上传到服务器。你可以随时点击右上角身份卡修改。</span></div><button class="btn btn-primary" style="width:100%;justify-content:center" onclick="savePlayerProfile()">盖章并进入 ARGUS+ →</button></section></div>
+  document.body.insertAdjacentHTML('beforeend',`<div class="identity-overlay" id="identity-overlay"><section class="identity-card" role="dialog" aria-modal="true" aria-labelledby="identity-title"><button class="modal-close" id="identity-close" onclick="closeIdentityCard()">×</button><div class="identity-hero"><img class="identity-cat-art" src="assets/lawyer-cat-transparent.png" alt="戴蓝色眼镜、穿紫金律师袍的猫咪"><div><span class="tag tag-yellow">ARGUS+ PLAYER FILE · 001</span><h2 class="identity-title" id="identity-title">创建律师猫身份卡</h2><p>你的称呼、身份和擅长方向会出现在法庭席位与社区个人资料中。</p></div></div><div class="identity-grid"><label><span class="label">昵称 / NAME *</span><input id="profile-name" class="input" maxlength="20" placeholder="例如：林墨"></label><label><span class="label">身份 / ROLE</span><input id="profile-role" class="input" maxlength="30" placeholder="例如：见习律师、法学生"></label><label><span class="label">擅长方向 / PRACTICE</span><input id="profile-practice" class="input" maxlength="40" placeholder="合同审查、劳动争议"></label><label><span class="label">所在地区 / REGION</span><input id="profile-region" class="input" maxlength="30" placeholder="上海 / 线上"></label></div><label><span class="label">个人简介 / BIO</span><textarea id="profile-bio" class="textarea" maxlength="160" placeholder="告诉社区你关心的法律问题和希望一起讨论的方向。"></textarea></label><div class="cat-state-note">${catHTML('gold','🔒','small')}<span>身份资料仅保存在当前浏览器，不会自动上传到服务器。你可以随时点击右上角身份卡修改。</span></div><button class="btn btn-primary" style="width:100%;justify-content:center" onclick="savePlayerProfile()">盖章并进入 ARGUS+ →</button></section></div>
   <div class="modal-overlay" id="profile-modal"><div class="modal-box"><button class="modal-close" onclick="closeProfileModal()">×</button><div id="profile-modal-content"></div></div></div>
   <div class="modal-overlay" id="friend-chat-modal"><div class="modal-box"><button class="modal-close" onclick="closeFriendChat()">×</button><div class="modal-title" id="friend-chat-title">猫咪律师私聊</div><div class="chat-log" id="friend-chat-log"></div><div style="display:flex;gap:.5rem;margin-top:.75rem"><input id="friend-chat-input" class="input" style="margin:0" placeholder="输入消息…" onkeypress="if(event.key==='Enter')sendFriendMessage()"><button class="btn btn-primary" style="box-shadow:none" onclick="sendFriendMessage()">发送</button></div><div class="privacy-hint" style="margin-top:.6rem">当前为本机演示私聊，不会向真实用户发送消息。</div></div></div>`);
 }
 function openIdentityCard(){
   ensureSocialModals(); const p=playerProfile||{};
   document.getElementById('profile-name').value=p.name||'';document.getElementById('profile-role').value=p.role||'';document.getElementById('profile-practice').value=p.practice||'';document.getElementById('profile-region').value=p.region||'';document.getElementById('profile-bio').value=p.bio||'';
-  selectedCatStyle=p.cat||'blue';document.querySelectorAll('.avatar-option').forEach(b=>b.classList.toggle('selected',b.dataset.cat===selectedCatStyle));
+  selectedCatStyle=p.cat||'blue';
   document.getElementById('identity-close').style.display=playerProfile?'block':'none';document.getElementById('identity-overlay').classList.add('visible');setTimeout(()=>document.getElementById('profile-name').focus(),50);
 }
 function closeIdentityCard(){if(playerProfile)document.getElementById('identity-overlay').classList.remove('visible');}
