@@ -203,14 +203,14 @@ COMMAND: curl -k -sS -i --max-time 20 https://argus-mvp.zeabur.app/health
 INPUT: GET /health over HTTPS via Zeabur temporary domain
 OUTPUT:
 HTTP/2 200
-{"status":"ok","service":"argus-backend","runtime":"node","version":"0.2.0"}
+{"status":"ok","service":"argus-backend","runtime":"node","version":"0.2.0","timestamp":"2026-09-05T08:46:36.423Z"}
 EXIT_STATUS: 0
 PUBLIC_PROBE:
 COMMAND: curl -k -sS -i --max-time 20 https://argus-mvp.zeabur.app/api/campaign/demo
 INPUT: GET /api/campaign/demo over HTTPS via Zeabur temporary domain
 OUTPUT:
 HTTP/2 200
-{"data":{"id":"rental-deposit-001", "scenes": [3], "evidence": [6]}}
+{"id":"rental-deposit-001","scenes":3,"evidence":7}
 EXIT_STATUS: 0
 
 ROUTING
