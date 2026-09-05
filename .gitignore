@@ -5,3 +5,10 @@ out/
 .env
 .env.local
 .DS_Store
+
+# Local/generated verification artifacts
+output/
+tmp/
+ARGUS+进展说明文档.md
+.framework/PRD_SOURCE_COPY.md
+.framework/ROLLBACK_TEST_TARGET.md

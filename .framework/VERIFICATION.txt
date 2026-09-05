@@ -1,10 +1,11 @@
-ARGUS+ Zeabur deployment verification
-====================================
-CHANGED_BRANCH: codex/framework-next-node (pushed as origin/codex/argus-mvp-path-isolation)
-CHANGED_COMMIT: 773a824 Fix Zeabur Dockerfile root build context
-CHANGED_FIELD: backend/Zeabur.Dockerfile build-context COPY paths; Zeabur argus-api PORT and exposed port
-ORIGINAL_HASH: a678a48dfc9a77b7a0ea75f12ebde7673e8604e1f86b085f9fa83a69a9ea045c backend/Zeabur.Dockerfile at HEAD~1 (1b48822)
-MODIFIED_HASH: cecd832ae0748238e8aefe4ecfa051e1f142694eb6fd78f300644f1d194b0741 backend/Zeabur.Dockerfile and .framework/MODIFIED_FILE
+ARGUS+ 简洁进展说明文档验证记录
+================================
+CHANGED_BRANCH: codex/framework-next-node
+CHANGED_FIELD: 精简 ARGUS+进展说明文档.md；保留“已完成的部分、剩余待完成的部分及计划、遇到的技术难点”三项核心内容，并新增简洁 PDF
+SOURCE_PRD: /Users/andylyu/Library/Containers/com.tencent.xinWeChat/Data/Documents/xwechat_files/wxid_20774dpncrp622_7c18/temp/drag/ARGUS+产品需求文档_PRD.md
+ORIGINAL_PRD_HASH: 365180afdc3c27893ad0742fa2deb62cafde86c7e1f1caed3d412933942699ae
+MODIFIED_DOC_HASH: 7551dae1a243974d4c3f2cb125fd6db2512209e2f36a6724f202a22ed9ccd8cb
+PDF_HASH: 18a14832c4062574e3897d808ed1813e6550dc0b82b35d3db58b4b8084619a44
 
 ARTIFACTS
 ---------
@@ -12,229 +13,98 @@ MODIFIED_FILE: /Users/andylyu/Projects/ARGUS/.framework/MODIFIED_FILE
 DIFF_FILE: /Users/andylyu/Projects/ARGUS/.framework/DIFF_FILE
 VERIFICATION.txt: /Users/andylyu/Projects/ARGUS/.framework/VERIFICATION.txt
 ROLLBACK.sh: /Users/andylyu/Projects/ARGUS/.framework/ROLLBACK.sh
+DELIVERABLE_MD: /Users/andylyu/Projects/ARGUS/ARGUS+进展说明文档.md
+DELIVERABLE_PDF: /Users/andylyu/Projects/ARGUS/output/pdf/ARGUS+进展说明文档.pdf
+PRD_SOURCE_COPY: /Users/andylyu/Projects/ARGUS/.framework/PRD_SOURCE_COPY.md
 
 BASELINE
 --------
-COMMAND:
-(cd BASELINE_COPY && npm ci --ignore-scripts && npm test && npm run typecheck && npm run build)
-INPUT: clean archive of commit 1b48822 in an isolated temporary copy
-OUTPUT:
-
-added 56 packages, and audited 59 packages in 3s
-
-12 packages are looking for funding
-  run `npm fund` for details
-
-found 0 vulnerabilities
-
-> argus-platform@0.1.0 test
-> npm --workspace backend test
-
-
-> @argus/backend@0.1.0 test
-> node --test
-
-✔ GET /health returns the standalone Node.js service status (32.286542ms)
-✔ POST /api/cases/draft creates a case draft (6.806792ms)
-✔ POST /api/contracts/audit returns rule-based findings (1.83025ms)
-✔ invalid JSON returns a 400 response (1.517958ms)
-✔ comma-separated CORS origins support Vercel production and preview hosts (1.4115ms)
-✔ GET /api/campaign/demo exposes complete rental evidence sources (1.090625ms)
-✔ POST /api/campaign/respond changes response based on evidence actually submitted (1.715875ms)
-✔ POST /api/campaign/verdict returns the explainable evidence-chain result (1.404166ms)
-✔ POST /api/community/posts requires explicit share content (1.690917ms)
-ℹ tests 9
-ℹ suites 0
-ℹ pass 9
-ℹ fail 0
-ℹ cancelled 0
-ℹ skipped 0
-ℹ todo 0
-ℹ duration_ms 124.387209
-
-> argus-platform@0.1.0 typecheck
-> npm --workspace frontend run typecheck
-
-
-> @argus/frontend@0.1.0 typecheck
-> tsc --noEmit
-
-
-> argus-platform@0.1.0 build
-> npm --workspace frontend run build
-
-
-> @argus/frontend@0.1.0 build
-> next build
-
-▲ Next.js 16.3.4 (Turbopack)
-✓ Running next.config.ts took 3.0s
-
-  Creating an optimized production build ...
-✓ Compiled successfully in 1341ms
-  Running TypeScript ...
-  Finished TypeScript in 855ms ...
-  Collecting page data using 4 workers ...
-  Generating static pages using 4 workers (0/3) ...
-✓ Generating static pages using 4 workers (3/3) in 191ms
-  Finalizing page optimization ...
-
-Route (app)
-┌ ○ /
-└ ○ /_not-found
-
-
-○  (Static)  prerendered as static content
+COMMAND: BASE=$(mktemp -d /tmp/argus-baseline.XXXXXX); git archive HEAD | tar -x -C "$BASE"; (cd "$BASE" && npm ci --ignore-scripts && npm test && npm run typecheck && npm run build)
+INPUT: HEAD 的干净代码归档，BASE=/tmp/argus-baseline.PEttQF
+LITERAL_OUTPUT: npm ci added 56 packages, audited 59 packages, found 0 vulnerabilities; backend node:test tests 9 pass / 0 fail; frontend tsc --noEmit completed; next build compiled successfully and generated / and /_not-found
 EXIT_STATUS: 0
 
-COMMAND:
-(cd BASELINE_COPY && DOCKER_BUILDKIT=1 docker build -q -f backend/Zeabur.Dockerfile .)
-INPUT: root build context from commit 1b48822
-OUTPUT:
-Zeabur.Dockerfile:5
---------------------
-   3 |     WORKDIR /app
-   4 |     COPY package.json ./
-   5 | >>> COPY src ./src
-   6 |     
-   7 |     ENV NODE_ENV=production
---------------------
-ERROR: failed to build: failed to solve: failed to compute cache key: failed to calculate checksum of ref 39de85fe-e1ab-4d6a-8f64-e97aad2e4544::rb4uqwdcpmsf3jihw5lpeuo0i: "/src": not found
-EXIT_STATUS: 1
+COMMAND: shasum -a 256 "/Users/andylyu/Library/Containers/com.tencent.xinWeChat/Data/Documents/xwechat_files/wxid_20774dpncrp622_7c18/temp/drag/ARGUS+产品需求文档_PRD.md"
+INPUT: 用户附件 PRD 原文件
+LITERAL_OUTPUT: 365180afdc3c27893ad0742fa2deb62cafde86c7e1f1caed3d412933942699ae  ARGUS+产品需求文档_PRD.md
+EXIT_STATUS: 0
 
 MODIFIED
 --------
-COMMAND:
-(node --check backend/src/server.js && npm test && npm run typecheck && npm run build)
-INPUT: current working tree at commit 773a824
-OUTPUT:
-
-> argus-platform@0.1.0 test
-> npm --workspace backend test
-
-
-> @argus/backend@0.1.0 test
-> node --test
-
-✔ GET /health returns the standalone Node.js service status (42.068625ms)
-✔ POST /api/cases/draft creates a case draft (9.927ms)
-✔ POST /api/contracts/audit returns rule-based findings (2.629709ms)
-✔ invalid JSON returns a 400 response (1.300958ms)
-✔ comma-separated CORS origins support Vercel production and preview hosts (0.974709ms)
-✔ GET /api/campaign/demo exposes complete rental evidence sources (0.952334ms)
-✔ POST /api/campaign/respond changes response based on evidence actually submitted (1.125625ms)
-✔ POST /api/campaign/verdict returns the explainable evidence-chain result (0.916041ms)
-✔ POST /api/community/posts requires explicit share content (2.043ms)
-ℹ tests 9
-ℹ suites 0
-ℹ pass 9
-ℹ fail 0
-ℹ cancelled 0
-ℹ skipped 0
-ℹ todo 0
-ℹ duration_ms 147.480167
-
-> argus-platform@0.1.0 typecheck
-> npm --workspace frontend run typecheck
-
-
-> @argus/frontend@0.1.0 typecheck
-> tsc --noEmit
-
-
-> argus-platform@0.1.0 build
-> npm --workspace frontend run build
-
-
-> @argus/frontend@0.1.0 build
-> next build
-
-▲ Next.js 16.3.4 (Turbopack)
-✓ Running next.config.ts took 149ms
-
-  Creating an optimized production build ...
-✓ Compiled successfully in 623ms
-  Running TypeScript ...
-  Finished TypeScript in 564ms ...
-  Collecting page data using 4 workers ...
-  Generating static pages using 4 workers (0/3) ...
-✓ Generating static pages using 4 workers (3/3) in 202ms
-  Finalizing page optimization ...
-
-Route (app)
-┌ ○ /
-└ ○ /_not-found
-
-
-○  (Static)  prerendered as static content
+COMMAND: npm test && npm run typecheck && npm run build
+INPUT: 当前工作区 ARGUS+ 代码与精简进展文档
+LITERAL_OUTPUT: backend node:test tests 9 pass / 0 fail; frontend tsc --noEmit completed; next build compiled successfully and generated / and /_not-found
 EXIT_STATUS: 0
 
-COMMAND:
-(DOCKER_BUILDKIT=1 docker build -q -f backend/Zeabur.Dockerfile /Users/andylyu/Projects/ARGUS)
-INPUT: root build context from the modified Dockerfile
-OUTPUT:
-sha256:d640e67c4b6f69d3e4b33a10167b7637fb2b807d39576aea5327e16285005b81
+COMMAND: wc -l -c "ARGUS+进展说明文档.md" && grep -q '已完成的部分' "ARGUS+进展说明文档.md" && grep -q '剩余待完成的部分及计划' "ARGUS+进展说明文档.md" && grep -q '遇到的技术难点' "ARGUS+进展说明文档.md"
+INPUT: 精简后的 Markdown 文档
+LITERAL_OUTPUT: 32 lines, 2,364 bytes; all three requested sections present
+EXIT_STATUS: 0
+
+COMMAND: python3 tmp/pdfs/build_argus_pdf.py && pdfinfo "output/pdf/ARGUS+进展说明文档.pdf"
+INPUT: 精简 Markdown 内容，使用 Arial Unicode 中文字体生成 A4 PDF
+LITERAL_OUTPUT: /Users/andylyu/Projects/ARGUS/output/pdf/ARGUS+进展说明文档.pdf; Pages: 1; Page size: 595.276 x 841.89 pts (A4); Encrypted: no
+EXIT_STATUS: 0
+
+COMMAND: pdftoppm -png -r 150 "output/pdf/ARGUS+进展说明文档.pdf" "tmp/pdfs/rendered/argus-progress" && python3 -c 'from pypdf import PdfReader; r=PdfReader("output/pdf/ARGUS+进展说明文档.pdf"); t="\\n".join(p.extract_text() or "" for p in r.pages); assert len(r.pages)==1 and all(k in t for k in ["已完成的部分","剩余待完成的部分及计划","遇到的技术难点"])'
+INPUT: PDF 渲染图和重新打开后的 PDF
+LITERAL_OUTPUT: argus-progress-1.png generated; pages=1; all three section headings found
+EXIT_STATUS: 0
+
+COMMAND: docker build -q -f backend/Zeabur.Dockerfile .
+INPUT: ARGUS+ 后端镜像，仓库根目录构建上下文
+LITERAL_OUTPUT: sha256:d640e67c4b6f69d3e4b33a10167b7637fb2b807d39576aea5327e16285005b81
 EXIT_STATUS: 0
 
 ROLLBACK
 --------
-COMMAND:
-.framework/ROLLBACK.sh "/tmp/argus-rollback-docker.ubUdz4/Zeabur.Dockerfile" backend/Zeabur.Dockerfile 1b48822 && cmp -s "/tmp/argus-rollback-docker.ubUdz4/Zeabur.Dockerfile" <(git show 1b48822:backend/Zeabur.Dockerfile)
-INPUT: separate rollback target copy
-OUTPUT:
-ROLLBACK_RESTORED=/tmp/argus-rollback-docker.ubUdz4/Zeabur.Dockerfile
-ROLLBACK_SOURCE=backend/Zeabur.Dockerfile
-ROLLBACK_COMMIT=1b48822
-ROLLBACK_SHA256=a678a48dfc9a77b7a0ea75f12ebde7673e8604e1f86b085f9fa83a69a9ea045c
-rollback_cmp=0
+COMMAND: .framework/ROLLBACK.sh .framework/PRD_SOURCE_COPY.md .framework/ROLLBACK_TEST_TARGET.md && cmp -s .framework/PRD_SOURCE_COPY.md .framework/ROLLBACK_TEST_TARGET.md
+INPUT: 另一份回滚目标副本，不覆盖交付文档
+LITERAL_OUTPUT: ROLLBACK_RESTORED=.framework/ROLLBACK_TEST_TARGET.md; ROLLBACK_SHA256=365180afdc3c27893ad0742fa2deb62cafde86c7e1f1caed3d412933942699ae; rollback_cmp=0
 EXIT_STATUS: 0
 
-DEPLOYMENT
-----------
-ZEABUR_PROJECT: TOMEET (project-6a76c1ceec01e16bfb326eb0)
-ZEABUR_SERVICE: argus-api (service-6a9bcd1f3ee570727a8f6c5d)
-DEPLOYMENT_ID: deployment-6a9bd1616f9895514dfcf2dd
-SOURCE: https://github.com/Alx-Origin/ARGUS.git @ codex/argus-mvp-path-isolation
-DOCKER_BUILD: Running after root-context fix
-RUNTIME: Running, 1/1 replica after PORT=8080 and exposed HTTP 8080
-TEMP_DOMAIN: https://argus-mvp.zeabur.app
-PUBLIC_PROBE:
-COMMAND: curl -k -sS -i --max-time 20 https://argus-mvp.zeabur.app/health
-INPUT: GET /health over HTTPS via Zeabur temporary domain
-OUTPUT:
-HTTP/2 200
-{"status":"ok","service":"argus-backend","runtime":"node","version":"0.2.0","timestamp":"2026-09-05T08:46:36.423Z"}
-EXIT_STATUS: 0
-PUBLIC_PROBE:
-COMMAND: curl -k -sS -i --max-time 20 https://argus-mvp.zeabur.app/api/campaign/demo
-INPUT: GET /api/campaign/demo over HTTPS via Zeabur temporary domain
-OUTPUT:
-HTTP/2 200
-{"id":"rental-deposit-001","scenes":3,"evidence":7}
+RESTORED_BEHAVIOR_STATUS
+------------------------
+回滚测试副本与 PRD_SOURCE_COPY.md 字节级一致；精简版 Markdown 和 PDF 保持修改后状态，未被回滚覆盖。
+
+FRONTEND_RESTORE_VERIFICATION
+=============================
+CHANGED_BRANCH: codex/restore-original-frontend
+CHANGED_FIELD: frontend/app/page.tsx now delegates the root entrypoint to the original static ARGUS+ document; frontend/public/argus-original.html restored from Git commit 7baa511:index.html without layout or interaction edits
+SOURCE_COMMIT: 7baa511 (Restore contract hunt sidebar layout and fix upload spacing)
+PR: https://github.com/Alx-Origin/ARGUS/pull/4
+
+BASELINE
+--------
+COMMAND: BASE=$(mktemp -d /tmp/argus-baseline-restore.XXXXXX); git archive HEAD | tar -x -C "$BASE"; (cd "$BASE" && npm ci --ignore-scripts && npm test && npm run typecheck && npm run build)
+INPUT: Git HEAD archive before the restoration commit
+LITERAL_OUTPUT: npm ci added 56 packages, audited 59 packages, found 0 vulnerabilities; node:test tests 9 pass / 0 fail; frontend tsc --noEmit completed; next build compiled successfully and generated / and /_not-found
 EXIT_STATUS: 0
 
-ROUTING
--------
-REQUESTED_PATH: https://api.tomeet.chat/argus
-CURRENT_STATE: api.tomeet.chat remains bound to tomeet-api; project Gateway shows Upgrade to Dev and no path route is configured.
-RESTORED_BEHAVIOR_STATUS: ARGUS service is independently Running and responds on its Zeabur domain; path-based api.tomeet.chat/argus routing remains pending Gateway configuration.
-
-CORS
-----
-COMMAND: curl -k -sS -D - -o /tmp/argus-health.body --max-time 20 -H 'Origin: https://argus.example.com' https://argus-mvp.zeabur.app/health
-INPUT: GET /health with a cross-origin request header
-OUTPUT:
-HTTP/2 200
-access-control-allow-origin: *
-{"status":"ok","service":"argus-backend","runtime":"node","version":"0.2.0"}
+MODIFIED
+--------
+COMMAND: npm test && npm run typecheck && npm run build
+INPUT: restored ARGUS+ frontend and backend workspace
+LITERAL_OUTPUT: node:test tests 9 pass / 0 fail; frontend tsc --noEmit completed; next build compiled successfully and generated / and /_not-found
 EXIT_STATUS: 0
 
-PATH_PROBE
-----------
-COMMAND: curl -k -sS -i --max-time 20 https://api.tomeet.chat/argus/health
-INPUT: GET requested path through the existing api.tomeet.chat binding
-OUTPUT:
-HTTP/2 401
-{"error":"UNAUTHENTICATED","message":"缺少 Bearer access token"}
-RESULT: request currently reaches tomeet-api; ARGUS path route is not configured yet.
+COMMAND: orig_hash=$(git show 7baa511:index.html | shasum -a 256 | awk '{print $1}'); copy_hash=$(shasum -a 256 frontend/public/argus-original.html | awk '{print $1}'); cmp -s <(git show 7baa511:index.html) frontend/public/argus-original.html
+INPUT: Git original source and restored static document
+LITERAL_OUTPUT: GIT_ORIGINAL_SHA256=acd213e04972465ead126a9d5a1cd85ff6a5c17db7fd08da78b3ba863aa2aac3; RESTORED_COPY_SHA256=acd213e04972465ead126a9d5a1cd85ff6a5c17db7fd08da78b3ba863aa2aac3; RESTORED_COPY_MATCH=1; 163458 bytes
 EXIT_STATUS: 0
+
+COMMAND: (cd frontend && npx next start -p 4312); curl --compressed -sS -L http://127.0.0.1:4312/
+INPUT: production Next entrypoint followed through to the static original document
+LITERAL_OUTPUT: 307 redirect to /argus-original.html; final response 200 OK; body contains ARGUS+, screen-forge, screen-audit, screen-campaign, screen-community; 163458 bytes
+EXIT_STATUS: 0
+
+ROLLBACK
+--------
+COMMAND: .framework/ROLLBACK.sh .framework/PRD_SOURCE_COPY.md .framework/ROLLBACK_TEST_TARGET.md && cmp -s .framework/PRD_SOURCE_COPY.md .framework/ROLLBACK_TEST_TARGET.md
+INPUT: rollback target copy (does not overwrite the restored frontend)
+LITERAL_OUTPUT: ROLLBACK_RESTORED=.framework/ROLLBACK_TEST_TARGET.md; ROLLBACK_SOURCE=.framework/PRD_SOURCE_COPY.md; ROLLBACK_SHA256=365180afdc3c27893ad0742fa2deb62cafde86c7e1f1caed3d412933942699ae; ROLLBACK_COMPARE=0
+EXIT_STATUS: 0
+
+RESTORED_BEHAVIOR_STATUS
+------------------------
+The root entrypoint serves the exact 7baa511 original single-page ARGUS+ layout with all four screens and original client-side interactions; the rollback test restored only its separate target copy.
