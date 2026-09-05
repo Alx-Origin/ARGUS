@@ -1787,6 +1787,13 @@ function renderAuditMonsterSide(risky){const host=document.getElementById('audit
 function loadProfessionalSample(){document.getElementById('audit-background').value='我方作为商场出租方，拟与餐饮品牌签署三年商铺租赁合同。';document.getElementById('audit-position').value='甲方';document.getElementById('audit-text').value='第一条 乙方承租甲方商铺用于餐饮经营，具体面积和交付条件另行协商。\n第二条 租赁期限自商铺交付之日起三年，乙方应尽快完成装修并开业。\n第三条 乙方应按甲方通知的金额和日期支付租金及其他费用。\n第四条 如乙方违约，甲方有权没收全部保证金，并要求乙方赔偿全部损失。\n第五条 双方发生争议，可向仲裁机构仲裁或向法院起诉。';}
 
 upgradeAuditWorkspace();ensureSocialModals();loadPlayerProfile();addScreenCats();renderCommunity();
+
+// When embedded by the React shell, show only the latest courtroom screen.
+if (location.hash === '#campaign') {
+  const masthead = document.querySelector('.masthead');
+  if (masthead) masthead.style.display = 'none';
+  goScreenById('campaign');
+}
 window.addEventListener('load',()=>{if(!playerProfile)setTimeout(openIdentityCard,280);});
 </script>
 <script>
