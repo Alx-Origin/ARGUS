@@ -179,7 +179,7 @@ EXIT_STATUS: 0
 ROLLBACK
 --------
 COMMAND:
-.framework/ROLLBACK.sh "/tmp/argus-rollback-docker.ubUdz4/Zeabur.Dockerfile" backend/Zeabur.Dockerfile HEAD~1 && cmp -s "/tmp/argus-rollback-docker.ubUdz4/Zeabur.Dockerfile" <(git show HEAD~1:backend/Zeabur.Dockerfile)
+.framework/ROLLBACK.sh "/tmp/argus-rollback-docker.ubUdz4/Zeabur.Dockerfile" backend/Zeabur.Dockerfile 1b48822 && cmp -s "/tmp/argus-rollback-docker.ubUdz4/Zeabur.Dockerfile" <(git show 1b48822:backend/Zeabur.Dockerfile)
 INPUT: separate rollback target copy
 OUTPUT:
 ROLLBACK_RESTORED=/tmp/argus-rollback-docker.ubUdz4/Zeabur.Dockerfile

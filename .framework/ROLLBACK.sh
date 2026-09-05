@@ -3,7 +3,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET="${1:-$ROOT_DIR/.framework/ROLLBACK_TARGET}"
 SOURCE="${2:-backend/Zeabur.Dockerfile}"
-COMMIT="${3:-HEAD~1}"
+COMMIT="${3:-1b48822}"
 mkdir -p "$(dirname "$TARGET")"
 git -C "$ROOT_DIR" show "$COMMIT:$SOURCE" > "$TARGET"
 printf 'ROLLBACK_RESTORED=%s\n' "$TARGET"
