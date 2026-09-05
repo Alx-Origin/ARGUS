@@ -31,7 +31,7 @@ npm run dev:frontend
 部署步骤：
 
 1. 将仓库导入 Vercel，Root Directory 选择 `frontend/`。
-2. 在 Vercel 的 Production、Preview 环境分别配置 `NEXT_PUBLIC_API_BASE_URL`，值为后端公开 HTTPS 地址。
+2. 在 Vercel 的 Production、Preview 环境分别配置 `NEXT_PUBLIC_API_BASE_URL`，生产值使用 `https://argus-api.tomeet.chat`。
 3. 将 `backend/` 部署到支持常驻 Node.js 进程的平台（例如 Render、Railway、Fly.io 或自有服务器）。
 4. 在后端配置 `CORS_ORIGIN`。多个 Vercel 生产/预览域名用英文逗号分隔，例如：
 
