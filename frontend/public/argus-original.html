@@ -1789,5 +1789,135 @@ function loadProfessionalSample(){document.getElementById('audit-background').va
 upgradeAuditWorkspace();ensureSocialModals();loadPlayerProfile();addScreenCats();renderCommunity();
 window.addEventListener('load',()=>{if(!playerProfile)setTimeout(openIdentityCard,280);});
 </script>
+<script>
+// ==================== BACKEND BRIDGE (UI PRESERVED) ====================
+// Keep the original ARGUS+ document as the rendered UI. Vercel proxies
+// /argus-api/* to the Zeabur service so browser requests stay same-origin.
+(() => {
+  const apiBase = (window.ARGUS_API_BASE_URL || (location.hostname.endsWith('vercel.app') ? '/argus-api' : 'https://argus-api.tomeet.chat')).replace(/\/$/, '');
+  async function requestBackend(path, init = {}) {
+    const response = await fetch(`${apiBase}${path}`, { ...init, headers: { 'Content-Type': 'application/json', ...(init.headers || {}) } });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body?.error?.message || `后端请求失败：${response.status}`);
+    return body.data ?? body;
+  }
+
+  const localAutoConfigureCase = window.autoConfigureCase;
+  window.autoConfigureCase = async function () {
+    const concept = document.getElementById('forge-concept')?.value.trim();
+    if (concept) {
+      try {
+        window.argusBackendDraft = await requestBackend('/api/cases/draft', {
+          method: 'POST',
+          body: JSON.stringify({
+            concept,
+            plaintiff: document.getElementById('forge-plaintiff')?.value.trim(),
+            defendant: document.getElementById('forge-defendant')?.value.trim(),
+            side: document.getElementById('forge-side')?.value,
+            jurisdiction: document.getElementById('forge-region')?.selectedOptions?.[0]?.textContent,
+          }),
+        });
+      } catch (error) {
+        window.argusBackendDraftError = error.message;
+      }
+    }
+    return localAutoConfigureCase();
+  };
+
+  const localRunProfessionalAudit = window.runProfessionalAudit;
+  window.runProfessionalAudit = async function () {
+    const text = document.getElementById('audit-text')?.value.trim();
+    if (!text) return localRunProfessionalAudit();
+    const position = document.getElementById('audit-position')?.value || '其他';
+    const background = document.getElementById('audit-background')?.value || '';
+    try {
+      const result = await requestBackend('/api/contracts/audit', {
+        method: 'POST',
+        body: JSON.stringify({ text, position, background }),
+      });
+      window.argusBackendAudit = result;
+      renderBackendAudit(result, text, position, background);
+    } catch (error) {
+      window.argusBackendAuditError = error.message;
+      return localRunProfessionalAudit();
+    }
+  };
+
+  function renderBackendAudit(result, text, position, background) {
+    const clauses = splitReviewClauses(text);
+    const findingsByClause = new Map();
+    (result.findings || []).forEach((finding) => {
+      const list = findingsByClause.get(finding.clauseIndex) || [];
+      list.push(finding);
+      findingsByClause.set(finding.clauseIndex, list);
+    });
+    const rows = clauses.map((clause, index) => ({ clause, index, matches: findingsByClause.get(index) || [] }));
+    const risky = rows.filter((row) => row.matches.length);
+    const high = risky.filter((row) => row.matches.some((finding) => finding.severity === 'high'));
+    renderAuditMonsterSide(risky.map((row) => ({ clause: row.clause, matches: row.matches.map((finding) => ({ name: finding.category, need: finding.necessity, risk: finding.issue })) })));
+    document.getElementById('review-summary').innerHTML = `<div class="review-stat"><small>合同背景</small><strong>${esc(background || result.summary?.background || '未填写')}</strong></div><div class="review-stat"><small>我方地位</small><strong>${esc(position)}</strong></div><div class="review-stat"><small>识别条款</small><strong>${clauses.length} 条</strong></div><div class="review-stat"><small>高必要度修改</small><strong>${high.length} 条</strong></div>`;
+    document.getElementById('review-summary').classList.add('visible');
+    document.getElementById('review-desk').classList.add('visible');
+    document.getElementById('audit-progress').textContent = `后端审查完成：发现 ${risky.length} 处需重点核验`;
+    document.getElementById('review-rows').innerHTML = rows.map((row) => {
+      if (!row.matches.length) return `<div class="review-row"><div class="review-cell"><span class="review-necessity">已核验</span><div class="review-original">${esc(row.clause)}</div></div><div class="review-cell">后端规则未发现明确修改触发点，仍需结合附件与交易事实复核。</div></div>`;
+      const risk = row.matches.map((finding) => finding.issue).join(' ');
+      const direction = row.matches.map((finding) => finding.direction).join(' ');
+      const revision = row.matches.map((finding) => finding.suggested_text).join('\n');
+      const need = Math.max(...row.matches.map((finding) => finding.necessity || 0));
+      return `<div class="review-row"><div class="review-cell"><span class="review-necessity">修改必要度 ${need}/10</span> ${row.matches.map((finding) => `<span class="review-chip">${esc(finding.category)}</span>`).join('')}<div class="review-original risky">${esc(row.clause)}</div></div><div class="review-cell"><span class="review-chip">存在的问题/风险</span><p>${esc(risk)}</p><span class="review-chip">修改方向</span><p>${esc(direction)}</p><span class="review-chip">修改参考文本</span><p>${esc(revision)}</p></div></div>`;
+    }).join('');
+  }
+
+  const localOpponentReply = window.opponentReply;
+  window.opponentReply = async function (text, evidenceIds) {
+    try {
+      const result = await requestBackend('/api/campaign/respond', { method: 'POST', body: JSON.stringify({ argument: text, evidenceIds, history: debateHistory.slice(-6) }) });
+      window.argusBackendDebate = result;
+      return result.response || localOpponentReply(text, evidenceIds);
+    } catch (error) {
+      window.argusBackendDebateError = error.message;
+      return localOpponentReply(text, evidenceIds);
+    }
+  };
+
+  const localRequestVerdict = window.requestVerdict;
+  window.requestVerdict = async function () {
+    try {
+      const result = await requestBackend('/api/campaign/verdict', { method: 'POST', body: JSON.stringify({ evidenceIds: discoveredEvidence, history: debateHistory.slice(-6) }) });
+      window.argusBackendVerdict = result;
+      if (currentCase) currentCase.verdict = { winner: result.winner, confidence: result.score, award: result.award, steps: [{ content: result.reasoning, cite: '' }, ...(result.chain || []).map((item) => ({ content: item, cite: '' }))] };
+    } catch (error) {
+      window.argusBackendVerdictError = error.message;
+    }
+    return localRequestVerdict();
+  };
+
+  const localSubmitShare = window.submitShare;
+  window.submitShare = async function () {
+    const title = document.getElementById('share-title')?.value.trim();
+    const body = document.getElementById('share-body')?.value.trim();
+    const tags = (document.getElementById('share-tags')?.value.trim().match(/#[^#\s]+/g) || ['#新分享']).slice(0, 5);
+    if (!title || !body) return localSubmitShare();
+    try {
+      const post = await requestBackend('/api/community/posts', { method: 'POST', body: JSON.stringify({ title, body, tags, author: playerProfile?.name || '你' }) });
+      feedData.unshift({ ...post, body: `<strong>${esc(post.title)}</strong><br>${esc(post.body)}`, liked: false, commentList: [] });
+      closeShareModal();
+      ['share-title', 'share-body', 'share-tags'].forEach((id) => { const el = document.getElementById(id); if (el) el.value = ''; });
+      activeCommunityTag = '';
+      renderCommunity();
+    } catch (error) {
+      window.argusBackendShareError = error.message;
+      return localSubmitShare();
+    }
+  };
+
+  requestBackend('/api/community/feed').then((payload) => {
+    if (!Array.isArray(payload?.posts)) return;
+    feedData.splice(0, feedData.length, ...payload.posts.map((post) => ({ ...post, liked: false, commentList: [] })));
+    renderCommunity();
+  }).catch((error) => { window.argusBackendFeedError = error.message; });
+})();
+</script>
 </body>
 </html>

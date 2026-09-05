@@ -1,4 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "rewrites": [
+    {
+      "source": "/argus-api/:path*",
+      "destination": "https://argus-api.tomeet.chat/:path*"
+    }
+  ]
 }
