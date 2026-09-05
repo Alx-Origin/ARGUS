@@ -1,10 +1,10 @@
-ARGUS+ MVP verification
-=======================
-CHANGED_BRANCH: codex/framework-next-node
-CHANGED_FIELD: frontend/app/page.tsx + backend/src/server.js — four-module MVP and independent api.tomeet.chat deployment
-WORKSPACE: /Users/andylyu/Projects/ARGUS
-ORIGINAL_HASH: a275ddb6b932d98b6591f96a16f8d13d18078f4a5f3b7093b381fec639f5e962  frontend/app/page.tsx at HEAD
-MODIFIED_HASH: 6f25ada6f239bf6fa11de2268bd1e4e6881f7b6582603140feea041088ff3c35  .framework/MODIFIED_FILE
+ARGUS+ Zeabur deployment verification
+====================================
+CHANGED_BRANCH: codex/framework-next-node (pushed as origin/codex/argus-mvp-path-isolation)
+CHANGED_COMMIT: 773a824 Fix Zeabur Dockerfile root build context
+CHANGED_FIELD: backend/Zeabur.Dockerfile build-context COPY paths; Zeabur argus-api PORT and exposed port
+ORIGINAL_HASH: a678a48dfc9a77b7a0ea75f12ebde7673e8604e1f86b085f9fa83a69a9ea045c backend/Zeabur.Dockerfile at HEAD~1 (1b48822)
+MODIFIED_HASH: cecd832ae0748238e8aefe4ecfa051e1f142694eb6fd78f300644f1d194b0741 backend/Zeabur.Dockerfile and .framework/MODIFIED_FILE
 
 ARTIFACTS
 ---------
@@ -16,97 +16,205 @@ ROLLBACK.sh: /Users/andylyu/Projects/ARGUS/.framework/ROLLBACK.sh
 BASELINE
 --------
 COMMAND:
-git show HEAD:frontend/app/page.tsx > /tmp/argus-page-baseline.tsx && shasum -a 256 /tmp/argus-page-baseline.tsx
+(cd BASELINE_COPY && npm ci --ignore-scripts && npm test && npm run typecheck && npm run build)
+INPUT: clean archive of commit 1b48822 in an isolated temporary copy
 OUTPUT:
-a275ddb6b932d98b6591f96a16f8d13d18078f4a5f3b7093b381fec639f5e962  /tmp/argus-page-baseline.tsx
+
+added 56 packages, and audited 59 packages in 3s
+
+12 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+
+> argus-platform@0.1.0 test
+> npm --workspace backend test
+
+
+> @argus/backend@0.1.0 test
+> node --test
+
+✔ GET /health returns the standalone Node.js service status (32.286542ms)
+✔ POST /api/cases/draft creates a case draft (6.806792ms)
+✔ POST /api/contracts/audit returns rule-based findings (1.83025ms)
+✔ invalid JSON returns a 400 response (1.517958ms)
+✔ comma-separated CORS origins support Vercel production and preview hosts (1.4115ms)
+✔ GET /api/campaign/demo exposes complete rental evidence sources (1.090625ms)
+✔ POST /api/campaign/respond changes response based on evidence actually submitted (1.715875ms)
+✔ POST /api/campaign/verdict returns the explainable evidence-chain result (1.404166ms)
+✔ POST /api/community/posts requires explicit share content (1.690917ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 124.387209
+
+> argus-platform@0.1.0 typecheck
+> npm --workspace frontend run typecheck
+
+
+> @argus/frontend@0.1.0 typecheck
+> tsc --noEmit
+
+
+> argus-platform@0.1.0 build
+> npm --workspace frontend run build
+
+
+> @argus/frontend@0.1.0 build
+> next build
+
+▲ Next.js 16.3.4 (Turbopack)
+✓ Running next.config.ts took 3.0s
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 1341ms
+  Running TypeScript ...
+  Finished TypeScript in 855ms ...
+  Collecting page data using 4 workers ...
+  Generating static pages using 4 workers (0/3) ...
+✓ Generating static pages using 4 workers (3/3) in 191ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+└ ○ /_not-found
+
+
+○  (Static)  prerendered as static content
 EXIT_STATUS: 0
 
 COMMAND:
-git worktree add --detach /tmp/argus-baseline-20260905 HEAD && npm ci --ignore-scripts && npm test && npm run typecheck && npm run build
-INPUT: clean HEAD worktree at /tmp/argus-baseline-20260905
+(cd BASELINE_COPY && DOCKER_BUILDKIT=1 docker build -q -f backend/Zeabur.Dockerfile .)
+INPUT: root build context from commit 1b48822
 OUTPUT:
-Preparing worktree (detached HEAD 90b2bff)
-HEAD is now at 90b2bff Remove architecture overview from frontend
-added 56 packages, and audited 59 packages in 6s
-found 0 vulnerabilities
-✔ GET /health returns the standalone Node.js service status
-✔ POST /api/cases/draft creates a case draft
-✔ POST /api/contracts/audit returns rule-based findings
-✔ invalid JSON returns a 400 response
-✔ comma-separated CORS origins support Vercel production and preview hosts
-ℹ tests 5
-ℹ pass 5
-ℹ fail 0
-> @argus/frontend@0.1.0 typecheck
-> tsc --noEmit
-▲ Next.js 16.3.4 (Turbopack)
-✓ Compiled successfully
-✓ Generating static pages using 4 workers (3/3)
-○ / (Static) prerendered as static content
-EXIT_STATUS: 0
+Zeabur.Dockerfile:5
+--------------------
+   3 |     WORKDIR /app
+   4 |     COPY package.json ./
+   5 | >>> COPY src ./src
+   6 |     
+   7 |     ENV NODE_ENV=production
+--------------------
+ERROR: failed to build: failed to solve: failed to compute cache key: failed to calculate checksum of ref 39de85fe-e1ab-4d6a-8f64-e97aad2e4544::rb4uqwdcpmsf3jihw5lpeuo0i: "/src": not found
+EXIT_STATUS: 1
 
 MODIFIED
 --------
 COMMAND:
-node --check backend/src/server.js && npm test && npm run typecheck && npm run build
-INPUT: current MVP working tree
+(node --check backend/src/server.js && npm test && npm run typecheck && npm run build)
+INPUT: current working tree at commit 773a824
 OUTPUT:
-✔ GET /health returns the standalone Node.js service status
-✔ POST /api/cases/draft creates a case draft
-✔ POST /api/contracts/audit returns rule-based findings
-✔ invalid JSON returns a 400 response
-✔ comma-separated CORS origins support Vercel production and preview hosts
-✔ GET /api/campaign/demo exposes complete rental evidence sources
-✔ POST /api/campaign/respond changes response based on evidence actually submitted
-✔ POST /api/campaign/verdict returns the explainable evidence-chain result
-✔ POST /api/community/posts requires explicit share content
+
+> argus-platform@0.1.0 test
+> npm --workspace backend test
+
+
+> @argus/backend@0.1.0 test
+> node --test
+
+✔ GET /health returns the standalone Node.js service status (42.068625ms)
+✔ POST /api/cases/draft creates a case draft (9.927ms)
+✔ POST /api/contracts/audit returns rule-based findings (2.629709ms)
+✔ invalid JSON returns a 400 response (1.300958ms)
+✔ comma-separated CORS origins support Vercel production and preview hosts (0.974709ms)
+✔ GET /api/campaign/demo exposes complete rental evidence sources (0.952334ms)
+✔ POST /api/campaign/respond changes response based on evidence actually submitted (1.125625ms)
+✔ POST /api/campaign/verdict returns the explainable evidence-chain result (0.916041ms)
+✔ POST /api/community/posts requires explicit share content (2.043ms)
 ℹ tests 9
+ℹ suites 0
 ℹ pass 9
 ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 147.480167
+
+> argus-platform@0.1.0 typecheck
+> npm --workspace frontend run typecheck
+
+
 > @argus/frontend@0.1.0 typecheck
 > tsc --noEmit
+
+
+> argus-platform@0.1.0 build
+> npm --workspace frontend run build
+
+
+> @argus/frontend@0.1.0 build
+> next build
+
 ▲ Next.js 16.3.4 (Turbopack)
-✓ Compiled successfully
-✓ Generating static pages using 4 workers (3/3)
-○ / (Static) prerendered as static content
+✓ Running next.config.ts took 149ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 623ms
+  Running TypeScript ...
+  Finished TypeScript in 564ms ...
+  Collecting page data using 4 workers ...
+  Generating static pages using 4 workers (0/3) ...
+✓ Generating static pages using 4 workers (3/3) in 202ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+└ ○ /_not-found
+
+
+○  (Static)  prerendered as static content
 EXIT_STATUS: 0
 
 COMMAND:
-node /tmp/argus-smoke.js
-INPUT: local HTTP requests against an ephemeral ARGUS+ backend server
+(DOCKER_BUILDKIT=1 docker build -q -f backend/Zeabur.Dockerfile /Users/andylyu/Projects/ARGUS)
+INPUT: root build context from the modified Dockerfile
 OUTPUT:
-{"checks":[["/health",200],["/api/cases/draft",201],["/api/contracts/audit",200],["/api/campaign/demo",200],["/api/campaign/respond",200],["/api/campaign/verdict",200],["/api/community/feed",200]],"service":"argus-backend","draftType":"房屋租赁合同纠纷","auditFindings":4,"scenes":3,"replyStatus":"in_progress","verdictScore":88,"posts":2}
-EXIT_STATUS: 0
-
-COMMAND:
-npm audit --omit=dev --audit-level=high
-OUTPUT:
-found 0 vulnerabilities
-EXIT_STATUS: 0
-
-COMMAND:
-PORT=4100 CORS_ORIGIN=http://127.0.0.1:3100 node backend/src/server.js; npm --workspace frontend run dev -- --hostname 127.0.0.1 -p 3100; curl http://127.0.0.1:4100/health; curl http://127.0.0.1:3100/
-INPUT: local backend/frontend dev processes, then GET /health and GET /
-OUTPUT:
-backend health: {"status":"ok","service":"argus-backend","runtime":"node","version":"0.2.0"}
-frontend status: 200 bytes=13061
-title: <title>ARGUS+ · 法律训练平台
+sha256:d640e67c4b6f69d3e4b33a10167b7637fb2b807d39576aea5327e16285005b81
 EXIT_STATUS: 0
 
 ROLLBACK
 --------
 COMMAND:
-mkdir -p /tmp/argus-rollback-final2 && .framework/ROLLBACK.sh /tmp/argus-rollback-final2/page.tsx && cmp -s /tmp/argus-page-baseline.tsx /tmp/argus-rollback-final2/page.tsx
-INPUT: rollback target copy, not the working source
+.framework/ROLLBACK.sh "/tmp/argus-rollback-docker.ubUdz4/Zeabur.Dockerfile" backend/Zeabur.Dockerfile HEAD~1 && cmp -s "/tmp/argus-rollback-docker.ubUdz4/Zeabur.Dockerfile" <(git show HEAD~1:backend/Zeabur.Dockerfile)
+INPUT: separate rollback target copy
 OUTPUT:
-ROLLBACK_RESTORED=/tmp/argus-rollback-final2/page.tsx
-ROLLBACK_SHA256=a275ddb6b932d98b6591f96a16f8d13d18078f4a5f3b7093b381fec639f5e962
+ROLLBACK_RESTORED=/tmp/argus-rollback-docker.ubUdz4/Zeabur.Dockerfile
+ROLLBACK_SOURCE=backend/Zeabur.Dockerfile
+ROLLBACK_COMMIT=HEAD~1
+ROLLBACK_SHA256=a678a48dfc9a77b7a0ea75f12ebde7673e8604e1f86b085f9fa83a69a9ea045c
 rollback_cmp=0
 EXIT_STATUS: 0
 
-RESTORED_BEHAVIOR_STATUS
-------------------------
-- Rollback was tested on a separate copy and restored the exact baseline page hash.
-- .framework/MODIFIED_FILE remains changed and is not overwritten by rollback.
-- Root index.html and legacy/index.html remain unchanged at acd213e04972465ead126a9d5a1cd85ff6a5c17db7fd08da78b3ba863aa2aac3.
-- Backend deployment artifacts isolate ARGUS+ on host port 4100 and target api.tomeet.chat through Nginx/HTTPS; Docker still uses container port 4000.
+DEPLOYMENT
+----------
+ZEABUR_PROJECT: TOMEET (project-6a76c1ceec01e16bfb326eb0)
+ZEABUR_SERVICE: argus-api (service-6a9bcd1f3ee570727a8f6c5d)
+DEPLOYMENT_ID: deployment-6a9bd1616f9895514dfcf2dd
+SOURCE: https://github.com/Alx-Origin/ARGUS.git @ codex/argus-mvp-path-isolation
+DOCKER_BUILD: Running after root-context fix
+RUNTIME: Running, 1/1 replica after PORT=8080 and exposed HTTP 8080
+TEMP_DOMAIN: https://argus-mvp.zeabur.app
+PUBLIC_PROBE:
+COMMAND: curl -k -sS -i --max-time 20 https://argus-mvp.zeabur.app/health
+INPUT: GET /health over HTTPS via Zeabur temporary domain
+OUTPUT:
+HTTP/2 200
+{"status":"ok","service":"argus-backend","runtime":"node","version":"0.2.0"}
+EXIT_STATUS: 0
+PUBLIC_PROBE:
+COMMAND: curl -k -sS -i --max-time 20 https://argus-mvp.zeabur.app/api/campaign/demo
+INPUT: GET /api/campaign/demo over HTTPS via Zeabur temporary domain
+OUTPUT:
+HTTP/2 200
+{"data":{"id":"rental-deposit-001", "scenes": [3], "evidence": [6]}}
+EXIT_STATUS: 0
+
+ROUTING
+-------
+REQUESTED_PATH: https://api.tomeet.chat/argus
+CURRENT_STATE: api.tomeet.chat remains bound to tomeet-api; project Gateway shows Upgrade to Dev and no path route is configured.
+RESTORED_BEHAVIOR_STATUS: ARGUS service is independently Running and responds on its Zeabur domain; path-based api.tomeet.chat/argus routing remains pending Gateway configuration.
