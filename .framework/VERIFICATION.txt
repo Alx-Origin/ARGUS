@@ -184,7 +184,7 @@ INPUT: separate rollback target copy
 OUTPUT:
 ROLLBACK_RESTORED=/tmp/argus-rollback-docker.ubUdz4/Zeabur.Dockerfile
 ROLLBACK_SOURCE=backend/Zeabur.Dockerfile
-ROLLBACK_COMMIT=HEAD~1
+ROLLBACK_COMMIT=1b48822
 ROLLBACK_SHA256=a678a48dfc9a77b7a0ea75f12ebde7673e8604e1f86b085f9fa83a69a9ea045c
 rollback_cmp=0
 EXIT_STATUS: 0
