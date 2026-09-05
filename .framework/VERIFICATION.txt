@@ -1,10 +1,10 @@
-ARGUS+ Vercel + standalone Node.js migration verification
-=========================================================
-
+ARGUS+ MVP verification
+=======================
 CHANGED_BRANCH: codex/framework-next-node
-CHANGED_FIELD: frontend deployment target — GitHub Pages static export -> Vercel Next.js runtime; backend remains independent Node.js
+CHANGED_FIELD: frontend/app/page.tsx + backend/src/server.js — four-module MVP and independent api.tomeet.chat deployment
 WORKSPACE: /Users/andylyu/Projects/ARGUS
-ORIGINAL_HASH: acd213e04972465ead126a9d5a1cd85ff6a5c17db7fd08da78b3ba863aa2aac3  index.html
+ORIGINAL_HASH: a275ddb6b932d98b6591f96a16f8d13d18078f4a5f3b7093b381fec639f5e962  frontend/app/page.tsx at HEAD
+MODIFIED_HASH: 6f25ada6f239bf6fa11de2268bd1e4e6881f7b6582603140feea041088ff3c35  .framework/MODIFIED_FILE
 
 ARTIFACTS
 ---------
@@ -16,28 +16,19 @@ ROLLBACK.sh: /Users/andylyu/Projects/ARGUS/.framework/ROLLBACK.sh
 BASELINE
 --------
 COMMAND:
-git status --short --branch
+git show HEAD:frontend/app/page.tsx > /tmp/argus-page-baseline.tsx && shasum -a 256 /tmp/argus-page-baseline.tsx
 OUTPUT:
-## codex/framework-next-node
+a275ddb6b932d98b6591f96a16f8d13d18078f4a5f3b7093b381fec639f5e962  /tmp/argus-page-baseline.tsx
 EXIT_STATUS: 0
 
 COMMAND:
-sha256sum index.html
+git worktree add --detach /tmp/argus-baseline-20260905 HEAD && npm ci --ignore-scripts && npm test && npm run typecheck && npm run build
+INPUT: clean HEAD worktree at /tmp/argus-baseline-20260905
 OUTPUT:
-acd213e04972465ead126a9d5a1cd85ff6a5c17db7fd08da78b3ba863aa2aac3  index.html
-EXIT_STATUS: 0
-
-COMMAND:
-node --check /tmp/argus-baseline-script-1.js && node --check /tmp/argus-baseline-script-2.js && node --check /tmp/argus-baseline-script-3.js
-OUTPUT:
-(no output; all three inline scripts parsed successfully)
-EXIT_STATUS: 0
-
-MODIFIED TESTS
---------------
-COMMAND:
-npm test
-OUTPUT:
+Preparing worktree (detached HEAD 90b2bff)
+HEAD is now at 90b2bff Remove architecture overview from frontend
+added 56 packages, and audited 59 packages in 6s
+found 0 vulnerabilities
 ✔ GET /health returns the standalone Node.js service status
 ✔ POST /api/cases/draft creates a case draft
 ✔ POST /api/contracts/audit returns rule-based findings
@@ -45,22 +36,46 @@ OUTPUT:
 ✔ comma-separated CORS origins support Vercel production and preview hosts
 ℹ tests 5
 ℹ pass 5
-EXIT_STATUS: 0
-
-COMMAND:
-npm run typecheck
-OUTPUT:
+ℹ fail 0
 > @argus/frontend@0.1.0 typecheck
 > tsc --noEmit
-EXIT_STATUS: 0
-
-COMMAND:
-npm run build
-OUTPUT:
 ▲ Next.js 16.3.4 (Turbopack)
 ✓ Compiled successfully
 ✓ Generating static pages using 4 workers (3/3)
 ○ / (Static) prerendered as static content
+EXIT_STATUS: 0
+
+MODIFIED
+--------
+COMMAND:
+node --check backend/src/server.js && npm test && npm run typecheck && npm run build
+INPUT: current MVP working tree
+OUTPUT:
+✔ GET /health returns the standalone Node.js service status
+✔ POST /api/cases/draft creates a case draft
+✔ POST /api/contracts/audit returns rule-based findings
+✔ invalid JSON returns a 400 response
+✔ comma-separated CORS origins support Vercel production and preview hosts
+✔ GET /api/campaign/demo exposes complete rental evidence sources
+✔ POST /api/campaign/respond changes response based on evidence actually submitted
+✔ POST /api/campaign/verdict returns the explainable evidence-chain result
+✔ POST /api/community/posts requires explicit share content
+ℹ tests 9
+ℹ pass 9
+ℹ fail 0
+> @argus/frontend@0.1.0 typecheck
+> tsc --noEmit
+▲ Next.js 16.3.4 (Turbopack)
+✓ Compiled successfully
+✓ Generating static pages using 4 workers (3/3)
+○ / (Static) prerendered as static content
+EXIT_STATUS: 0
+
+COMMAND:
+node /tmp/argus-smoke.js
+INPUT: local HTTP requests against an ephemeral ARGUS+ backend server
+OUTPUT:
+{"checks":[["/health",200],["/api/cases/draft",201],["/api/contracts/audit",200],["/api/campaign/demo",200],["/api/campaign/respond",200],["/api/campaign/verdict",200],["/api/community/feed",200]],"service":"argus-backend","draftType":"房屋租赁合同纠纷","auditFindings":4,"scenes":3,"replyStatus":"in_progress","verdictScore":88,"posts":2}
 EXIT_STATUS: 0
 
 COMMAND:
@@ -70,125 +85,28 @@ found 0 vulnerabilities
 EXIT_STATUS: 0
 
 COMMAND:
-node -e "const fs=require('fs'); JSON.parse(fs.readFileSync('frontend/vercel.json','utf8')); console.log('vercel_json=valid')"
+PORT=4100 CORS_ORIGIN=http://127.0.0.1:3100 node backend/src/server.js; npm --workspace frontend run dev -- --hostname 127.0.0.1 -p 3100; curl http://127.0.0.1:4100/health; curl http://127.0.0.1:3100/
+INPUT: local backend/frontend dev processes, then GET /health and GET /
 OUTPUT:
-vercel_json=valid
-EXIT_STATUS: 0
-
-COMMAND:
-npm run dev
-INPUT:
-GET http://127.0.0.1:3000/
-GET http://127.0.0.1:4000/health
-POST http://127.0.0.1:4000/api/contracts/audit
-OUTPUT:
-frontend_http=200 bytes=11966
-<title>ARGUS+ · 法律训练平台</title
-{"status":"ok","service":"argus-backend","runtime":"node"}
-{"data":{"summary":{"position":"乙方","clauseCount":2,"findingCount":4,"highRiskCount":3}}
-EXIT_STATUS: 0 (dev processes stopped after smoke check)
-
-VERCEL CONFIGURATION
---------------------
-COMMAND:
-cat frontend/next.config.ts && cat frontend/vercel.json
-OUTPUT:
-Next.js standard runtime config; frontend/vercel.json declares framework=nextjs.
-Vercel Project Root Directory: frontend/
-EXIT_STATUS: 0
-
-COMMAND:
-CORS_ORIGIN=https://argus.vercel.app,https://preview.argus.vercel.app npm test
-OUTPUT:
-Vercel production and preview origin test passed in backend test suite.
+backend health: {"status":"ok","service":"argus-backend","runtime":"node","version":"0.2.0"}
+frontend status: 200 bytes=13061
+title: <title>ARGUS+ · 法律训练平台
 EXIT_STATUS: 0
 
 ROLLBACK
 --------
 COMMAND:
-rollback_dir="/tmp/argus-rollback-check-21424"; mkdir -p "$rollback_dir"; cp /Users/andylyu/Projects/ARGUS/.framework/MODIFIED_FILE "$rollback_dir/MODIFIED_FILE"; /Users/andylyu/Projects/ARGUS/.framework/ROLLBACK.sh "$rollback_dir/MODIFIED_FILE"; cmp -s /Users/andylyu/Projects/ARGUS/legacy/index.html "$rollback_dir/MODIFIED_FILE"
-INPUT:
-source=/Users/andylyu/Projects/ARGUS/legacy/index.html
-copy=/tmp/argus-rollback-check-21424/MODIFIED_FILE
+mkdir -p /tmp/argus-rollback-final2 && .framework/ROLLBACK.sh /tmp/argus-rollback-final2/page.tsx && cmp -s /tmp/argus-page-baseline.tsx /tmp/argus-rollback-final2/page.tsx
+INPUT: rollback target copy, not the working source
 OUTPUT:
-ROLLBACK_RESTORED=/tmp/argus-rollback-check-21424/MODIFIED_FILE
-ROLLBACK_SHA256=acd213e04972465ead126a9d5a1cd85ff6a5c17db7fd08da78b3ba863aa2aac3
-cmp_exit=0
-EXIT_STATUS: 0
-
-RESTORED_BEHAVIOR_STATUS
--------------------------
-- The rollback test copy exactly matches legacy/index.html after ROLLBACK.sh.
-- MODIFIED_FILE remains intentionally changed; comparison against legacy/index.html returns exit 1.
-- The original root index.html remains unchanged at the recorded SHA-256.
-- Vercel frontend configuration is ready; the Node.js backend remains independently deployable.
-
-ROLLBACK RECHECK
-----------------
-COMMAND:
-rollback_dir="/tmp/argus-vercel-rollback-28963"; mkdir -p "$rollback_dir"; cp /Users/andylyu/Projects/ARGUS/.framework/MODIFIED_FILE "$rollback_dir/MODIFIED_FILE"; /Users/andylyu/Projects/ARGUS/.framework/ROLLBACK.sh "$rollback_dir/MODIFIED_FILE"; cmp -s /Users/andylyu/Projects/ARGUS/legacy/index.html "$rollback_dir/MODIFIED_FILE"
-INPUT:
-source=/Users/andylyu/Projects/ARGUS/legacy/index.html
-copy=/tmp/argus-vercel-rollback-28963/MODIFIED_FILE
-OUTPUT:
-before=eb84d82b66435877439a639496cbc269ddf4a4e888599185c04b7e7b8a6f1a48
-ROLLBACK_RESTORED=/tmp/argus-vercel-rollback-28963/MODIFIED_FILE
-ROLLBACK_SHA256=acd213e04972465ead126a9d5a1cd85ff6a5c17db7fd08da78b3ba863aa2aac3
-restored_cmp=0
-modified_cmp=1
-EXIT_STATUS: 0
-
-FINAL RECHECK
-------------
-COMMAND:
-npm test && npm run typecheck && npm run build && npm audit --omit=dev --audit-level=high
-OUTPUT:
-5 backend tests passed; TypeScript check passed; Next.js 16.3.4 build passed; found 0 vulnerabilities.
-EXIT_STATUS: 0
-
-COMMAND:
-node -e "const fs=require('fs'); JSON.parse(fs.readFileSync('frontend/vercel.json','utf8')); console.log('vercel_json=valid')"
-OUTPUT:
-vercel_json=valid
-EXIT_STATUS: 0
-
-UI REMOVAL RECHECK
-------------------
-CHANGED_BRANCH: codex/framework-next-node
-CHANGED_FIELD: frontend navigation and landing state — removed the 架构总览 section and its architecture-only styles; 案件工坊 is now the default and brand destination
-
-COMMAND:
-git grep -n -e '架构总览' -e 'overview' -e 'architecture-card' -e 'module-grid' -- frontend/app
-OUTPUT:
-(no matches; architecture overview UI and styles removed)
-EXIT_STATUS: 1 (expected no-match result)
-
-BASELINE COMMAND:
-git restore --source=HEAD -- frontend/app/page.tsx frontend/app/globals.css && npm test && npm run typecheck && npm run build
-OUTPUT:
-5 backend tests passed; TypeScript check passed; Next.js 16.3.4 build passed before UI removal.
-EXIT_STATUS: 0
-
-MODIFIED COMMAND:
-git apply /tmp/argus-remove-overview.patch && npm test && npm run typecheck && npm run build
-OUTPUT:
-5 backend tests passed; TypeScript check passed; Next.js 16.3.4 build passed after UI removal.
-EXIT_STATUS: 0
-
-ROLLBACK COMMAND:
-rollback_dir="/tmp/argus-overview-rollback"; mkdir -p "$rollback_dir"; cp /Users/andylyu/Projects/ARGUS/.framework/MODIFIED_FILE "$rollback_dir/MODIFIED_FILE"; /Users/andylyu/Projects/ARGUS/.framework/ROLLBACK.sh "$rollback_dir/MODIFIED_FILE"; cmp -s /Users/andylyu/Projects/ARGUS/legacy/index.html "$rollback_dir/MODIFIED_FILE"
-INPUT:
-source=/Users/andylyu/Projects/ARGUS/legacy/index.html
-copy=/tmp/argus-overview-rollback/MODIFIED_FILE
-OUTPUT:
-ROLLBACK_RESTORED=/tmp/argus-overview-rollback/MODIFIED_FILE
-ROLLBACK_SHA256=acd213e04972465ead126a9d5a1cd85ff6a5c17db7fd08da78b3ba863aa2aac3
-cmp_exit=0
+ROLLBACK_RESTORED=/tmp/argus-rollback-final2/page.tsx
+ROLLBACK_SHA256=a275ddb6b932d98b6591f96a16f8d13d18078f4a5f3b7093b381fec639f5e962
+rollback_cmp=0
 EXIT_STATUS: 0
 
 RESTORED_BEHAVIOR_STATUS
 ------------------------
-- The rollback copy exactly matches legacy/index.html.
-- MODIFIED_FILE remains intentionally changed (cmp against legacy/index.html exits 1).
-- Root index.html remains unchanged at SHA-256 acd213e04972465ead126a9d5a1cd85ff6a5c17db7fd08da78b3ba863aa2aac3.
-- The Next.js frontend now opens directly on 案件工坊 without an architecture overview entry.
+- Rollback was tested on a separate copy and restored the exact baseline page hash.
+- .framework/MODIFIED_FILE remains changed and is not overwritten by rollback.
+- Root index.html and legacy/index.html remain unchanged at acd213e04972465ead126a9d5a1cd85ff6a5c17db7fd08da78b3ba863aa2aac3.
+- Backend deployment artifacts isolate ARGUS+ on host port 4100 and target api.tomeet.chat through Nginx/HTTPS; Docker still uses container port 4000.

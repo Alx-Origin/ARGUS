@@ -1,0 +1,20 @@
+[Unit]
+Description=ARGUS+ Node.js API
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/argus
+EnvironmentFile=/opt/argus/backend/.env
+Environment=HOST=127.0.0.1
+Environment=PORT=4100
+ExecStart=/usr/bin/node /opt/argus/backend/src/server.js
+Restart=always
+RestartSec=5
+User=argus
+Group=argus
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
