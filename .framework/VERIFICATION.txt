@@ -228,3 +228,13 @@ HTTP/2 200
 access-control-allow-origin: *
 {"status":"ok","service":"argus-backend","runtime":"node","version":"0.2.0"}
 EXIT_STATUS: 0
+
+PATH_PROBE
+----------
+COMMAND: curl -k -sS -i --max-time 20 https://api.tomeet.chat/argus/health
+INPUT: GET requested path through the existing api.tomeet.chat binding
+OUTPUT:
+HTTP/2 401
+{"error":"UNAUTHENTICATED","message":"缺少 Bearer access token"}
+RESULT: request currently reaches tomeet-api; ARGUS path route is not configured yet.
+EXIT_STATUS: 0
