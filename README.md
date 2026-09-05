@@ -4,7 +4,7 @@ ARGUS+ 是一个法律训练产品原型，当前采用前后端分离的工作�
 
 - `frontend/`：Next.js App Router + React + TypeScript，默认运行在 `3000` 端口。
 - `backend/`：独立 Node.js HTTP API，默认运行在 `4000` 端口。
-- `legacy/index.html`：原始单文件静态页面快照，保留现有交互作为迁移参考。
+- `frontend/app/`：唯一的 Next.js App Router 页面实现。
 
 ## 快速开始
 
@@ -60,7 +60,7 @@ curl -X POST http://localhost:4000/api/cases/draft \
 
 ## 当前边界
 
-这一版先建立领域边界和 HTTP 契约。案件工坊与合同审查已经连通独立后端；法庭闯关、社区广场和原页面的复杂交互保留在 `legacy/index.html`，后续按领域逐步迁移为 React 组件与 Node.js 服务。
+四个工作区统一使用 Next.js App Router + React 实现，并通过独立 URL 访问：`/forge`、`/audit`、`/campaign`、`/community`。后端保持为独立 Node.js HTTP 服务，前端只通过统一的 JSON 请求适配器访问 API。
 
 ## 目录约定
 
