@@ -199,6 +199,26 @@ body { font-family: 'Inter', sans-serif; background: var(--paper); color: var(--
 .case-source { display:grid; grid-template-columns:1fr auto; gap:1rem; padding:.8rem; border:2px solid var(--ink); background:var(--paper-bright); margin-bottom:.65rem; }
 .case-source a { color:var(--electric-blue); font-family:'Space Mono',monospace; font-size:.7rem; font-weight:700; }
 .source-summary { font-size:.78rem; line-height:1.5; margin-top:.35rem; }
+.legal-skill-workbench { margin-top:1rem; border:3px solid var(--ink); background:var(--paper); }
+.skill-workbench-head { padding:.8rem; background:var(--ink); color:#fff; }
+.skill-workbench-head strong { display:block; font-family:'Archivo Black',sans-serif; }
+.skill-workbench-tools { display:flex; gap:.45rem; padding:.65rem; border-bottom:2px solid var(--ink); flex-wrap:wrap; }
+.skill-filter { flex:1; min-width:170px; margin:0; padding:.55rem; }
+.skill-stage-tabs { display:flex; gap:.3rem; flex-wrap:wrap; }
+.skill-stage-tabs button { border:1.5px solid var(--ink); background:#fff; padding:.45rem .55rem; cursor:pointer; font-size:.68rem; }
+.skill-stage-tabs button.active { background:var(--signal-yellow); }
+.legal-skill-list { max-height:520px; overflow:auto; padding:.65rem; display:grid; gap:.55rem; }
+.legal-skill-card { border:2px solid var(--ink); background:var(--paper-bright); padding:.65rem; }
+.legal-skill-card.recommended { border-color:var(--electric-blue); box-shadow:3px 3px 0 var(--electric-blue); }
+.legal-skill-card summary { cursor:pointer; list-style:none; display:grid; grid-template-columns:auto 1fr auto; gap:.55rem; align-items:center; }
+.legal-skill-card summary::-webkit-details-marker { display:none; }
+.skill-cat-icon { width:34px; height:34px; display:grid; place-items:center; border:2px solid var(--ink); border-radius:8px; background:var(--signal-yellow); }
+.skill-name { font-family:'Space Mono',monospace; font-size:.67rem; overflow-wrap:anywhere; }
+.skill-stage { font-size:.58rem; padding:.18rem .38rem; border:1px solid var(--ink); background:#dfe5ff; }
+.skill-detail { padding:.65rem 0 0 2.55rem; font-size:.72rem; line-height:1.55; }
+.skill-actions { display:flex; align-items:center; justify-content:space-between; gap:.5rem; margin-top:.55rem; }
+.skill-source-link { color:var(--electric-blue); font-weight:700; }
+.skill-license-note { padding:.6rem; border-top:2px solid var(--ink); font-size:.65rem; line-height:1.5; }
 .original-clause { padding:.75rem; margin:.6rem 0; background:#fff4d1; border-left:4px solid var(--flame-orange); font-size:.78rem; line-height:1.55; }
 .clause-label { display:block; font-family:'Space Mono',monospace; font-size:.62rem; color:var(--error-red); margin-bottom:.3rem; }
 .evidence-hub { display:grid; gap:.75rem; }
@@ -460,6 +480,12 @@ body { font-family: 'Inter', sans-serif; background: var(--paper); color: var(--
             <div style="font-size:0.8rem;">配置案件信息并上传文件后，AI将自动生成完整背景、合同文本、双方主张与争议焦点</div>
           </div>
         </div>
+        <section class="legal-skill-workbench" aria-label="法律 AI 技能库">
+          <div class="skill-workbench-head"><strong>法律 AI 技能库 · 29 Skills</strong><small>为当前案件选择检索、核验、证据、写作与文档能力</small></div>
+          <div class="skill-workbench-tools"><input id="legal-skill-search" class="input skill-filter" placeholder="搜索 Skill…" oninput="renderLegalSkills()"><div class="skill-stage-tabs" id="skill-stage-tabs"><button class="active" onclick="setLegalSkillStage('all',this)">全部</button><button onclick="setLegalSkillStage('research',this)">检索核验</button><button onclick="setLegalSkillStage('review',this)">合同审查</button><button onclick="setLegalSkillStage('evidence',this)">证据案件</button><button onclick="setLegalSkillStage('writing',this)">写作引注</button><button onclick="setLegalSkillStage('document',this)">文档处理</button></div></div>
+          <div class="legal-skill-list" id="legal-skill-list"></div>
+          <div class="skill-license-note">来源：<a href="https://github.com/NEU-ZHA/legal-ai-skills" target="_blank" rel="noopener">NEU-ZHA/legal-ai-skills</a>（MIT）。北大法宝相关 Skill 需要用户自有 token 或机构权限；当前网页展示工作流目录，不会伪装成已连接数据库。</div>
+        </section>
         <div id="forge-actions" style="display:none;margin-top:1rem;text-align:center;">
           <button class="btn btn-gold" onclick="enterCourtroomFromForge()">⚔️ 以此案件进入法庭闯关 →</button>
         </div>
@@ -1559,6 +1585,44 @@ async function readFileText(file) {
 }
 function loadScriptOnce(src,globalName){ if(window[globalName]) return Promise.resolve(); return new Promise((ok,bad)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>bad(new Error('解析组件加载失败'));document.head.appendChild(s);}); }
 
+const legalAISkills=[
+ ['pkulaw-mcp-legal-research','research','北大法宝总路由','按成本和任务类型选择法规、法条、案例、语义检索等服务。'],
+ ['pkulaw-mcp-law-retrieval','research','法规检索','法规关键词优先检索，结果不足时升级语义检索。'],
+ ['pkulaw-mcp-fatiao-precise','research','法条精准取回','已知法规名称和条号时取回准确条文。'],
+ ['pkulaw-mcp-case-retrieval','research','类案检索','关键词优先检索相似裁判案例，必要时升级语义检索。'],
+ ['pkulaw-legal-search','research','北大法宝网页兜底','在 MCP 结果不足时使用登录网页筛选、核验详情和链接。'],
+ ['pkulaw-mcp-citation-validator','research','引用核验','核对法条与案例引用并纠正错误或失效内容。'],
+ ['pkulaw-mcp-doc-link','research','来源链接','给法规、案例及法律文件补充可追溯链接。'],
+ ['pkulaw-mcp-case-number','research','案号识别','从材料中提取、识别和核验案件编号。'],
+ ['pkulaw-mcp-law-recognition','research','法规识别','从自然语言或文书内容中识别涉及的法律法规。'],
+ ['pkulaw-mcp-semantic-nlsql','research','跨库语义检索','将复杂自然语言研究问题路由为跨数据库语义查询。'],
+ ['pkulaw-mcp-opinion-citation-check','research','法律意见引证检查','检查法律意见中的法规与案例依据是否准确可追溯。'],
+ ['pkulaw-mcp-regulatory-reply-check','research','监管答复检查','核验监管类答复的事实、法规和引用。'],
+ ['pkulaw-mcp-installer','research','北大法宝连接配置','使用用户本地 token 配置 MCP；不得把凭证写入网页或仓库。'],
+ ['pkulaw-mcp-contract-review-lite','review','单合同初筛','对单份合同进行基于可靠法规来源的轻量合规筛查。'],
+ ['pkulaw-mcp-batch-contract-screening','review','批量合同筛查','对多份合同批量识别共同风险和异常条款。'],
+ ['legal-fact-checker','review','法律事实核查','防止编造法律、案例和案件事实，为所有法律产出提供校验。'],
+ ['pkulaw-mcp-labor-employment-answer','review','劳动用工答复','对劳动与雇佣问题进行法规检索和有来源的答复。'],
+ ['evidence-catalog-generator','evidence','证据目录生成','整理用户提供的证据材料、证明目的和来源并生成目录。'],
+ ['pkulaw-mcp-case-memo','evidence','类案检索备忘','将案例检索结果整理为办案备忘和观点对照。'],
+ ['case-retrieval-display-table','evidence','案例展示表','把判决、裁定和典型案例整理为横向案例卡片表。'],
+ ['pkulaw-mcp-governance-research-memo','evidence','治理研究备忘','为治理或监管议题生成可核验的研究备忘。'],
+ ['pkulaw-mcp-grounded-answer','writing','有来源法律答复','仅依据已核验来源生成法律答复草稿。'],
+ ['legal-citation-comprehensive','writing','法学引注规则','诊断、补全和格式化中外文法律引注，缺失信息保留待补标记。'],
+ ['legal-citation-automator','writing','DOCX 脚注写入','把已核验引注写入 Word 脚注并检查兼容性。'],
+ ['legal-homework-formatter','writing','法学作业格式','处理标题、目录、段落和脚注格式，个人信息必须由用户提供。'],
+ ['legal-toa-formatter','writing','TOA 格式化','对齐法律文书 Table of Authorities 的条目和点号。'],
+ ['docx-toolkit','document','DOCX 内容提取','提取 Word 文本、表格和图片，支持大文档与复杂表格。'],
+ ['docx-editing','document','保格式编辑','在尽量保留既有格式的情况下编辑 DOCX。'],
+ ['docx-cn','document','中文 Word 处理','创建、读取、编辑、格式化中文 Word 文档及其中的表格和图片。']
+].map(([id,stage,title,desc])=>({id,stage,title,desc,url:`https://github.com/NEU-ZHA/legal-ai-skills/tree/main/skills/${id}`}));
+let legalSkillStage='all',recommendedLegalSkills=new Set(),selectedLegalSkills=new Set();
+const legalSkillStageName={research:'检索核验',review:'合同审查',evidence:'证据案件',writing:'写作引注',document:'文档处理'};
+function setLegalSkillStage(stage,btn){legalSkillStage=stage;document.querySelectorAll('#skill-stage-tabs button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderLegalSkills();}
+function toggleLegalSkill(id){selectedLegalSkills.has(id)?selectedLegalSkills.delete(id):selectedLegalSkills.add(id);renderLegalSkills();}
+function renderLegalSkills(){const host=document.getElementById('legal-skill-list');if(!host)return;const q=(document.getElementById('legal-skill-search')?.value||'').trim().toLowerCase(),list=legalAISkills.filter(s=>(legalSkillStage==='all'||s.stage===legalSkillStage)&&(!q||`${s.id}${s.title}${s.desc}`.toLowerCase().includes(q)));host.innerHTML=list.map(s=>`<details class="legal-skill-card ${recommendedLegalSkills.has(s.id)?'recommended':''}"><summary><span class="skill-cat-icon">${s.stage==='research'?'🔎':s.stage==='review'?'🛡️':s.stage==='evidence'?'📁':s.stage==='writing'?'✒️':'📄'}</span><span><strong>${esc(s.title)}</strong><span class="skill-name">${esc(s.id)}</span></span><span class="skill-stage">${recommendedLegalSkills.has(s.id)?'本案推荐':legalSkillStageName[s.stage]}</span></summary><div class="skill-detail">${esc(s.desc)}<div class="skill-actions"><label><input type="checkbox" ${selectedLegalSkills.has(s.id)?'checked':''} onchange="toggleLegalSkill('${s.id}')"> 加入本案工作流</label><a class="skill-source-link" href="${s.url}" target="_blank" rel="noopener">查看原 Skill ↗</a></div></div></details>`).join('')||'<div class="review-empty">没有匹配的 Skill。</div>';}
+function recommendLegalSkills(corpus){const ids=['legal-fact-checker','pkulaw-mcp-legal-research','pkulaw-mcp-law-retrieval','pkulaw-mcp-case-retrieval','pkulaw-mcp-doc-link','pkulaw-mcp-grounded-answer'];if(/合同|协议|租赁|采购|服务/.test(corpus))ids.push('pkulaw-mcp-contract-review-lite','docx-toolkit');if(/证据|聊天|照片|录音|视频|转账/.test(corpus))ids.push('evidence-catalog-generator','pkulaw-mcp-case-memo');if(/劳动|工资|解除劳动|竞业/.test(corpus))ids.push('pkulaw-mcp-labor-employment-answer');recommendedLegalSkills=new Set(ids);ids.forEach(id=>selectedLegalSkills.add(id));renderLegalSkills();}
+
 async function autoConfigureCase() {
   injectAISettings();
   const btn=document.getElementById('auto-case-btn'), preview=document.getElementById('forge-preview');
@@ -1569,7 +1633,7 @@ async function autoConfigureCase() {
     parsedForgeText=chunks.join('\n\n');
     const manual=[document.getElementById('forge-concept').value,document.getElementById('forge-plaintiff').value,document.getElementById('forge-defendant').value].join('\n');
     const corpus=(parsedForgeText+'\n'+manual).trim(); if(!corpus) throw new Error('请至少上传一份文件，或填写案件概念');
-    const clauses=splitClauses(corpus), type=caseTypeFrom(corpus), amount=moneyFrom(corpus);
+    const clauses=splitClauses(corpus), type=caseTypeFrom(corpus), amount=moneyFrom(corpus);recommendLegalSkills(corpus);
     const plaintiff=document.getElementById('forge-plaintiff').value.trim()||`主张方：请求就${type}承担责任（从原文件继续核验身份）`;
     const defendant=document.getElementById('forge-defendant').value.trim()||`相对方：对责任、金额或证据提出抗辩（从原文件继续核验身份）`;
     const focus=[`核心事实与时间线是否由原始材料相互印证`,`争议金额 ${amount} 的计算和支付依据`,`关键格式条款是否被提示说明且合法有效`];
@@ -1578,7 +1642,7 @@ async function autoConfigureCase() {
     let aiNote='本地解析模式：未调用外部模型。';
     if(aiConfigured()) { const answer=await callAI([{role:'system',content:'你是中国法律教育产品的案件配置助手。只根据用户材料概括事实、当事人、时间线和争议焦点；不得编造合同条款、案例或确定性法律结论。用简短中文回答。'},{role:'user',content:corpus.slice(0,18000)}]); if(answer) aiNote=answer; }
     const cases=relevantCases(corpus);
-    preview.innerHTML=`<div class="status-strip"><span>✓ ${aiConfigured()?'真实 AI 已完成材料映射':'本地解析已完成'}</span><span>${forgeFiles.length} 份文件</span><span>${clauses.length} 条文本片段</span></div>
+    preview.innerHTML=`<div class="status-strip"><span>✓ ${aiConfigured()?'真实 AI 已完成材料映射':'本地解析已完成'}</span><span>${forgeFiles.length} 份文件</span><span>${clauses.length} 条文本片段</span></div><div class="forge-section"><div class="forge-section-title">本案 Skill 工作流</div><div>${[...selectedLegalSkills].map(id=>`<span class="tag tag-blue">${esc(legalAISkills.find(s=>s.id===id)?.title||id)}</span>`).join('')}</div><p class="privacy-hint">已根据材料推荐技能。目录中的北大法宝 Skill 需配置合法账号和 token 后才能执行真实检索。</p></div>
       <div class="forge-section"><div class="forge-section-title">从原文件提取的案件配置</div><div class="original-clause"><span class="clause-label">来源内容预览 · 不生成替代合同</span>${esc((parsedForgeText||corpus).slice(0,700))}${corpus.length>700?'…':''}</div><p style="font-size:.82rem;line-height:1.6">${esc(aiNote)}</p></div>
       <div class="forge-section"><div class="forge-section-title">双方与争议焦点</div><p><strong style="color:var(--electric-blue)">主张方：</strong>${esc(plaintiff)}</p><p><strong style="color:var(--flame-orange)">相对方：</strong>${esc(defendant)}</p>${focus.map(f=>`<div class="audit-clause clean">• ${esc(f)}</div>`).join('')}</div>
       <div class="forge-section"><div class="forge-section-title">类似真实案例 · 官方链接</div>${cases.map(c=>`<article class="case-source"><div><strong>${esc(c.title)}</strong><div class="source-summary">${esc(c.summary)}</div><small>${esc(c.source)}</small></div><a href="${c.url}" target="_blank" rel="noopener">查看原文 ↗</a></article>`).join('')}<div class="privacy-hint">案例由关键词检索匹配，不代替对案号、事实和裁判要旨的人工核验。</div></div>`;
@@ -1786,7 +1850,7 @@ function runProfessionalAudit(){const text=document.getElementById('audit-text')
 function renderAuditMonsterSide(risky){const host=document.getElementById('audit-side-monsters');document.getElementById('audit-monster-count').textContent=`${risky.length} 只`;host.innerHTML=risky.length?risky.slice(0,12).map((r,i)=>{const rule=r.matches[0],need=Math.max(...r.matches.map(m=>m.need));return `<article class="mini-monster"><strong>${['期限迷雾兽','权责失衡怪','保证金吞噬者','交付幻影猫','管辖双头兽'][i%5]}</strong><span class="review-chip">${esc(rule.name)}</span><span class="review-necessity">${need}/10</span><p>${esc(r.clause.slice(0,82))}${r.clause.length>82?'…':''}</p><small>${esc(rule.risk)}</small></article>`;}).join(''):'<div class="review-empty">本轮未命中明确风险怪物，仍需人工复核附件和交易背景。</div>';}
 function loadProfessionalSample(){document.getElementById('audit-background').value='我方作为商场出租方，拟与餐饮品牌签署三年商铺租赁合同。';document.getElementById('audit-position').value='甲方';document.getElementById('audit-text').value='第一条 乙方承租甲方商铺用于餐饮经营，具体面积和交付条件另行协商。\n第二条 租赁期限自商铺交付之日起三年，乙方应尽快完成装修并开业。\n第三条 乙方应按甲方通知的金额和日期支付租金及其他费用。\n第四条 如乙方违约，甲方有权没收全部保证金，并要求乙方赔偿全部损失。\n第五条 双方发生争议，可向仲裁机构仲裁或向法院起诉。';}
 
-upgradeAuditWorkspace();ensureSocialModals();loadPlayerProfile();addScreenCats();renderCommunity();
+upgradeAuditWorkspace();ensureSocialModals();loadPlayerProfile();addScreenCats();renderCommunity();renderLegalSkills();
 window.addEventListener('load',()=>{if(!playerProfile)setTimeout(openIdentityCard,280);});
 </script>
 </body>
