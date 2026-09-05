@@ -99,3 +99,5 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now argus-api
 sudo systemctl status argus-api
 ```
+
+Zeabur 从仓库根目录 `/backend` 构建时使用 [`backend/Zeabur.Dockerfile`](../backend/Zeabur.Dockerfile)。该 Dockerfile 不依赖 monorepo 根目录，适合直接作为 Zeabur 服务的 Dockerfile。
