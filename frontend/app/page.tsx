@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 type ServiceState = 'checking' | 'online' | 'offline';
-type Section = 'forge' | 'audit' | 'campaign' | 'community';
+type Section = 'campaign';
 
 type CaseDraft = {
   id: string;
@@ -59,10 +59,7 @@ type Verdict = { winner: string; score: number; award: string; chain: string[]; 
 type CommunityPost = { id: string; author: string; time: string; title: string; body: string; tags: string[]; likes: number; comments: number };
 
 const sections: Array<{ id: Section; label: string }> = [
-  { id: 'forge', label: '案件工坊' },
-  { id: 'audit', label: '合同猎魔' },
   { id: 'campaign', label: '法庭闯关' },
-  { id: 'community', label: '社区广场' },
 ];
 
 const campaignLevels = [
@@ -79,10 +76,10 @@ const campaignLevels = [
 ];
 
 const debateCards = [
-  { id: 'recorded', name: '已为您记录', type: 'damage', cost: 1, value: 2, text: '我方已记录对方关于墙面原状的陈述，请对方说明其与原始照片是否一致。' },
-  { id: 'verify', name: '正在核实', type: 'damage', cost: 1, value: 3, text: '请对方提交维修完成照片、付款凭证和分项明细，以核实实际损失。' },
-  { id: 'script', name: '标准话术', type: 'defense', cost: 1, value: 2, text: '我方依据合同第五条主张押金退还期限已经届满。' },
-  { id: 'question', name: '交叉质询', type: 'damage', cost: 2, value: 4, text: '请明确说明划痕形成时间、维修价格依据及退租验收是否由双方共同完成。' },
+  { id: 'recorded', name: '已为您记录', type: 'damage', cost: 1, value: 2, text: '我方已记录对方关于墙面原状的陈述，请对方说明其与原始照片是否一致。', hint: '稳定开局，消耗低' },
+  { id: 'verify', name: '正在核实', type: 'damage', cost: 2, value: 4, text: '请对方提交维修完成照片、付款凭证和分项明细，以核实实际损失。', hint: '对“金额”证据有加成' },
+  { id: 'script', name: '标准话术', type: 'defense', cost: 1, value: 2, text: '我方依据合同第五条主张押金退还期限已经届满。', hint: '回复一点精力' },
+  { id: 'question', name: '交叉质询', type: 'damage', cost: 3, value: 7, text: '请明确说明划痕形成时间、维修价格依据及退租验收是否由双方共同完成。', hint: '证据齐全时造成额外压制' },
 ];
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -107,7 +104,7 @@ export default function HomePage() {
   const pathname = usePathname();
   const router = useRouter();
   const apiBaseUrl = useMemo(() => (process.env.NEXT_PUBLIC_API_BASE_URL || '/argus-api').replace(/\/$/, ''), []);
-  const activeSection = (pathname.split('/')[1] as Section) || 'forge';
+  const activeSection = 'campaign' as Section;
   const [serviceState, setServiceState] = useState<ServiceState>('checking');
   const [serviceMessage, setServiceMessage] = useState('正在连接 ARGUS+ API…');
   const [caseDraft, setCaseDraft] = useState<CaseDraft | null>(null);
@@ -120,7 +117,7 @@ export default function HomePage() {
   const [communityLoading, setCommunityLoading] = useState(false);
 
   useEffect(() => {
-    if (pathname === '/') router.replace('/forge');
+    if (pathname !== '/campaign') router.replace('/campaign');
   }, [pathname, router]);
 
   useEffect(() => {
@@ -138,15 +135,6 @@ export default function HomePage() {
       });
     return () => { cancelled = true; };
   }, [apiBaseUrl]);
-
-  useEffect(() => {
-    if (activeSection !== 'community') return;
-    setCommunityLoading(true);
-    requestJson<{ posts: CommunityPost[] }>(`${apiBaseUrl}/api/community/feed`)
-      .then((payload) => setCommunityPosts(payload.posts))
-      .catch(() => setCommunityPosts([]))
-      .finally(() => setCommunityLoading(false));
-  }, [activeSection, apiBaseUrl]);
 
   async function createCase(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -178,7 +166,7 @@ export default function HomePage() {
       <a className="skip-link" href="#main-content">跳到主要内容</a>
       <h1 className="sr-only">ARGUS+ 法律训练平台</h1>
       <header className="masthead">
-        <button className="brand" onClick={() => chooseSection('forge')} aria-label="返回案件工坊">
+        <button className="brand" onClick={() => chooseSection('campaign')} aria-label="返回法庭闯关">
           <img src="/assets/lawyer-cat-transparent.png" alt="ARGUS+ 律师猫" />
           <span><strong>ARGUS+</strong><small>LEGAL TRAINING PLATFORM · MVP</small></span>
         </button>
@@ -191,10 +179,7 @@ export default function HomePage() {
       <div className="page-shell" id="main-content">
 
 
-        {activeSection === 'forge' && <ForgeSection onSubmit={createCase} loading={caseLoading} error={caseError} draft={caseDraft} />}
-        {activeSection === 'audit' && <AuditSection onSubmit={auditContract} loading={auditLoading} error={auditError} result={auditResult} />}
-        {activeSection === 'campaign' && <CampaignSection />}
-        {activeSection === 'community' && <CommunitySection apiBaseUrl={apiBaseUrl} posts={communityPosts} setPosts={setCommunityPosts} loading={communityLoading} />}
+        <CampaignSection />
       </div>
     </main>
   );
@@ -242,14 +227,24 @@ function AuditSection({ onSubmit, loading, error, result }: { onSubmit: (event: 
 function CampaignSection() {
   const apiBaseUrl = useMemo(() => (process.env.NEXT_PUBLIC_API_BASE_URL || '/argus-api').replace(/\/$/, ''), []);
   const [demo, setDemo] = useState<DemoCase | null>(null);
-  const [started, setStarted] = useState(false);
+  const [phase, setPhase] = useState<'map' | 'investigate' | 'court'>('map');
   const [sceneId, setSceneId] = useState('');
   const [documentId, setDocumentId] = useState('');
   const [discovered, setDiscovered] = useState<string[]>([]);
   const [selectedEvidence, setSelectedEvidence] = useState<string[]>([]);
   const [argument, setArgument] = useState('');
-  const [debateMode, setDebateMode] = useState<'free' | 'card'>('free');
-  const [enemyHp, setEnemyHp] = useState(20);
+  const [actionPoints, setActionPoints] = useState(6);
+  const [investigationScore, setInvestigationScore] = useState(0);
+  const [investigationLog, setInvestigationLog] = useState<string[]>([]);
+  const [debateMode, setDebateMode] = useState<'free' | 'card'>('card');
+  const [energy, setEnergy] = useState(4);
+  const [enemyHp, setEnemyHp] = useState(24);
+  const [playerHp, setPlayerHp] = useState(20);
+  const [turnTimer, setTurnTimer] = useState(15);
+  const [turn, setTurn] = useState(1);
+  const [streak, setStreak] = useState(0);
+  const [playerShield, setPlayerShield] = useState(0);
+  const [score, setScore] = useState(0);
   const [debate, setDebate] = useState<DebateResult[]>([]);
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [loading, setLoading] = useState(true);
@@ -260,8 +255,25 @@ function CampaignSection() {
     requestJson<DemoCase>(`${apiBaseUrl}/api/campaign/demo`).then(setDemo).catch((e: Error) => setError(e.message)).finally(() => setLoading(false));
   }, [apiBaseUrl]);
 
+  useEffect(() => {
+    if (phase !== 'court' || verdict) return;
+    const timer = window.setInterval(() => {
+      setTurnTimer((value) => {
+        if (value > 1) return value - 1;
+        setTurn((current) => current + 1);
+        setEnergy(4);
+        setPlayerHp((value) => Math.max(0, value - 2));
+        setStreak(0);
+        return 15;
+      });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [phase, verdict]);
+
   async function submitArgument(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (energy < 1) { setError('本回合精力不足，请使用恢复类卡牌。'); return; }
+    setEnergy((value) => value - 1);
     await submitArgumentText(argument);
   }
 
@@ -270,14 +282,31 @@ function CampaignSection() {
     setSubmitting(true); setError('');
     try {
       const result = await requestJson<DebateResult>(`${apiBaseUrl}/api/campaign/respond`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ caseId: demo.id, argument: text, evidenceIds: selectedEvidence, history: debate }) });
-      setDebate((items) => [...items, result]); setArgument('');
+      setDebate((items) => [...items, result]);
+      setScore((value) => value + Math.max(0, result.scoreChange));
+      setEnemyHp((value) => Math.max(0, value - Math.max(0, result.scoreChange)));
+      setTurnTimer(15);
+      setTurn((value) => value + 1);
+      setStreak((value) => value + 1);
+      setArgument('');
     } catch (e) { setError(e instanceof Error ? e.message : '提交论点失败'); }
     finally { setSubmitting(false); }
   }
 
   function playCard(card: typeof debateCards[number]) {
-    if (submitting || !demo) return;
-    setEnemyHp((hp) => Math.max(0, hp - card.value));
+    if (submitting || !demo || energy < card.cost) return;
+    setEnergy((value) => value - card.cost);
+    if (card.type === 'defense') {
+      setPlayerShield((value) => value + 3);
+      setEnergy((value) => Math.min(5, value + 1));
+    } else {
+      const bonus = selectedEvidence.length >= 3 ? 2 : selectedEvidence.length;
+      setEnemyHp((hp) => Math.max(0, hp - card.value - bonus));
+      setScore((value) => value + card.value + bonus);
+    }
+    setTurnTimer(15);
+    setTurn((value) => value + 1);
+    setStreak((value) => value + 1);
     void submitArgumentText(card.text);
   }
 
@@ -291,13 +320,17 @@ function CampaignSection() {
 
   if (loading) return <section className="panel loading-panel" aria-label="法庭闯关">正在载入训练案件…</section>;
   if (!demo) return <section className="panel error-message" aria-label="法庭闯关">{error || '训练案件暂不可用'}</section>;
-  if (!started) return <section className="campaign-shell" aria-label="法庭闯关关卡选择"><div className="campaign-header"><div><span className="eyebrow">COURTROOM CAMPAIGN</span><h2>法庭闯关 <small>Campaign Mode</small></h2></div><div className="campaign-header-stats"><span className="tag">当前关卡：1</span><span className="tag ready">总得分：0</span></div></div><div className="campaign-map">{campaignLevels.map((level, index) => <button type="button" key={level.title} className={`level-node ${level.state}`} disabled={level.state === 'locked'} onClick={() => { setStarted(true); setSceneId(demo.scenes[0]?.id || ''); setDocumentId(demo.documents[0]?.id || ''); }}><span className="level-num">{index + 1}</span><strong className="level-title">{level.title}</strong><small>{level.desc}</small><span className="level-stars">{level.stars}</span></button>)}</div></section>;
+  const started = phase !== 'map';
+  if (!started) return <section className="campaign-shell" aria-label="法庭闯关关卡选择"><div className="campaign-header"><div><h2>法庭闯关 <small>证据 → 卡牌 → 裁决</small></h2><p className="campaign-lead">先在案发现场搜证，再把证据编成卡牌连击。每个选择都会改变你在庭上的底牌。</p></div><div className="campaign-header-stats"><span className="tag">搜证 + 庭审</span><span className="tag ready">第 1 关开放</span></div></div><div className="campaign-map">{campaignLevels.map((level, index) => <button type="button" key={level.title} className={`level-node ${level.state}`} disabled={level.state === 'locked'} onClick={() => { setPhase('investigate'); setSceneId(demo.scenes[0]?.id || ''); setDocumentId(demo.documents[0]?.id || ''); setDiscovered([]); setSelectedEvidence([]); setInvestigationLog([]); setActionPoints(6); setInvestigationScore(0); setScore(0); setEnergy(4); setEnemyHp(24); setPlayerHp(20); setPlayerShield(0); setTurnTimer(15); setTurn(1); setStreak(0); setDebate([]); setVerdict(null); setError(''); }}><span className="level-num">{index + 1}</span><strong className="level-title">{level.title}</strong><small>{level.desc}</small><span className="level-stars">{level.stars}</span></button>)}</div><div className="panel campaign-rules"><strong>本关目标</strong><span>找到 4 份关键证据 · 组成“时间—损坏—金额—条款”证据链 · 在 5 回合内击破对方说服力</span></div></section>;
   const activeScene = demo.scenes.find((scene) => scene.id === sceneId) || demo.scenes[0];
   const activeDocument = demo.documents.find((doc) => doc.id === documentId) || demo.documents[0];
-  const discoverEvidence = (id: string) => setDiscovered((ids) => ids.includes(id) ? ids : [...ids, id]);
+  const discoverEvidence = (id: string, label = '新证据') => { if (phase !== 'investigate' || discovered.includes(id)) return; if (actionPoints < 1) { setError('行动点已用尽，请直接进入法庭。'); return; } setActionPoints((value) => value - 1); setDiscovered((ids) => [...ids, id]); setSelectedEvidence((ids) => ids.includes(id) ? ids : [...ids, id]); setInvestigationScore((value) => value + 5); setInvestigationLog((items) => [`发现并入卡：${label}`, ...items].slice(0, 5)); };
+  const enterCourt = () => { if (!discovered.length) { setError('至少发现 1 份证据卡后才能进入法庭。'); return; } setSelectedEvidence(discovered); setPhase('court'); setEnergy(4); setPlayerHp(20); setEnemyHp(24); setTurnTimer(15); setTurn(1); setStreak(0); setError(''); };
   return <section className="campaign-shell" aria-label="法庭闯关">
-    <div className="panel campaign-intro"><div><button type="button" className="button secondary" onClick={() => setStarted(false)}>← 返回关卡地图</button><span className="eyebrow">LEVEL 1 · COURTROOM</span><h2>{demo.title}</h2><p>{demo.goal}</p></div><div className="campaign-kpis"><span><small>难度</small><strong>{demo.difficulty}/5</strong></span><span><small>已取证</small><strong>{discovered.length}/{demo.evidence.length}</strong></span></div></div>
-    <div className="campaign-layout"><aside className="panel evidence-panel"><PanelHeading eyebrow="EVIDENCE HUB" title="证据板" badge={`${selectedEvidence.length} 已选`} /><div className="scene-tabs">{demo.scenes.map((scene) => <button type="button" className={scene.id === activeScene.id ? 'active' : ''} key={scene.id} onClick={() => setSceneId(scene.id)}>{scene.title}</button>)}</div><div className="scene-board"><span className="scene-label">{activeScene.title}</span><p>{activeScene.description}</p><div className="hotspot-grid">{activeScene.hotspots.map((spot) => <button type="button" className={`hotspot ${discovered.includes(spot.evidenceId) ? 'found' : ''}`} key={spot.id} onClick={() => discoverEvidence(spot.evidenceId)}><span>{spot.icon}</span><strong>{spot.title}</strong><small>{discovered.includes(spot.evidenceId) ? '已发现' : spot.hint}</small></button>)}</div></div><h3 className="subheading">原始文件</h3><div className="document-list">{demo.documents.map((doc) => <button type="button" className={`document-button ${doc.id === activeDocument.id ? 'active' : ''}`} key={doc.id} onClick={() => setDocumentId(doc.id)}><span>📄</span><strong>{doc.name}<small>打开完整原件 →</small></strong></button>)}</div></aside><div className="panel source-panel"><PanelHeading eyebrow="SOURCE READER" title={activeDocument.name} badge="原件" /><div className="source-reader"><pre>{activeDocument.content}</pre></div><div className="evidence-inventory"><h3 className="subheading">已发现证据</h3>{demo.evidence.filter((item) => discovered.includes(item.id)).map((item) => <button type="button" className={`evidence-card ${selectedEvidence.includes(item.id) ? 'selected' : ''}`} key={item.id} onClick={() => setSelectedEvidence((ids) => ids.includes(item.id) ? ids.filter((id) => id !== item.id) : [...ids, item.id])}><div><strong>{item.title}</strong><span className="tag">{item.credibility}/10</span></div><p>{item.description}</p></button>)}</div></div><div className="panel debate-panel"><PanelHeading eyebrow="DEBATE" title="庭审辩论" badge={`${debate.length} 轮`} /><div className="mode-switch"><button type="button" className={debateMode === 'free' ? 'active' : ''} onClick={() => setDebateMode('free')}>自由模式</button><button type="button" className={debateMode === 'card' ? 'active' : ''} onClick={() => setDebateMode('card')}>话术卡牌模式</button></div><div className="hp-panel"><div>对方说服力 <strong>{enemyHp}/20</strong><div className="hp-track"><div className="hp-fill" style={{ width: `${enemyHp * 5}%` }} /></div></div></div><div className="debate-history">{debate.length ? debate.map((item, index) => <article className="debate-bubble" key={`${item.response}-${index}`}><strong>对方回应</strong><p>{item.response}</p><small>{item.judge} · 得分 {item.scoreChange >= 0 ? '+' : ''}{item.scoreChange}</small></article>) : <EmptyState text="从场景或原始文件中发现证据，再提交你的第一条论点。" />}</div>{debateMode === 'card' && <div className="card-deck">{debateCards.map((card) => <button type="button" key={card.id} onClick={() => playCard(card)}><strong>{card.name}</strong><span>{card.type === 'damage' ? '伤害' : '防御'} {card.value} · 消耗 {card.cost}</span><small>{card.text}</small></button>)}</div>}<form id="campaign-argument-form" className="argument-form" onSubmit={submitArgument}><textarea value={argument} onChange={(event) => setArgument(event.target.value)} required placeholder="输入论点、引用事实或质疑对方…" /><button className="button primary" disabled={submitting}>{submitting ? '正在回应…' : '提交论点 →'}</button></form>{error && <p className="error-message" role="alert">{error}</p>}<button type="button" className="button verdict-button" onClick={requestVerdict} disabled={submitting || debate.length === 0}>请求法官裁决</button>{verdict && <div className="verdict-card"><div className="verdict-header"><span>{verdict.winner}</span><strong>{verdict.score} 分</strong></div><p>{verdict.award}</p><p>{verdict.reasoning}</p><h4>证据链</h4><ol>{verdict.chain.map((item) => <li key={item}>{item}</li>)}</ol></div>}</div></div>
+    <div className="campaign-intro-wrap"><button type="button" className="button secondary back-to-map" onClick={() => setPhase('map')}>← 返回关卡地图</button><div className="panel campaign-intro"><div><h2>{phase === 'investigate' ? `搜证：${demo.title}` : '庭审：证据卡组对决'}</h2><p>{demo.goal}</p></div><div className="campaign-kpis"><span><small>{phase === 'investigate' ? '行动点' : '精力'}</small><strong>{phase === 'investigate' ? `${actionPoints}/6` : `${energy}/5`}</strong></span><span><small>{phase === 'investigate' ? '已取证' : '对方说服力'}</small><strong>{phase === 'investigate' ? `${discovered.length}/${demo.evidence.length}` : `${enemyHp}/24`}</strong></span><span><small>总分</small><strong>{investigationScore + score}</strong></span></div></div></div>
+    <div className="phase-rail"><span className={phase === 'investigate' ? 'active' : 'done'}>1 搜证</span><i>→</i><span className={phase === 'court' ? 'active' : ''}>2 卡牌庭审</span><i>→</i><span>3 裁决</span></div>
+    {phase === 'court' && <div className="battle-hud"><div className="fighter fighter-player"><span>我方 · 租客张某</span><strong>{playerHp}/20</strong><div className="fighter-track"><i style={{ width: `${playerHp * 5}%` }} /></div></div><div className="battle-round"><strong>{turnTimer}</strong><small>秒</small><span>第 {turn} 回合 · 连击 {streak}</span></div><div className="fighter fighter-opponent"><span>对方 · 房东代理</span><strong>{enemyHp}/24</strong><div className="fighter-track"><i style={{ width: `${enemyHp / 24 * 100}%` }} /></div></div></div>}
+    <div className={`campaign-layout ${phase === 'court' ? 'court-layout' : 'investigation-layout'}`}><aside className="panel evidence-panel"><PanelHeading eyebrow="EVIDENCE HUB" title={phase === 'court' ? '已装入证据卡' : '现场搜证'} badge={phase === 'court' ? `${selectedEvidence.length} 张` : `${actionPoints} AP`} /><div className="scene-tabs">{demo.scenes.map((scene) => <button type="button" className={scene.id === activeScene.id ? 'active' : ''} key={scene.id} onClick={() => setSceneId(scene.id)}>{scene.title}</button>)}</div><div className="scene-board"><span className="scene-label">{activeScene.title}</span><p>{activeScene.description}</p><div className="hotspot-grid">{activeScene.hotspots.map((spot) => <button type="button" className={`hotspot ${discovered.includes(spot.evidenceId) ? 'found' : ''}`} key={spot.id} onClick={() => discoverEvidence(spot.evidenceId, spot.title)}><span>{spot.icon}</span><strong>{spot.title}</strong><small>{discovered.includes(spot.evidenceId) ? '已发现 · 已入卡组' : `调查（1 AP） · ${spot.hint}`}</small></button>)}</div></div><h3 className="subheading">搜证日志</h3><div className="investigation-log">{investigationLog.length ? investigationLog.map((item, index) => <span key={`${item}-${index}`}>{item}</span>) : <span>点击现场热点，寻找能互相印证的原件。</span>}</div><h3 className="subheading">原始文件</h3><div className="document-list">{demo.documents.map((doc) => <button type="button" className={`document-button ${doc.id === activeDocument.id ? 'active' : ''}`} key={doc.id} onClick={() => setDocumentId(doc.id)}><span>📄</span><strong>{doc.name}<small>打开完整原件 →</small></strong></button>)}</div></aside><div className="panel source-panel"><PanelHeading eyebrow="SOURCE READER" title={activeDocument.name} badge="点击黄色线索" /><div className="source-reader"><pre>{activeDocument.content}</pre>{activeDocument.hotspots.map((spot) => <button type="button" className={`source-hotspot ${discovered.includes(spot.evidenceId) ? 'found' : ''}`} key={spot.id} onClick={() => discoverEvidence(spot.evidenceId, spot.label)}>{discovered.includes(spot.evidenceId) ? '✓ ' : '＋ '}{spot.label}</button>)}</div><div className="evidence-inventory"><h3 className="subheading">证据卡组 · 发现即入组</h3>{demo.evidence.filter((item) => discovered.includes(item.id)).map((item) => <div className="evidence-card selected" key={item.id}><div><strong>{item.title}</strong><span className="tag">{item.credibility}/10</span></div><p>{item.description}</p><small>✓ 已入庭审卡组 · 可全部带入</small></div>)}</div></div>{phase === 'investigate' ? <div className="panel debate-panel prep-panel"><PanelHeading eyebrow="CASEBOARD" title="证据卡组预览" badge={`${selectedEvidence.length} 张`} /><p className="chain-tip">每发现一份证据，就会生成一张卡牌；本关发现的全部卡牌都会带入法庭。</p><div className="chain-list">{selectedEvidence.length ? selectedEvidence.map((id, index) => <div className="filled" key={id}><span>{index + 1}</span><strong>证据卡</strong><small>{demo.evidence.find((e) => e.id === id)?.title}</small></div>) : <div><span>＋</span><strong>空卡槽</strong><small>点击热点或原件线索开始搜证</small></div>}</div><button type="button" className="button primary enter-court" onClick={enterCourt} disabled={!discovered.length}>带着全部 {selectedEvidence.length} 张证据卡进入法庭 →</button></div> : <div className="panel debate-panel"><PanelHeading eyebrow="DEBATE" title="庭审辩论" badge={`${debate.length} 轮`} /><div className="mode-switch"><button type="button" className={debateMode === 'free' ? 'active' : ''} onClick={() => setDebateMode('free')}>自由模式</button><button type="button" className={debateMode === 'card' ? 'active' : ''} onClick={() => setDebateMode('card')}>证据卡牌模式</button></div><div className="hp-panel"><div>对方说服力 <strong>{enemyHp}/24</strong><div className="hp-track"><div className="hp-fill" style={{ width: `${enemyHp / 24 * 100}%` }} /></div></div><div>我方护盾 <strong>{playerShield}</strong></div></div><div className="debate-history">{debate.length ? debate.map((item, index) => <article className="debate-bubble" key={`${item.response}-${index}`}><strong>对方回应</strong><p>{item.response}</p><small>{item.judge} · 得分 {item.scoreChange >= 0 ? '+' : ''}{item.scoreChange}</small></article>) : <EmptyState text="打出第一张卡牌，开始你的庭审回合。" />}</div>{debateMode === 'card' && <div className="card-deck">{debateCards.map((card) => <button type="button" disabled={submitting || energy < card.cost} key={card.id} onClick={() => playCard(card)}><strong>{card.name}</strong><span>{card.type === 'damage' ? `压制 ${card.value}` : '护盾 +3'} · {card.cost} 精力</span><small>{card.hint}</small></button>)}</div>}{debateMode === 'free' && <form id="campaign-argument-form" className="argument-form" onSubmit={submitArgument}><textarea value={argument} onChange={(event) => setArgument(event.target.value)} required placeholder="输入论点、引用事实或质疑对方…" /><button className="button primary" disabled={submitting || energy < 1}>{submitting ? '正在回应…' : '消耗 1 精力提交 →'}</button></form>}{error && <p className="error-message" role="alert">{error}</p>}<button type="button" className="button verdict-button" onClick={requestVerdict} disabled={submitting || debate.length === 0}>请求法官裁决</button>{verdict && <div className="verdict-card"><div className="verdict-header"><span>{verdict.winner}</span><strong>{verdict.score} 分</strong></div><p>{verdict.award}</p><p>{verdict.reasoning}</p><h4>证据链</h4><ol>{verdict.chain.map((item) => <li key={item}>{item}</li>)}</ol></div>}</div>}</div>
   </section>;
 }
 
@@ -314,7 +347,7 @@ function CommunitySection({ apiBaseUrl, posts, setPosts, loading }: { apiBaseUrl
   return <section className="community-shell"><div className="community-layout"><aside className="panel community-sidebar"><PanelHeading eyebrow="COMMUNITY SQUARE" title="社区广场" badge="脱敏分享" /><div className="leaderboard"><h3>本周训练榜</h3>{[['1','证据收藏家','2,520'],['2','仲裁员小王','2,180'],['3','法外狂徒张三','1,960']].map(([rank, name, score]) => <div className="leader-row" key={rank}><strong>{rank}</strong><span className="avatar avatar-cat" aria-hidden="true">猫</span><div><b>{name}</b><small>案件训练者</small></div><em>{score}</em></div>)}</div><div className="privacy-card"><strong>隐私 · 默认私有</strong><p>案件、合同和聊天记录不会自动公开。发布前请先脱敏，并确认内容不含个人信息。</p></div></aside><div className="community-main"><form className="panel share-form" onSubmit={submitPost}><PanelHeading eyebrow="SHARE A RUN" title="分享一次复盘" badge="POST" /><div className="field-grid"><label>标题<input name="title" required placeholder="例如：租赁押金关卡的证据链" /></label><label>标签<input name="tags" placeholder="#证据链 #租赁" /></label></div><label>内容<textarea name="body" required placeholder="分享你的思路、遇到的质证或合同审查方法…" /></label><label className="checkbox-line"><input type="checkbox" name="privacy" /> 我已脱敏，并确认不发布合同、聊天记录等原始文件</label><div className="button-row"><button className="button primary" disabled={submitting}>{submitting ? '正在发布…' : '发布到社区 →'}</button></div>{error && <p className="error-message">{error}</p>}</form><div className="feed-list">{loading ? <div className="panel loading-panel">正在加载社区动态…</div> : posts.map((post) => <article className="panel feed-card" key={post.id}><div className="feed-header"><div><span className="avatar avatar-cat" aria-hidden="true">猫</span><strong>{post.author}</strong></div><small>{post.time}</small></div><h3>{post.title}</h3><p>{post.body}</p><div>{post.tags.map((tag) => <span className="tag" key={tag}>{tag}</span>)}</div><div className="feed-actions"><button onClick={() => setLiked(liked.includes(post.id) ? liked.filter((id) => id !== post.id) : [...liked, post.id])}>{liked.includes(post.id) ? '♥' : '♡'} {post.likes + (liked.includes(post.id) ? 1 : 0)}</button><span>评论 {post.comments}</span></div></article>)}</div></div></div></section>;
 }
 
-function PanelHeading({ eyebrow, title, badge }: { eyebrow: string; title: string; badge: string }) { return <div className="panel-heading"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2></div><span className="tag ready">{badge}</span></div>; }
+function PanelHeading({ title, badge }: { eyebrow: string; title: string; badge: string }) { return <div className="panel-heading"><div><h2>{title}</h2></div><span className="tag ready">{badge}</span></div>; }
 function InfoList({ title, items }: { title: string; items: string[] }) { return <div className="info-list"><h4>{title}</h4><ul>{items.map((item) => <li key={item}>{item}</li>)}</ul></div>; }
 function EmptyState({ text }: { text: string }) { return <div className="empty-state"><p>{text}</p></div>; }
 function Stat({ label, value }: { label: string; value: number }) { return <div className="stat"><strong>{value}</strong><span>{label}</span></div>; }
