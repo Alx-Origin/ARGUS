@@ -1,0 +1,12 @@
+{
+  "name": "@argus/backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone Node.js API for ARGUS+",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "test": "node --test"
+  }
+}

@@ -1,0 +1,153 @@
+ARGUS+ Vercel + standalone Node.js migration verification
+=========================================================
+
+CHANGED_BRANCH: codex/framework-next-node
+CHANGED_FIELD: frontend deployment target — GitHub Pages static export -> Vercel Next.js runtime; backend remains independent Node.js
+WORKSPACE: /Users/andylyu/Projects/ARGUS
+ORIGINAL_HASH: acd213e04972465ead126a9d5a1cd85ff6a5c17db7fd08da78b3ba863aa2aac3  index.html
+
+ARTIFACTS
+---------
+MODIFIED_FILE: /Users/andylyu/Projects/ARGUS/.framework/MODIFIED_FILE
+DIFF_FILE: /Users/andylyu/Projects/ARGUS/.framework/DIFF_FILE
+VERIFICATION.txt: /Users/andylyu/Projects/ARGUS/.framework/VERIFICATION.txt
+ROLLBACK.sh: /Users/andylyu/Projects/ARGUS/.framework/ROLLBACK.sh
+
+BASELINE
+--------
+COMMAND:
+git status --short --branch
+OUTPUT:
+## codex/framework-next-node
+EXIT_STATUS: 0
+
+COMMAND:
+sha256sum index.html
+OUTPUT:
+acd213e04972465ead126a9d5a1cd85ff6a5c17db7fd08da78b3ba863aa2aac3  index.html
+EXIT_STATUS: 0
+
+COMMAND:
+node --check /tmp/argus-baseline-script-1.js && node --check /tmp/argus-baseline-script-2.js && node --check /tmp/argus-baseline-script-3.js
+OUTPUT:
+(no output; all three inline scripts parsed successfully)
+EXIT_STATUS: 0
+
+MODIFIED TESTS
+--------------
+COMMAND:
+npm test
+OUTPUT:
+✔ GET /health returns the standalone Node.js service status
+✔ POST /api/cases/draft creates a case draft
+✔ POST /api/contracts/audit returns rule-based findings
+✔ invalid JSON returns a 400 response
+✔ comma-separated CORS origins support Vercel production and preview hosts
+ℹ tests 5
+ℹ pass 5
+EXIT_STATUS: 0
+
+COMMAND:
+npm run typecheck
+OUTPUT:
+> @argus/frontend@0.1.0 typecheck
+> tsc --noEmit
+EXIT_STATUS: 0
+
+COMMAND:
+npm run build
+OUTPUT:
+▲ Next.js 16.3.4 (Turbopack)
+✓ Compiled successfully
+✓ Generating static pages using 4 workers (3/3)
+○ / (Static) prerendered as static content
+EXIT_STATUS: 0
+
+COMMAND:
+npm audit --omit=dev --audit-level=high
+OUTPUT:
+found 0 vulnerabilities
+EXIT_STATUS: 0
+
+COMMAND:
+node -e "const fs=require('fs'); JSON.parse(fs.readFileSync('frontend/vercel.json','utf8')); console.log('vercel_json=valid')"
+OUTPUT:
+vercel_json=valid
+EXIT_STATUS: 0
+
+COMMAND:
+npm run dev
+INPUT:
+GET http://127.0.0.1:3000/
+GET http://127.0.0.1:4000/health
+POST http://127.0.0.1:4000/api/contracts/audit
+OUTPUT:
+frontend_http=200 bytes=11966
+<title>ARGUS+ · 法律训练平台</title
+{"status":"ok","service":"argus-backend","runtime":"node"}
+{"data":{"summary":{"position":"乙方","clauseCount":2,"findingCount":4,"highRiskCount":3}}
+EXIT_STATUS: 0 (dev processes stopped after smoke check)
+
+VERCEL CONFIGURATION
+--------------------
+COMMAND:
+cat frontend/next.config.ts && cat frontend/vercel.json
+OUTPUT:
+Next.js standard runtime config; frontend/vercel.json declares framework=nextjs.
+Vercel Project Root Directory: frontend/
+EXIT_STATUS: 0
+
+COMMAND:
+CORS_ORIGIN=https://argus.vercel.app,https://preview.argus.vercel.app npm test
+OUTPUT:
+Vercel production and preview origin test passed in backend test suite.
+EXIT_STATUS: 0
+
+ROLLBACK
+--------
+COMMAND:
+rollback_dir="/tmp/argus-rollback-check-21424"; mkdir -p "$rollback_dir"; cp /Users/andylyu/Projects/ARGUS/.framework/MODIFIED_FILE "$rollback_dir/MODIFIED_FILE"; /Users/andylyu/Projects/ARGUS/.framework/ROLLBACK.sh "$rollback_dir/MODIFIED_FILE"; cmp -s /Users/andylyu/Projects/ARGUS/legacy/index.html "$rollback_dir/MODIFIED_FILE"
+INPUT:
+source=/Users/andylyu/Projects/ARGUS/legacy/index.html
+copy=/tmp/argus-rollback-check-21424/MODIFIED_FILE
+OUTPUT:
+ROLLBACK_RESTORED=/tmp/argus-rollback-check-21424/MODIFIED_FILE
+ROLLBACK_SHA256=acd213e04972465ead126a9d5a1cd85ff6a5c17db7fd08da78b3ba863aa2aac3
+cmp_exit=0
+EXIT_STATUS: 0
+
+RESTORED_BEHAVIOR_STATUS
+-------------------------
+- The rollback test copy exactly matches legacy/index.html after ROLLBACK.sh.
+- MODIFIED_FILE remains intentionally changed; comparison against legacy/index.html returns exit 1.
+- The original root index.html remains unchanged at the recorded SHA-256.
+- Vercel frontend configuration is ready; the Node.js backend remains independently deployable.
+
+ROLLBACK RECHECK
+----------------
+COMMAND:
+rollback_dir="/tmp/argus-vercel-rollback-28963"; mkdir -p "$rollback_dir"; cp /Users/andylyu/Projects/ARGUS/.framework/MODIFIED_FILE "$rollback_dir/MODIFIED_FILE"; /Users/andylyu/Projects/ARGUS/.framework/ROLLBACK.sh "$rollback_dir/MODIFIED_FILE"; cmp -s /Users/andylyu/Projects/ARGUS/legacy/index.html "$rollback_dir/MODIFIED_FILE"
+INPUT:
+source=/Users/andylyu/Projects/ARGUS/legacy/index.html
+copy=/tmp/argus-vercel-rollback-28963/MODIFIED_FILE
+OUTPUT:
+before=eb84d82b66435877439a639496cbc269ddf4a4e888599185c04b7e7b8a6f1a48
+ROLLBACK_RESTORED=/tmp/argus-vercel-rollback-28963/MODIFIED_FILE
+ROLLBACK_SHA256=acd213e04972465ead126a9d5a1cd85ff6a5c17db7fd08da78b3ba863aa2aac3
+restored_cmp=0
+modified_cmp=1
+EXIT_STATUS: 0
+
+FINAL RECHECK
+------------
+COMMAND:
+npm test && npm run typecheck && npm run build && npm audit --omit=dev --audit-level=high
+OUTPUT:
+5 backend tests passed; TypeScript check passed; Next.js 16.3.4 build passed; found 0 vulnerabilities.
+EXIT_STATUS: 0
+
+COMMAND:
+node -e "const fs=require('fs'); JSON.parse(fs.readFileSync('frontend/vercel.json','utf8')); console.log('vercel_json=valid')"
+OUTPUT:
+vercel_json=valid
+EXIT_STATUS: 0
