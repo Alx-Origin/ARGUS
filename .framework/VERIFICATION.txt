@@ -218,3 +218,13 @@ ROUTING
 REQUESTED_PATH: https://api.tomeet.chat/argus
 CURRENT_STATE: api.tomeet.chat remains bound to tomeet-api; project Gateway shows Upgrade to Dev and no path route is configured.
 RESTORED_BEHAVIOR_STATUS: ARGUS service is independently Running and responds on its Zeabur domain; path-based api.tomeet.chat/argus routing remains pending Gateway configuration.
+
+CORS
+----
+COMMAND: curl -k -sS -D - -o /tmp/argus-health.body --max-time 20 -H 'Origin: https://argus.example.com' https://argus-mvp.zeabur.app/health
+INPUT: GET /health with a cross-origin request header
+OUTPUT:
+HTTP/2 200
+access-control-allow-origin: *
+{"status":"ok","service":"argus-backend","runtime":"node","version":"0.2.0"}
+EXIT_STATUS: 0
