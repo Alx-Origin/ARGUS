@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 
 type ServiceState = 'checking' | 'online' | 'offline';
-type Section = 'overview' | 'forge' | 'audit' | 'campaign' | 'community';
+type Section = 'forge' | 'audit' | 'campaign' | 'community';
 
 type CaseDraft = {
   id: string;
@@ -37,7 +37,6 @@ type AuditResult = {
 };
 
 const sections: Array<{ id: Section; label: string; icon: string }> = [
-  { id: 'overview', label: '架构总览', icon: '⌂' },
   { id: 'forge', label: '案件工坊', icon: '⚖' },
   { id: 'audit', label: '合同审查', icon: '📄' },
   { id: 'campaign', label: '法庭闯关', icon: '🎮' },
@@ -59,7 +58,7 @@ export default function HomePage() {
     () => (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000').replace(/\/$/, ''),
     [],
   );
-  const [activeSection, setActiveSection] = useState<Section>('overview');
+  const [activeSection, setActiveSection] = useState<Section>('forge');
   const [serviceState, setServiceState] = useState<ServiceState>('checking');
   const [serviceMessage, setServiceMessage] = useState('正在连接独立 Node.js 服务…');
   const [caseDraft, setCaseDraft] = useState<CaseDraft | null>(null);
@@ -128,7 +127,7 @@ export default function HomePage() {
   return (
     <main>
       <header className="masthead">
-        <button className="brand" onClick={() => setActiveSection('overview')}>
+        <button className="brand" onClick={() => setActiveSection('forge')}>
           <img src={`${assetBasePath}/assets/lawyer-cat-transparent.png`} alt="ARGUS+ 律师猫" />
           <span>
             <strong>ARGUS+</strong>
@@ -153,54 +152,6 @@ export default function HomePage() {
       </header>
 
       <div className="page-shell">
-        {activeSection === 'overview' && (
-          <section className="hero-grid">
-            <div className="hero-copy">
-              <span className="eyebrow">NEXT.JS FRONTEND × NODE.JS BACKEND</span>
-              <h1>ARGUS+ 的新框架已经分层。</h1>
-              <p>
-                浏览器界面由 Next.js App Router 承载，案件、合同审查和后续数据服务由独立
-                Node.js 进程提供。两个应用可以分别开发、测试和部署。
-              </p>
-              <div className="hero-actions">
-                <button className="button primary" onClick={() => setActiveSection('forge')}>
-                  测试案件 API
-                </button>
-                <button className="button secondary" onClick={() => setActiveSection('audit')}>
-                  测试审查 API
-                </button>
-              </div>
-            </div>
-            <div className="architecture-card">
-              <div className="layer frontend-layer">
-                <small>PORT 3000</small>
-                <strong>Next.js Frontend</strong>
-                <span>App Router · React · TypeScript</span>
-              </div>
-              <div className="connection">HTTP / JSON</div>
-              <div className="layer backend-layer">
-                <small>PORT 4000</small>
-                <strong>Node.js Backend</strong>
-                <span>REST API · 独立进程 · 独立部署</span>
-              </div>
-            </div>
-            <div className="module-grid">
-              {[
-                ['案件工坊', 'POST /api/cases/draft', '已接通'],
-                ['合同审查', 'POST /api/contracts/audit', '已接通'],
-                ['法庭闯关', '案件、证据、辩论领域服务', '待迁移'],
-                ['社区广场', '账户、帖子、评论与好友服务', '待迁移'],
-              ].map(([title, endpoint, status]) => (
-                <article key={title}>
-                  <span className={status === '已接通' ? 'tag ready' : 'tag'}>{status}</span>
-                  <h2>{title}</h2>
-                  <code>{endpoint}</code>
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
-
         {activeSection === 'forge' && (
           <section className="workspace-grid">
             <form className="panel" onSubmit={createCase}>
@@ -354,8 +305,8 @@ export default function HomePage() {
               该模块已在 Next.js 导航中预留入口。下一阶段可将旧页面的状态逻辑迁移为 React
               组件，并为领域数据增加独立 Node.js API。
             </p>
-            <button className="button secondary" onClick={() => setActiveSection('overview')}>
-              返回架构总览
+            <button className="button secondary" onClick={() => setActiveSection('forge')}>
+              返回案件工坊
             </button>
           </section>
         )}

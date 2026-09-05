@@ -151,25 +151,12 @@ nav button.active {
   padding: clamp(1.5rem, 4vw, 4rem) 0 5rem;
 }
 
-.hero-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(330px, 0.75fr);
-  gap: 1.5rem;
-}
-
-.hero-copy,
-.architecture-card,
 .panel,
-.placeholder-panel,
-.module-grid article {
+.placeholder-panel {
   border: 3px solid var(--ink);
   border-radius: 10px;
   background: var(--paper-bright);
   box-shadow: 7px 7px 0 rgb(23 23 23 / 15%);
-}
-
-.hero-copy {
-  padding: clamp(1.5rem, 4vw, 4rem);
 }
 
 .eyebrow {
@@ -189,7 +176,6 @@ p {
   margin-top: 0;
 }
 
-.hero-copy h1,
 .placeholder-panel h1 {
   max-width: 760px;
   margin-bottom: 1.2rem;
@@ -198,26 +184,18 @@ p {
   letter-spacing: -0.075em;
 }
 
-.hero-copy p,
 .placeholder-panel p {
   max-width: 760px;
   font-size: 1.02rem;
   line-height: 1.8;
 }
 
-.hero-actions,
 .panel-heading,
 .finding > div {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.7rem;
-}
-
-.hero-actions {
-  justify-content: flex-start;
-  flex-wrap: wrap;
-  margin-top: 2rem;
 }
 
 .button {
@@ -247,71 +225,6 @@ p {
 
 .button.secondary {
   background: var(--paper-bright);
-}
-
-.architecture-card {
-  display: grid;
-  align-content: center;
-  gap: 0.7rem;
-  padding: 1.5rem;
-  background: var(--ink);
-}
-
-.layer {
-  min-height: 132px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 1.3rem;
-  border: 3px solid var(--ink);
-  border-radius: 7px;
-  box-shadow: 5px 5px 0 white;
-}
-
-.layer small {
-  font-family: monospace;
-}
-
-.layer strong {
-  margin: 0.3rem 0;
-  font-size: 1.45rem;
-}
-
-.frontend-layer {
-  background: var(--periwinkle);
-}
-
-.backend-layer {
-  background: var(--orange);
-}
-
-.connection {
-  color: white;
-  text-align: center;
-  font-family: monospace;
-  font-size: 0.75rem;
-  font-weight: 800;
-}
-
-.module-grid {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-}
-
-.module-grid article {
-  min-height: 160px;
-  padding: 1.1rem;
-}
-
-.module-grid h2 {
-  margin: 1.5rem 0 0.5rem;
-}
-
-.module-grid code {
-  overflow-wrap: anywhere;
-  font-size: 0.69rem;
 }
 
 .tag {
@@ -515,13 +428,8 @@ textarea {
     justify-content: flex-start;
   }
 
-  .hero-grid,
   .workspace-grid {
     grid-template-columns: 1fr;
-  }
-
-  .module-grid {
-    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -547,13 +455,11 @@ textarea {
     max-width: none;
   }
 
-  .module-grid,
   .field-grid,
   .stat-grid {
     grid-template-columns: 1fr;
   }
 
-  .hero-copy h1,
   .placeholder-panel h1 {
     font-size: clamp(2.4rem, 15vw, 4.8rem);
   }
