@@ -151,3 +151,44 @@ node -e "const fs=require('fs'); JSON.parse(fs.readFileSync('frontend/vercel.jso
 OUTPUT:
 vercel_json=valid
 EXIT_STATUS: 0
+
+UI REMOVAL RECHECK
+------------------
+CHANGED_BRANCH: codex/framework-next-node
+CHANGED_FIELD: frontend navigation and landing state — removed the 架构总览 section and its architecture-only styles; 案件工坊 is now the default and brand destination
+
+COMMAND:
+git grep -n -e '架构总览' -e 'overview' -e 'architecture-card' -e 'module-grid' -- frontend/app
+OUTPUT:
+(no matches; architecture overview UI and styles removed)
+EXIT_STATUS: 1 (expected no-match result)
+
+BASELINE COMMAND:
+git restore --source=HEAD -- frontend/app/page.tsx frontend/app/globals.css && npm test && npm run typecheck && npm run build
+OUTPUT:
+5 backend tests passed; TypeScript check passed; Next.js 16.3.4 build passed before UI removal.
+EXIT_STATUS: 0
+
+MODIFIED COMMAND:
+git apply /tmp/argus-remove-overview.patch && npm test && npm run typecheck && npm run build
+OUTPUT:
+5 backend tests passed; TypeScript check passed; Next.js 16.3.4 build passed after UI removal.
+EXIT_STATUS: 0
+
+ROLLBACK COMMAND:
+rollback_dir="/tmp/argus-overview-rollback"; mkdir -p "$rollback_dir"; cp /Users/andylyu/Projects/ARGUS/.framework/MODIFIED_FILE "$rollback_dir/MODIFIED_FILE"; /Users/andylyu/Projects/ARGUS/.framework/ROLLBACK.sh "$rollback_dir/MODIFIED_FILE"; cmp -s /Users/andylyu/Projects/ARGUS/legacy/index.html "$rollback_dir/MODIFIED_FILE"
+INPUT:
+source=/Users/andylyu/Projects/ARGUS/legacy/index.html
+copy=/tmp/argus-overview-rollback/MODIFIED_FILE
+OUTPUT:
+ROLLBACK_RESTORED=/tmp/argus-overview-rollback/MODIFIED_FILE
+ROLLBACK_SHA256=acd213e04972465ead126a9d5a1cd85ff6a5c17db7fd08da78b3ba863aa2aac3
+cmp_exit=0
+EXIT_STATUS: 0
+
+RESTORED_BEHAVIOR_STATUS
+------------------------
+- The rollback copy exactly matches legacy/index.html.
+- MODIFIED_FILE remains intentionally changed (cmp against legacy/index.html exits 1).
+- Root index.html remains unchanged at SHA-256 acd213e04972465ead126a9d5a1cd85ff6a5c17db7fd08da78b3ba863aa2aac3.
+- The Next.js frontend now opens directly on 案件工坊 without an architecture overview entry.
