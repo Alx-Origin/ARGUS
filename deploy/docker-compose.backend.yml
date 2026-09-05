@@ -1,0 +1,20 @@
+services:
+  argus-api:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    container_name: argus-api
+    restart: unless-stopped
+    env_file:
+      - ../backend/.env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 4000
+    ports:
+      # 4100 is the host port reserved for ARGUS+; other tomeet services can keep their own ports.
+      - "127.0.0.1:4100:4000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

@@ -71,3 +71,9 @@ backend/src/        Node.js API 与测试
 legacy/             旧版静态页面快照
 .framework/         迁移验证与回滚工件
 ```
+
+## MVP 与独立服务器
+
+当前 MVP 已实现四个可操作模块：案件工坊、合同猎魔、租赁押金法庭闯关、社区广场。后端新增案件草案、逐条审查、完整原件搜证、动态质证、解释性裁判和脱敏发帖 API。
+
+后端可以部署在你自己的 `api.tomeet.chat` 服务器。详细的 Docker Compose、Nginx、HTTPS 和环境变量步骤见 [`deploy/README.md`](deploy/README.md)。

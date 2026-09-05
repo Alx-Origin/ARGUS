@@ -98,3 +98,67 @@ test('comma-separated CORS origins support Vercel production and preview hosts',
     });
   }
 });
+
+test('GET /api/campaign/demo exposes complete rental evidence sources', async () => {
+  await withServer(async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/campaign/demo`);
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.data.id, 'rental-deposit-001');
+    assert.ok(body.data.scenes.length >= 3);
+    assert.ok(body.data.documents.every((document) => document.content));
+    assert.ok(body.data.evidence.some((evidence) => evidence.sourceRange === '第五条'));
+  });
+});
+
+test('POST /api/campaign/respond changes response based on evidence actually submitted', async () => {
+  await withServer(async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/campaign/respond`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        argument: '入住照片和微信确认都证明墙面划痕在入住前已经存在，维修报价也没有付款凭证。',
+        evidenceIds: ['ev-movein-photo', 'ev-chat', 'ev-repair'],
+        history: [],
+      }),
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.match(body.data.response, /入住照片/);
+    assert.ok(body.data.scoreChange > 10);
+    assert.equal(body.data.status, 'in_progress');
+  });
+});
+
+test('POST /api/campaign/verdict returns the explainable evidence-chain result', async () => {
+  await withServer(async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/campaign/verdict`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ evidenceIds: ['ev-movein-photo', 'ev-chat', 'ev-contract', 'ev-repair'] }),
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.data.status, 'partially_supported');
+    assert.equal(body.data.score, 88);
+    assert.equal(body.data.chain.length, 4);
+    assert.ok(body.data.sources.length >= 1);
+  });
+});
+
+test('POST /api/community/posts requires explicit share content', async () => {
+  await withServer(async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/community/posts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: '缺少正文' }),
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.match(body.error.message, /title 和 body/);
+  });
+});
