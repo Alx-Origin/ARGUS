@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { CatDocument, EvidenceArtwork, artworkFor } from './components/cat-evidence';
 import { artworkForEvidence } from './lib/evidence-art';
 import { createCourtSfx, soundForEffect } from './lib/court-sfx';
-import { battleReducer, canAffordCard, emptyBattle, HAND_SIZE, PLAYER_MAX_HP, PLAYER_MAX_STAMINA, TURN_SECONDS, OPPONENT_REACTION_DELAY_MS, type BattleCard as EvidenceCard, type BattleEffect, type BattleStage } from './lib/court-battle';
+import { battleReducer, canAffordCard, emptyBattle, HAND_SIZE, PLAYER_MAX_HP, PLAYER_MAX_SHIELD, PLAYER_MAX_STAMINA, TURN_SECONDS, OPPONENT_REACTION_DELAY_MS, type BattleCard as EvidenceCard, type BattleEffect, type BattleStage } from './lib/court-battle';
 
 type ServiceState = 'checking' | 'online' | 'offline';
 type Section = 'campaign';
@@ -59,7 +59,8 @@ type CampaignDocument = { id: string; name: string; type: string; content: strin
 type CampaignLevel = { id: string; levelId: number; title: string; desc: string; difficulty: number; goal: string; keyEvidenceCount: number };
 type DemoCase = { id: string; levelId: number; levelTitle: string; title: string; summary: string; type: string; difficulty: number; playerSide: string; opponentSide: string; goal: string; actionPoints?: number; focus: string[]; scenes: CampaignScene[]; documents: CampaignDocument[]; evidence: CampaignEvidence[]; keyEvidenceIds: string[] };
 type DebateResult = { caseId: string; courtTurn?: number; response: string; judge: string; scoreChange: number; turn?: { id: string; speaker: string; argument: string; evidenceIds: string[]; response: string; judge: string; scoreChange: number; createdAt: string } };
-type Verdict = { caseId: string; status: 'partially_supported' | 'insufficient_evidence'; winner: string; score: number; award: string; chain: string[]; reasoning: string; sources: LawSource[]; disclaimer: string };
+type GameResult = 'player_win' | 'opponent_win';
+type Verdict = { caseId: string; gameResult: GameResult; status: GameResult; winner: string; score: number; award: string; chain: string[]; reasoning: string; sources: LawSource[]; disclaimer: string };
 
 type CommunityPost = { id: string; author: string; time: string; title: string; body: string; tags: string[]; likes: number; comments: number };
 
@@ -86,7 +87,7 @@ function evidenceCard(item: CampaignEvidence, key: boolean): EvidenceCard {
     id: `card-${item.id}`, evidenceId: item.id, name: item.title,
     nature: nature.label, key, value,
     credibility: item.credibility,
-    cost, staminaRecovery: 0,
+    cost, staminaRecovery: 0, shieldGain: 0,
     effectText: `造成 ${value} 点伤害 · 消耗 ${cost} 点体力`,
     // Cites its own exhibit so the rebuttal engine can match it against the case's disputes.
     text: `依据「${item.title}」：${item.description}${item.proofPurpose}`,
@@ -327,7 +328,7 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
   const [investigationLog, setInvestigationLog] = useState<string[]>([]);
   const maxEnemyHp = useMemo(() => opponentHealth(demo), [demo]);
   const [battle, dispatchBattle] = useReducer(battleReducer, maxEnemyHp, emptyBattle);
-  const { enemyHp, playerHp, stamina: playerStamina, hand: courtHand, turn, cardsPlayed, result: battleResult, effect: courtEffect } = battle;
+  const { enemyHp, playerHp, playerShield, stamina: playerStamina, hand: courtHand, turn, cardsPlayed, result: battleResult, effect: courtEffect } = battle;
   const [turnTimer, setTurnTimer] = useState(TURN_SECONDS);
   const [score, setScore] = useState(0);
   const [debate, setDebate] = useState<DebateResult[]>([]);
@@ -441,7 +442,7 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
   function playCard(card: EvidenceCard) {
     if (phase !== 'court' || battle.stage !== 'player' || submitting || verdict || battleResult) return;
     const current = courtHand.find((item) => item.id === card.id);
-    if (!current || !canAffordCard(current, playerStamina)) return;
+    if (!current || !canAffordCard(current, playerStamina, playerShield)) return;
     courtSfxRef.current?.unlock();
     setError('');
     dispatchBattle({ type: 'play', cardId: current.id, seed: Math.floor(Math.random() * 4294967296) });
@@ -461,13 +462,13 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
   }
 
   async function requestVerdict() {
-    if (battleResult !== 'player_win' || submitting || verdict) return;
+    if (!battleResult || submitting || verdict) return;
     setSubmitting(true); setError('');
     try {
-      const result = await requestJson<Verdict>(`${apiBaseUrl}/api/campaign/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ caseId: demo.id, evidenceIds: discovered, debate }) });
+      const result = await requestJson<Verdict>(`${apiBaseUrl}/api/campaign/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ caseId: demo.id, evidenceIds: discovered, debate, gameResult: battleResult }) });
       if (result.caseId !== demo.id) throw new Error('裁决与当前案件不一致，请重试');
       setVerdict(result);
-      if (result.status === 'partially_supported') onComplete(result.score);
+      if (result.gameResult === 'player_win') onComplete(result.score);
     }
     catch (e) { setError(e instanceof Error ? e.message : '裁决请求失败'); }
     finally { setSubmitting(false); }
@@ -495,8 +496,19 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
     setInvestigationLog((items) => [`发现证据：${label}`, ...items].slice(0, 5));
   };
   const toggleEvidence = (id: string) => {
+    // A selected card represents a collected exhibit that is going to court.
+    // Clicking it again withdraws the exhibit entirely, so it disappears from
+    // the inventory instead of lingering as an unselected white card.
+    if (selectedEvidence.includes(id)) {
+      const item = demo.evidence.find((evidence) => evidence.id === id);
+      setDiscovered((ids) => ids.filter((itemId) => itemId !== id));
+      setSelectedEvidence((ids) => ids.filter((itemId) => itemId !== id));
+      setInvestigationScore((value) => Math.max(0, value - 5));
+      setInvestigationLog((items) => [`取消证据：${item?.title || '证据'}`, ...items].slice(0, 5));
+      setError('');
+      return;
+    }
     setSelectedEvidence((ids) => {
-      if (ids.includes(id)) return ids.filter((item) => item !== id);
       if (ids.length >= HAND_SIZE) { setError(`上庭最多带 ${HAND_SIZE} 张证据卡，请先取消一张。`); return ids; }
       setError('');
       return [...ids, id];
@@ -520,13 +532,13 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
     <div className="phase-rail"><span className={phase === 'investigate' ? 'active' : 'done'}>1 搜证</span><i>→</i><span className={phase === 'court' ? 'active' : ''}>2 卡牌庭审</span><i>→</i><span className={verdict ? 'active' : ''}>3 裁决</span></div>
     <small className="campaign-focus-line">争议焦点：{demo.focus.join(' · ')}</small>
     {phase === 'investigate' && error && <p className="error-message" role="alert">{error}</p>}
-{phase === 'court' ? <CourtArena demo={demo} onNext={onNext} onInvestigate={returnToInvestigation} hand={courtHand} cardsPlayed={cardsPlayed} battleStage={battle.stage} battleResult={battleResult} playerStamina={playerStamina} enemyHp={enemyHp} maxEnemyHp={maxEnemyHp} playerHp={playerHp} turn={turn} turnTimer={turnTimer} debate={debate} submitting={submitting} verdict={verdict} error={error} onPlayCard={playCard} onRequestVerdict={requestVerdict} courtEffect={courtEffect} /> : <div className="campaign-layout investigation-layout"><aside className="panel evidence-panel"><PanelHeading eyebrow="EVIDENCE HUB" title="现场搜证" badge="自由搜证" /><div className="scene-tabs">{demo.scenes.map((scene) => <button type="button" className={scene.id === activeScene.id ? 'active' : ''} key={scene.id} onClick={() => setSceneId(scene.id)}>{scene.title}</button>)}</div><div className="scene-board"><span className="scene-label">{activeScene.title}</span><p>{activeScene.description}</p><div className="hotspot-grid">{activeScene.hotspots.map((spot) => <button type="button" className={`hotspot ${discovered.includes(spot.evidenceId) ? 'found' : ''}`} key={spot.id} onClick={() => discoverEvidence(spot.evidenceId, spot.title)}><EvidenceArtwork art={artworkFor(spot.id)} /><strong>{spot.title}</strong><small>{discovered.includes(spot.evidenceId) ? '已收集 ✓' : `自由调查 · ${spot.hint}`}</small></button>)}</div></div><h3 className="subheading">搜证日志</h3><div className="investigation-log">{investigationLog.length ? investigationLog.map((item, index) => <span key={`${item}-${index}`}>{item}</span>) : <span>点击现场热点，寻找能互相印证的原件。</span>}</div></aside><div className="panel source-panel"><PanelHeading eyebrow="SOURCE READER" title={activeDocument.name} badge="具体租房材料" /><div className="source-documents"><h3 className="subheading">原始文件 · 与当前材料同组</h3><div className="document-list">{demo.documents.map((doc) => <button type="button" className={`document-button ${doc.id === documentId ? 'active' : ''}`} key={doc.id} onClick={() => setDocumentId(documentId === doc.id ? '' : doc.id)}><EvidenceArtwork art={artworkFor(doc.id, doc.type)} /><strong>{doc.name}<small>打开完整原件 →</small></strong></button>)}</div></div><div className="source-reader"><CatDocument doc={activeDocument} playerSide={demo.playerSide} discovered={discovered} onDiscover={discoverEvidence} /></div></div><aside className="panel evidence-cards-panel"><PanelHeading eyebrow="CASEBOARD" title="证据卡组" badge={`已选 ${selectedEvidence.length}/${HAND_SIZE}`} /><div className="evidence-inventory">{discovered.length ? demo.evidence.filter((item) => discovered.includes(item.id)).map((item) => { const card = evidenceCard(item, demo.keyEvidenceIds.includes(item.id)); const picked = selectedEvidence.includes(item.id); return <button type="button" className={`evidence-card ${picked ? 'selected' : ''}`} key={item.id} onClick={() => toggleEvidence(item.id)} aria-pressed={picked}><div><strong>{item.title}</strong><span className="tag">体力 {card.cost} · 伤害 {card.value}</span></div><p>{item.description}</p><small>{card.nature} · 可信度 {item.credibility}/10 · {card.key ? '关键证据' : '补充证据'} · {picked ? '✓ 已带上庭 · 点击取消' : '点击带上庭'}</small></button>; }) : <EmptyState text="点击左侧现场热点，或在材料中点击线索，收集到的证据会出现在这里。" />}</div><div className="court-entry"><p className="chain-tip">选择最多 {HAND_SIZE} 张起手证据。庭审始终保留 4 张手牌，打出后随机补牌；已搜集证据和恢复牌组成循环牌库。体力足够才能出牌，恢复靠卡牌，不随回合或超时自动增加。</p><button type="button" className="button primary enter-court" onClick={enterCourt} disabled={!selectedEvidence.length}>带着 {selectedEvidence.length} 张证据卡进入法庭 →</button></div></aside></div>}
+{phase === 'court' ? <CourtArena demo={demo} onNext={onNext} onInvestigate={returnToInvestigation} hand={courtHand} cardsPlayed={cardsPlayed} battleStage={battle.stage} battleResult={battleResult} playerStamina={playerStamina} playerShield={playerShield} enemyHp={enemyHp} maxEnemyHp={maxEnemyHp} playerHp={playerHp} turn={turn} turnTimer={turnTimer} debate={debate} submitting={submitting} verdict={verdict} error={error} onPlayCard={playCard} onRequestVerdict={requestVerdict} courtEffect={courtEffect} /> : <div className="campaign-layout investigation-layout"><aside className="panel evidence-panel"><PanelHeading eyebrow="EVIDENCE HUB" title="现场搜证" badge="自由搜证" /><div className="scene-tabs">{demo.scenes.map((scene) => <button type="button" className={scene.id === activeScene.id ? 'active' : ''} key={scene.id} onClick={() => setSceneId(scene.id)}>{scene.title}</button>)}</div><div className="scene-board"><span className="scene-label">{activeScene.title}</span><p>{activeScene.description}</p><div className="hotspot-grid">{activeScene.hotspots.map((spot) => <button type="button" className={`hotspot ${discovered.includes(spot.evidenceId) ? 'found' : ''}`} key={spot.id} onClick={() => discoverEvidence(spot.evidenceId, spot.title)}><EvidenceArtwork art={artworkFor(spot.id)} /><strong>{spot.title}</strong><small>{discovered.includes(spot.evidenceId) ? '已收集 ✓' : `自由调查 · ${spot.hint}`}</small></button>)}</div></div><h3 className="subheading">搜证日志</h3><div className="investigation-log">{investigationLog.length ? investigationLog.map((item, index) => <span key={`${item}-${index}`}>{item}</span>) : <span>点击现场热点，寻找能互相印证的原件。</span>}</div></aside><div className="panel source-panel"><PanelHeading eyebrow="SOURCE READER" title={activeDocument.name} badge="具体租房材料" /><div className="source-documents"><h3 className="subheading">原始文件 · 与当前材料同组</h3><div className="document-list">{demo.documents.map((doc) => <button type="button" className={`document-button ${doc.id === documentId ? 'active' : ''}`} key={doc.id} onClick={() => setDocumentId(documentId === doc.id ? '' : doc.id)}><EvidenceArtwork art={artworkFor(doc.id, doc.type)} /><strong>{doc.name}<small>打开完整原件 →</small></strong></button>)}</div></div><div className="source-reader"><CatDocument doc={activeDocument} playerSide={demo.playerSide} discovered={discovered} onDiscover={discoverEvidence} /></div></div><aside className="panel evidence-cards-panel"><PanelHeading eyebrow="CASEBOARD" title="证据卡组" badge={`已选 ${selectedEvidence.length}/${HAND_SIZE}`} /><div className="evidence-inventory">{discovered.length ? demo.evidence.filter((item) => discovered.includes(item.id)).map((item) => { const card = evidenceCard(item, demo.keyEvidenceIds.includes(item.id)); const picked = selectedEvidence.includes(item.id); return <button type="button" className={`evidence-card ${picked ? 'selected' : ''}`} key={item.id} onClick={() => toggleEvidence(item.id)} aria-pressed={picked}><div><strong>{item.title}</strong><span className="tag">体力 {card.cost} · 伤害 {card.value}</span></div><p>{item.description}</p><small>{card.nature} · 可信度 {item.credibility}/10 · {card.key ? '关键证据' : '补充证据'} · {picked ? '✓ 已带上庭 · 点击取消' : '点击带上庭'}</small></button>; }) : <EmptyState text="点击左侧现场热点，或在材料中点击线索，收集到的证据会出现在这里。" />}</div><div className="court-entry"><p className="chain-tip">选择最多 {HAND_SIZE} 张起手证据。庭审始终保留 4 张手牌，打出后随机补牌；已搜集证据和恢复牌组成循环牌库。体力足够才能出牌，恢复靠卡牌，不随回合或超时自动增加。</p><button type="button" className="button primary enter-court" onClick={enterCourt} disabled={!selectedEvidence.length}>带着 {selectedEvidence.length} 张证据卡进入法庭 →</button></div></aside></div>}
   </section>;
 }
 
-function CourtArena({ demo, onNext, onInvestigate, hand, cardsPlayed, battleStage, battleResult, playerStamina, enemyHp, maxEnemyHp, playerHp, turn, turnTimer, debate, submitting, verdict, error, onPlayCard, onRequestVerdict, courtEffect }: {
+function CourtArena({ demo, onNext, onInvestigate, hand, cardsPlayed, playerShield, battleStage, battleResult, playerStamina, enemyHp, maxEnemyHp, playerHp, turn, turnTimer, debate, submitting, verdict, error, onPlayCard, onRequestVerdict, courtEffect }: {
   demo: DemoCase; onNext?: () => void; onInvestigate: () => void;
-  hand: EvidenceCard[]; cardsPlayed: number; battleStage: BattleStage;
+  hand: EvidenceCard[]; cardsPlayed: number; playerShield: number; battleStage: BattleStage;
   battleResult: 'player_win' | 'opponent_win' | null; playerStamina: number;
   enemyHp: number; maxEnemyHp: number; playerHp: number; turn: number; turnTimer: number;
   debate: DebateResult[]; submitting: boolean; verdict: Verdict | null; error: string;
@@ -538,7 +550,7 @@ function CourtArena({ demo, onNext, onInvestigate, hand, cardsPlayed, battleStag
     <div className="court-topbar">
       <div className="court-meter opponent-meter"><span>对方血量</span><strong>{enemyHp}/{maxEnemyHp}</strong><i><b style={{ width: `${maxEnemyHp ? enemyHp / maxEnemyHp * 100 : 0}%` }} /></i></div>
       <div className="court-round" aria-live="polite"><small>庭审回合 {turn}</small><strong>{battleStage === 'player' && !submitting ? turnTimer : '—'}<em>秒</em></strong><span>{turnLabel}</span></div>
-      <div className="court-meter player-meter"><span>我方血量</span><strong>{playerHp}/{PLAYER_MAX_HP}</strong><i><b style={{ width: `${playerHp / PLAYER_MAX_HP * 100}%` }} /></i><small>体力 {playerStamina}/{PLAYER_MAX_STAMINA} · 使用恢复牌补充</small></div>
+      <div className="court-meter player-meter"><span>我方血量</span><strong>{playerHp}/{PLAYER_MAX_HP}</strong><i><b style={{ width: `${playerHp / PLAYER_MAX_HP * 100}%` }} /></i><small>体力 {playerStamina}/{PLAYER_MAX_STAMINA} · 护盾 {playerShield}/{PLAYER_MAX_SHIELD}</small><div className="court-shield-track" aria-label={`护盾 ${playerShield}/${PLAYER_MAX_SHIELD}`}><b style={{ width: `${playerShield / PLAYER_MAX_SHIELD * 100}%` }} /></div></div>
     </div>
     <div className="court-stage">
       <div className="court-side court-side-opponent"><div className="court-nameplate"><span>对方</span><strong>{demo.opponentSide}</strong></div><div className={`court-cat court-cat-opponent ${courtEffect?.side === 'opponent' ? 'is-raising' : ''}`}><img src="/assets/court/opponent-cat.webp" alt="对方猫咪" /></div>{courtEffect?.side === 'opponent' && <div className="objection-bubble">{courtEffect.label}</div>}</div>
@@ -549,33 +561,34 @@ function CourtArena({ demo, onNext, onInvestigate, hand, cardsPlayed, battleStag
       <div className="hand-heading"><span>手牌 {hand.length}/{HAND_SIZE} · 出牌后随机补一张</span><strong>已出 {cardsPlayed} 张 · 体力 {playerStamina}/{PLAYER_MAX_STAMINA}</strong></div>
       <div className="court-hand">{hand.map((card) => {
         const recovery = card.staminaRecovery > 0;
+        const defensive = !!card.shieldGain;
         const exhausted = playerStamina < card.cost;
-        const full = recovery && playerStamina >= PLAYER_MAX_STAMINA;
+        const full = (recovery && playerStamina >= PLAYER_MAX_STAMINA) || (defensive && playerShield >= PLAYER_MAX_SHIELD);
         const unavailable = battleStage !== 'player' || submitting || !!verdict || !!battleResult;
-        const hint = full ? '体力已满 · 暂不可用' : exhausted ? `体力不足 · 还需 ${card.cost - playerStamina} 点` : unavailable ? turnLabel : recovery ? '使用后恢复体力 · 对方仍会反击' : '点击出牌 · 扣除体力并攻击';
-        return <button type="button" className={`court-card ${recovery ? 'court-card-recovery' : card.key ? 'court-card-key' : 'court-card-support'} ${exhausted || full ? 'is-exhausted' : ''}`}
-          disabled={unavailable || !canAffordCard(card, playerStamina)} key={card.id} onClick={() => onPlayCard(card)}
-          data-card-kind={recovery ? 'recovery' : 'evidence'} data-cost={card.cost} data-recovery={card.staminaRecovery} data-damage={card.value}
+        const hint = full ? (defensive ? '护盾已满 · 暂不可用' : '体力已满 · 暂不可用') : exhausted ? `体力不足 · 还需 ${card.cost - playerStamina} 点` : unavailable ? turnLabel : defensive ? '使用后获得护盾 · 对方仍会反击' : recovery ? '使用后恢复体力 · 对方仍会反击' : '点击出牌 · 扣除体力并攻击';
+        return <button type="button" className={`court-card ${recovery ? 'court-card-recovery' : defensive ? 'court-card-defense' : card.key ? 'court-card-key' : 'court-card-support'} ${exhausted || full ? 'is-exhausted' : ''}`}
+          disabled={unavailable || !canAffordCard(card, playerStamina, playerShield)} key={card.id} onClick={() => onPlayCard(card)}
+          data-card-kind={recovery ? 'recovery' : defensive ? 'defense' : 'evidence'} data-cost={card.cost} data-recovery={card.staminaRecovery} data-shield={card.shieldGain || 0} data-damage={card.value}
           title={hint}>
-          <div className="court-card-heading"><span>{recovery ? '恢复牌' : '证据牌'}</span><span className="court-card-cost">消耗 {card.cost} 体力</span></div>
+          <div className="court-card-heading"><span>{recovery ? '恢复牌' : defensive ? '防御牌' : '证据牌'}</span><span className="court-card-cost">消耗 {card.cost} 体力</span></div>
           {card.evidenceId ? <EvidenceArtwork art={artworkForEvidence(demo, card.evidenceId)} className="court-evidence-art" /> : <img src="/assets/court/card-art-05.webp" alt="" />}
           <strong>{card.name}</strong>
-          <small>{recovery ? '战术行动 · 不作为裁决证据' : `${card.nature} · 可信度 ${card.credibility}/10 · ${card.key ? '关键证据' : '补充证据'}`}</small>
+          <small>{recovery || defensive ? '战术行动 · 不作为裁决证据' : `${card.nature} · 可信度 ${card.credibility}/10 · ${card.key ? '关键证据' : '补充证据'}`}</small>
           <small className="court-card-effect">效果：{card.effectText}</small>
           <small className="court-card-hint">{hint}</small>
         </button>;
       })}</div>
-      <p className="court-hand-rule">恢复靠卡牌，不自动回体力；满体力不可使用恢复牌。无牌可出时，补牌优先提供可用牌。</p>
+      <p className="court-hand-rule">恢复和护盾都靠战术牌；护盾会优先吸收反击伤害。无牌可出时，补牌优先提供可用牌。</p>
     </div>
     <div className="court-footer">
       {battleResult && !verdict && <div className={`battle-result ${battleResult === 'player_win' ? 'is-win' : 'is-loss'}`} role="status">
         <strong>{battleResult === 'player_win' ? '我方胜利！' : '对方胜利'}</strong>
-        <p>{battleResult === 'player_win' ? '对方血量先归零，证据链压制成功。现在可以请求法官裁决。' : '我方血量先归零，本轮庭审结束。调整出牌与体力分配后再来挑战。'}</p>
-        {battleResult === 'player_win' ? <button type="button" className="button primary" onClick={onRequestVerdict} disabled={submitting}>{submitting ? '正在等待庭审反馈…' : '请求法官裁决'}</button> : <button type="button" className="button primary" onClick={onInvestigate}>返回搜证</button>}
+        <p>{battleResult === 'player_win' ? '对方血量先归零，证据链压制成功。现在可以请求法官裁决。' : '我方血量先归零。本局最终裁决将按游戏结果作出，证据链仅用于展示本局过程。'}</p>
+        <button type="button" className="button primary" onClick={onRequestVerdict} disabled={submitting}>{submitting ? '正在等待庭审反馈…' : '请求法官裁决'}</button>
       </div>}
       {error && <p className="error-message court-error" role="alert">{error}</p>}
       {!battleResult && <div className="court-actions"><small>对方血量归零后可请求裁决</small><button type="button" className="button verdict-button" disabled>请求法官裁决</button></div>}
-      {verdict && <div className="verdict-card"><div className="verdict-header"><span>{verdict.winner}</span><strong>{verdict.score} 分</strong></div><p>{verdict.award}</p><p>{verdict.reasoning}</p><h4>证据链</h4><ol>{verdict.chain.map((item) => <li key={item}>{item}</li>)}</ol><h4>法律检索线索</h4><ul>{verdict.sources.map((source) => <li key={source.title}><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a></li>)}</ul><p className="disclaimer">{verdict.disclaimer}</p>{verdict.status === 'insufficient_evidence' ? <button type="button" className="button secondary" onClick={onInvestigate}>返回搜证补充材料</button> : onNext && <button type="button" className="button primary" onClick={onNext}>下一关 →</button>}</div>}
+      {verdict && <div className="verdict-card"><div className="verdict-header"><span>{verdict.winner}</span><strong>{verdict.score} 分</strong></div><p>{verdict.award}</p><p>{verdict.reasoning}</p><h4>证据链</h4><ol>{verdict.chain.map((item) => <li key={item}>{item}</li>)}</ol><h4>法律检索线索</h4><ul>{verdict.sources.map((source) => <li key={source.title}><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a></li>)}</ul><p className="disclaimer">{verdict.disclaimer}</p>{verdict.gameResult === 'opponent_win' ? <button type="button" className="button secondary" onClick={onInvestigate}>返回搜证重试</button> : onNext && <button type="button" className="button primary" onClick={onNext}>下一关 →</button>}</div>}
     </div>
   </div>;
 }

@@ -69,21 +69,31 @@ function respondToDebate(input) {
   };
 }
 
+function resolveGameResult(input) {
+  const gameResult = input.gameResult ?? input.result ?? input.outcome;
+  if (gameResult !== 'player_win' && gameResult !== 'opponent_win') {
+    const error = new Error('gameResult 必须是 player_win 或 opponent_win');
+    error.statusCode = 400;
+    throw error;
+  }
+  return gameResult;
+}
+
 function buildVerdict(input) {
   const caseData = resolveCase(input.caseId ?? input.levelId);
+  const gameResult = resolveGameResult(input);
   const evidence = selectEvidence(caseData, input);
-  const evidenceIds = evidence.map((item) => item.id);
-  const missing = caseData.evidence.filter((item) => caseData.keyEvidenceIds.includes(item.id) && !evidenceIds.includes(item.id));
-  const complete = missing.length === 0;
   const chain = evidence.filter((item) => caseData.keyEvidenceIds.includes(item.id)).map((item) => `${item.title}：${item.proofPurpose}`);
+  const playerWon = gameResult === 'player_win';
+  const score = playerWon ? 88 : 0;
   return {
-    caseId: caseData.id, levelId: caseData.levelId,
-    status: complete ? 'partially_supported' : 'insufficient_evidence',
-    winner: complete ? `${caseData.playerSide}（请求获支持或部分支持）` : '待裁决 · 关键证据不足',
-    score: complete ? 88 : Math.min(62, chain.length * 14),
-    award: complete ? caseData.judgment.award : `请补充本关关键材料：${missing.map((item) => item.title).join('、')}。`,
+    caseId: caseData.id, levelId: caseData.levelId, gameResult,
+    status: gameResult,
+    winner: playerWon ? `${caseData.playerSide}（本局胜诉）` : `${caseData.opponentSide}（本局胜诉）`,
+    score,
+    award: playerWon ? caseData.judgment.award : `训练裁决：本局游戏结果判定${caseData.opponentSide}胜诉，${caseData.playerSide}的请求不获支持。`,
     chain: chain.length ? chain : ['尚无可核验的本关关键证据'],
-    reasoning: complete ? caseData.judgment.reasoning : `现有材料尚不能完整回应：${caseData.focus.join('；')}。`,
+    reasoning: `${playerWon ? caseData.judgment.reasoning : '本局游戏结果显示对方先取得胜利。'}最终裁决依据本局游戏结果，而不是证据是否齐全；证据链仅用于展示本局的举证过程。`,
     sources: caseData.judgment.sources,
     disclaimer: '虚构案件的规则化训练反馈，不是真实法院或仲裁机构裁决，不构成法律意见。',
   };

@@ -21,7 +21,8 @@
 - `GET /api/campaign/levels`：10 关目录。
 - `GET /api/campaign/cases/:id`：按案件 ID 或关卡数字载入案件，不含预设裁决。
 - `GET /api/campaign/demo`：兼容原来的第 1 关入口。
-- `POST /api/campaign/respond`、`POST /api/campaign/verdict`：提交当前 `caseId` 和 `evidenceIds`。
+- `POST /api/campaign/respond`：提交当前 `caseId`、论点和 `evidenceIds`。
+- `POST /api/campaign/verdict`：提交当前 `caseId`、`evidenceIds` 及必填的 `gameResult`（`player_win` 或 `opponent_win`）。最终裁决的胜负、得分和支持结论由游戏结果决定；证据链只用于解释本局过程，不再决定是否胜诉。
 
 兼容旧客户端省略案件编号时使用第 1 关；显式未知编号返回 404。
 其他案件、虚构或重复证据不能计入当前关卡的得分与关键证据链。

@@ -137,12 +137,13 @@ test('POST /api/campaign/verdict returns the explainable evidence-chain result',
     const response = await fetch(`${baseUrl}/api/campaign/verdict`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ evidenceIds: ['ev-movein-photo', 'ev-chat', 'ev-contract', 'ev-repair'] }),
+      body: JSON.stringify({ evidenceIds: ['ev-movein-photo', 'ev-chat', 'ev-contract', 'ev-repair'], gameResult: 'player_win' }),
     });
     const body = await response.json();
 
     assert.equal(response.status, 200);
-    assert.equal(body.data.status, 'partially_supported');
+    assert.equal(body.data.status, 'player_win');
+    assert.equal(body.data.gameResult, 'player_win');
     assert.equal(body.data.score, 88);
     assert.equal(body.data.chain.length, 4);
     assert.ok(body.data.sources.length >= 1);
@@ -202,11 +203,11 @@ test('all ten historical levels have distinct, complete and reachable cases', as
   });
 });
 
-test('each level completes its own debate and verdict, and missing keys remain insufficient', async () => {
+test('each level completes its own debate and verdict, and verdict follows the game result', async () => {
   await withServer(async (baseUrl) => {
     for (let levelId = 1; levelId <= 10; levelId += 1) {
       const { data: caseData } = await (await fetch(`${baseUrl}/api/campaign/cases/${levelId}`)).json();
-      const payload = { caseId: caseData.id, evidenceIds: caseData.keyEvidenceIds };
+      const payload = { caseId: caseData.id, evidenceIds: caseData.keyEvidenceIds, gameResult: 'player_win' };
       for (const card of caseData.cards) {
         const { response, body } = await postCampaign(baseUrl, 'respond', { ...payload, argument: card.text });
         assert.equal(response.status, 200);
@@ -219,15 +220,19 @@ test('each level completes its own debate and verdict, and missing keys remain i
       const { response, body } = await postCampaign(baseUrl, 'verdict', payload);
       assert.equal(response.status, 200);
       assert.equal(body.data.caseId, caseData.id);
-      assert.equal(body.data.status, 'partially_supported');
+      assert.equal(body.data.status, 'player_win');
+      assert.equal(body.data.gameResult, 'player_win');
       assert.ok(body.data.winner.includes(caseData.playerSide));
       assert.equal(body.data.chain.length, caseData.keyEvidenceIds.length);
       assert.ok(body.data.award && body.data.reasoning && body.data.sources.length);
       if (levelId > 1) assert.doesNotMatch(JSON.stringify(body.data), /押金|墙面|房东|租客/);
       const { body: partial } = await postCampaign(baseUrl, 'verdict', { ...payload, evidenceIds: caseData.keyEvidenceIds.slice(1) });
-      assert.equal(partial.data.status, 'insufficient_evidence');
-      assert.ok(partial.data.score < body.data.score);
-      assert.ok(partial.data.award.includes(caseData.evidence.find((item) => item.id === caseData.keyEvidenceIds[0]).title));
+      assert.equal(partial.data.status, 'player_win');
+      assert.equal(partial.data.gameResult, 'player_win');
+      assert.equal(partial.data.score, body.data.score);
+      assert.equal(partial.data.winner, body.data.winner);
+      assert.equal(partial.data.award, body.data.award);
+      assert.ok(partial.data.chain.length < body.data.chain.length);
     }
   });
 });
@@ -249,18 +254,40 @@ test('foreign, fabricated and duplicate evidence cannot complete or inflate anot
   await withServer(async (baseUrl) => {
     const { data: caseData } = await (await fetch(`${baseUrl}/api/campaign/cases/2`)).json();
     const foreignIds = ['ev-movein-photo', 'ev-chat', 'ev-contract', 'ev-repair', 'made-up'];
-    const input = { caseId: caseData.id, argument: caseData.cards[0].text, evidenceIds: foreignIds };
+    const input = { caseId: caseData.id, argument: caseData.cards[0].text, evidenceIds: foreignIds, gameResult: 'opponent_win' };
     const { body: debate } = await postCampaign(baseUrl, 'respond', input);
     assert.deepEqual(debate.data.turn.evidenceIds, []);
     assert.ok(debate.data.scoreChange < 0);
     const { body: verdict } = await postCampaign(baseUrl, 'verdict', input);
-    assert.equal(verdict.data.status, 'insufficient_evidence');
+    assert.equal(verdict.data.status, 'opponent_win');
     assert.equal(verdict.data.score, 0);
+    assert.equal(verdict.data.gameResult, 'opponent_win');
     const oneKey = caseData.keyEvidenceIds.slice(0, 1);
     const { body: single } = await postCampaign(baseUrl, 'respond', { ...input, evidenceIds: oneKey });
     const { body: duplicates } = await postCampaign(baseUrl, 'respond', { ...input, evidenceIds: [...oneKey, ...oneKey, ...foreignIds] });
     assert.equal(single.data.scoreChange, duplicates.data.scoreChange);
     assert.deepEqual(duplicates.data.turn.evidenceIds, oneKey);
+  });
+});
+
+test('verdict requires an explicit game result and never infers the outcome from evidence', async () => {
+  await withServer(async (baseUrl) => {
+    const { data: caseData } = await (await fetch(`${baseUrl}/api/campaign/cases/1`)).json();
+    const completeEvidence = caseData.keyEvidenceIds;
+    const missingEvidence = completeEvidence.slice(0, 1);
+
+    const missingResult = await postCampaign(baseUrl, 'verdict', { caseId: caseData.id, evidenceIds: completeEvidence });
+    assert.equal(missingResult.response.status, 400);
+
+    const playerWon = await postCampaign(baseUrl, 'verdict', { caseId: caseData.id, evidenceIds: missingEvidence, gameResult: 'player_win' });
+    const opponentWon = await postCampaign(baseUrl, 'verdict', { caseId: caseData.id, evidenceIds: completeEvidence, gameResult: 'opponent_win' });
+    assert.equal(playerWon.body.data.gameResult, 'player_win');
+    assert.equal(playerWon.body.data.status, 'player_win');
+    assert.equal(playerWon.body.data.winner.includes(caseData.playerSide), true);
+    assert.equal(opponentWon.body.data.gameResult, 'opponent_win');
+    assert.equal(opponentWon.body.data.status, 'opponent_win');
+    assert.equal(opponentWon.body.data.winner.includes(caseData.opponentSide), true);
+    assert.equal(opponentWon.body.data.chain.length, completeEvidence.length);
   });
 });
 

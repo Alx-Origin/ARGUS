@@ -1,0 +1,13 @@
+[0:v]fps=30,scale=1600:1080:force_original_aspect_ratio=decrease,setsar=1,pad=1920:1080:160:0:color=0x11151b,drawbox=x=0:y=0:w=1920:h=1080:color=0x11151b@0.18:t=fill,
+drawtext=fontfile='/System/Library/Fonts/PingFang.ttc':text='ARGUS+':fontsize=92:fontcolor=0xf6d34a:borderw=3:bordercolor=0x11151b:x=(w-text_w)/2:y=370:enable='between(t,0,4)',
+drawtext=fontfile='/System/Library/Fonts/PingFang.ttc':text='法庭闯关':fontsize=58:fontcolor=white:borderw=2:bordercolor=0x11151b:x=(w-text_w)/2:y=485:enable='between(t,0,4)',
+drawtext=fontfile='/System/Library/Fonts/PingFang.ttc':text='把证据推理，变成一场可玩的挑战':fontsize=30:fontcolor=0xf4f1e8:box=1:boxcolor=0x11151b@0.60:boxborderw=18:x=(w-text_w)/2:y=590:enable='between(t,0,4)',
+drawtext=fontfile='/System/Library/Fonts/PingFang.ttc':text='01 选择案件  ·  进入故事':fontsize=34:fontcolor=0xf6d34a:box=1:boxcolor=0x11151b@0.65:boxborderw=14:x=90:y=75:enable='between(t,4,17)',
+drawtext=fontfile='/System/Library/Fonts/PingFang.ttc':text='02 证据检索  ·  线索可视化':fontsize=34:fontcolor=0xf6d34a:box=1:boxcolor=0x11151b@0.65:boxborderw=14:x=90:y=75:enable='between(t,17,32)',
+drawtext=fontfile='/System/Library/Fonts/PingFang.ttc':text='03 法庭辩论  ·  实时推理':fontsize=34:fontcolor=0xf6d34a:box=1:boxcolor=0x11151b@0.65:boxborderw=14:x=90:y=75:enable='between(t,32,53)',
+drawtext=fontfile='/System/Library/Fonts/PingFang.ttc':text='04 结案复盘  ·  看见你的判断':fontsize=34:fontcolor=0xf6d34a:box=1:boxcolor=0x11151b@0.65:boxborderw=14:x=90:y=75:enable='between(t,53,62)',
+drawtext=fontfile='/System/Library/Fonts/PingFang.ttc':text='沉浸式案例｜证据链分析｜互动式学习':fontsize=26:fontcolor=0xf4f1e8:box=1:boxcolor=0x11151b@0.72:boxborderw=12:x=(w-text_w)/2:y=h-90:enable='between(t,4,62)',
+drawtext=fontfile='/System/Library/Fonts/PingFang.ttc':text='ARGUS+  法律思维，从这里开始':fontsize=46:fontcolor=white:borderw=2:bordercolor=0x11151b:x=(w-text_w)/2:y=430:enable='between(t,62,65.2)',
+drawtext=fontfile='/System/Library/Fonts/PingFang.ttc':text='现在，开始你的第一场闯关。':fontsize=30:fontcolor=0xf6d34a:x=(w-text_w)/2:y=520:enable='between(t,62,65.2)',
+fade=t=in:st=0:d=0.6,fade=t=out:st=64.1:d=1.0[v];
+[0:a]afade=t=in:st=0:d=0.8,afade=t=out:st=64.0:d=1.1,volume=0.95[a]

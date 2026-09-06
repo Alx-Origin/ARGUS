@@ -672,7 +672,7 @@ textarea {
 .court-arena { display:grid; gap:1rem; }
 .court-topbar { display:grid; grid-template-columns:1fr 150px 1fr; gap:.8rem; align-items:center; padding:.8rem 1rem; border:3px solid var(--ink); background:#29272d; color:#fffdf7; box-shadow:6px 6px 0 rgb(23 23 23 / 15%); }
 .court-meter { display:grid; grid-template-columns:1fr auto; gap:.25rem .6rem; align-items:center; font: .72rem "SFMono-Regular",Consolas,monospace; }
-.court-meter strong { color:var(--yellow); font-size:1rem; }.court-meter i { grid-column:1 / -1; display:block; height:11px; border:2px solid #fffdf7; background:#55535b; }.court-meter i b { display:block; height:100%; background:var(--red); transition:width .35s ease; }.player-meter i b { background:var(--blue); }.player-meter { text-align:right; }.player-meter small { grid-column:1 / -1; color:#d9d1c2; font-size:.65rem; }
+.court-meter strong { color:var(--yellow); font-size:1rem; }.court-meter i { grid-column:1 / -1; display:block; height:11px; border:2px solid #fffdf7; background:#55535b; }.court-meter i b { display:block; height:100%; background:var(--red); transition:width .35s ease; }.player-meter i b { background:var(--blue); }.player-meter { text-align:right; }.player-meter small { grid-column:1 / -1; color:#d9d1c2; font-size:.65rem; }.court-shield-track { grid-column:1 / -1; height:6px; border:1px solid #fffdf7; background:#55535b; }.court-shield-track b { display:block; height:100%; background:#7de0e6; transition:width .35s ease; }
 .court-round { display:grid; place-items:center; min-height:80px; border:2px solid var(--yellow); background:#3b3941; text-align:center; }.court-round small,.court-round span { font: .6rem "SFMono-Regular",Consolas,monospace; opacity:.78; }.court-round strong { color:var(--yellow); font-size:2rem; line-height:1; }.court-round em { margin-left:.2rem; font-style:normal; font-size:.65rem; }
 /* Courtroom interior, assembled from gradients so no extra image assets are needed:
    a warm light pooling over the bench, oak wall above a chair rail, and a plank floor.
@@ -1137,6 +1137,10 @@ body:has(.campaign-run-shell) .campaign-run-shell {
 .court-card-recovery .court-card-effect { color: #295e36; }
 .court-card-recovery .court-card-cost { background: #356b43; }
 .court-card-recovery .court-card-heading > span:first-child { color: #295e36; }
+.court-card-defense { background: #dff4f5; }
+.court-card-defense .court-card-effect { color: #17616a; }
+.court-card-defense .court-card-cost { background: #287b86; }
+.court-card-defense .court-card-heading > span:first-child { color: #17616a; }
 .campaign-run-shell .court-card .court-card-effect { font-size: .68rem; line-height: 1.4; -webkit-line-clamp: unset; overflow: visible; }
 .campaign-run-shell .court-card .court-card-hint { color: #4e4941; font-size: .58rem; }
 .court-hand-rule { margin: .55rem 0 0; color: #d4d0c4; font-size: .62rem; line-height: 1.5; }

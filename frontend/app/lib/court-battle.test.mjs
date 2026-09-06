@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import test from 'node:test';
-import { battleReducer, canAffordCard, emptyBattle, HAND_SIZE, PLAYER_MAX_STAMINA } from './court-battle.ts';
+import { battleReducer, canAffordCard, emptyBattle, HAND_SIZE, PLAYER_MAX_SHIELD, PLAYER_MAX_STAMINA } from './court-battle.ts';
 
 const exhibit = (index, cost = 4, damage = 7) => ({
   id: `evidence-${index}`, evidenceId: `e${index}`, name: `证据 ${index}`, nature: '书证',
@@ -23,6 +23,47 @@ test('starts full, keeps selected exhibits, adds recovery to the deck', () => {
   assert.equal(state.hand.length, 4);
   assert.deepEqual(state.hand.map((c) => c.evidenceId), ['e1', 'e2', 'e3', 'e4']);
   assert.ok(state.drawPile.some((c) => c.cost === 0 && c.staminaRecovery > 0));
+  assert.ok(state.drawPile.some((c) => c.shieldGain > 0));
+  assert.equal(state.playerShield, 0);
+});
+
+test('defense cards spend stamina and add capped shield without fabricating evidence', () => {
+  const initial = start();
+  const card = initial.drawPile.find((c) => c.shieldGain === 5);
+  assert.ok(card);
+  const state = { ...initial, hand: [card, ...initial.hand.slice(1)], stamina: 1 };
+  const after = play(state, card);
+  assert.equal(after.stamina, 0);
+  assert.equal(after.playerShield, 5);
+  assert.equal(after.enemyHp, state.enemyHp);
+  assert.equal(after.stage, 'player-action');
+  assert.equal(after.effect.kind, 'shield');
+  assert.equal(after.effect.label, '护盾 +5');
+  assert.equal(after.discardPile.at(-1).evidenceId, null);
+  assert.equal(canAffordCard(card, 1, PLAYER_MAX_SHIELD), false);
+});
+
+test('shield absorbs counterattack damage before health, including timeout damage', () => {
+  const initial = start();
+  const card = initial.drawPile.find((c) => c.shieldGain === 8);
+  const state = { ...initial, hand: [card, ...initial.hand.slice(1)], stamina: 2 };
+  const shielded = play(state, card);
+  const blocked = battleReducer(shielded, { type: 'opponent', levelId: 1 });
+  assert.equal(blocked.playerShield, 4);
+  assert.equal(blocked.playerHp, 20);
+  const nextTurn = battleReducer(blocked, { type: 'next' });
+  const timeout = battleReducer(nextTurn, { type: 'opponent', levelId: 1, timeout: true });
+  assert.equal(timeout.playerShield, 2);
+  assert.equal(timeout.playerHp, 20);
+  assert.match(timeout.effect.label, /护盾吸收 2/);
+});
+
+test('remaining shield persists across turns and only fully breaks when damage exceeds it', () => {
+  const state = { ...start(), playerShield: 2, playerHp: 20 };
+  const hit = battleReducer({ ...state, stage: 'player-action' }, { type: 'opponent', levelId: 1 });
+  assert.equal(hit.playerShield, 0);
+  assert.equal(hit.playerHp, 18);
+  assert.match(hit.effect.label, /护盾吸收 2 · 受伤 -2/);
 });
 
 test('even one collected exhibit fills all four slots without inventing evidence', () => {
