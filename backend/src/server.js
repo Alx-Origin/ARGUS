@@ -5,6 +5,7 @@ const { getCampaignLevels, getCampaignCase, demoCase, respondToDebate, buildVerd
 
 const DEFAULT_PORT = 4000;
 const MAX_BODY_BYTES = 3 * 1024 * 1024;
+const API_VERSION = '0.2.1';
 
 const LAW_SOURCES = {
   civil509: {
@@ -172,8 +173,8 @@ function createRequestHandler(options = {}) {
     const corsOrigin = resolveCorsOrigin(req.headers.origin, configuredCorsOrigin);
     if (req.method === 'OPTIONS') { json(res, 204, {}, corsOrigin); return; }
     try {
-      if (req.method === 'GET' && url.pathname === '/health') { json(res, 200, { status: 'ok', service: 'argus-backend', runtime: 'node', version: '0.2.0', timestamp: new Date().toISOString() }, corsOrigin); return; }
-      if (req.method === 'GET' && url.pathname === '/api') { json(res, 200, { name: 'ARGUS+ API', version: '0.2.0', endpoints: ['GET /health', 'POST /api/cases/draft', 'POST /api/contracts/audit', 'GET /api/campaign/levels', 'GET /api/campaign/cases/:id', 'GET /api/campaign/demo', 'POST /api/campaign/respond', 'POST /api/campaign/verdict', 'GET /api/community/feed', 'POST /api/community/posts'] }, corsOrigin); return; }
+      if (req.method === 'GET' && url.pathname === '/health') { json(res, 200, { status: 'ok', service: 'argus-backend', runtime: 'node', version: API_VERSION, timestamp: new Date().toISOString() }, corsOrigin); return; }
+      if (req.method === 'GET' && url.pathname === '/api') { json(res, 200, { name: 'ARGUS+ API', version: API_VERSION, endpoints: ['GET /health', 'POST /api/cases/draft', 'POST /api/contracts/audit', 'GET /api/campaign/levels', 'GET /api/campaign/cases/:id', 'GET /api/campaign/demo', 'POST /api/campaign/respond', 'POST /api/campaign/verdict', 'GET /api/community/feed', 'POST /api/community/posts'] }, corsOrigin); return; }
       if (req.method === 'POST' && url.pathname === '/api/cases/draft') { json(res, 201, { data: buildCaseDraft(await readJson(req)) }, corsOrigin); return; }
       if (req.method === 'POST' && url.pathname === '/api/contracts/audit') { json(res, 200, { data: auditContract(await readJson(req)) }, corsOrigin); return; }
       if (req.method === 'GET' && url.pathname === '/api/campaign/levels') { json(res, 200, { data: getCampaignLevels() }, corsOrigin); return; }
