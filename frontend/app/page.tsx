@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { CatDocument, EvidenceArtwork, artworkFor } from './components/cat-evidence';
 import { artworkForEvidence } from './lib/evidence-art';
 import { createCourtSfx, soundForEffect } from './lib/court-sfx';
+import { localCase, localLevels, localRespond, localVerdict } from './lib/campaign-local';
 import { battleReducer, canAffordCard, emptyBattle, HAND_SIZE, PLAYER_MAX_HP, PLAYER_MAX_STAMINA, TURN_SECONDS, OPPONENT_REACTION_DELAY_MS, type BattleCard as EvidenceCard, type BattleEffect, type BattleStage } from './lib/court-battle';
 
 type ServiceState = 'checking' | 'online' | 'offline';
@@ -283,11 +284,15 @@ function CampaignSection() {
     const controller = new AbortController();
     setLoading(true); setError(''); setDemo(null);
     const load = selectedId
-      ? requestJson<DemoCase>(`${apiBaseUrl}/api/campaign/cases/${encodeURIComponent(selectedId)}`, { signal: controller.signal }).then((data) => {
+      ? requestJson<DemoCase>(`${apiBaseUrl}/api/campaign/cases/${encodeURIComponent(selectedId)}`, { signal: controller.signal }).catch(() => {
+        const fallback = localCase(selectedId) as DemoCase | null;
+        if (!fallback) throw new Error('本地案件数据不存在');
+        return fallback;
+      }).then((data) => {
         if (data.id !== selectedId) throw new Error('案件与所选关卡不一致，请重试');
         if (!controller.signal.aborted) setDemo(data);
       })
-      : requestJson<CampaignLevel[]>(`${apiBaseUrl}/api/campaign/levels`, { signal: controller.signal }).then((data) => {
+      : requestJson<CampaignLevel[]>(`${apiBaseUrl}/api/campaign/levels`, { signal: controller.signal }).catch(() => localLevels()).then((data) => {
         if (!controller.signal.aborted) setLevels(data);
       });
     load.catch((e: Error) => { if (!controller.signal.aborted) setError(e.message); })
@@ -423,11 +428,17 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
     responseRequestRef.current = controller;
     setSubmitting(true);
     try {
-      const result = await requestJson<DebateResult>(`${apiBaseUrl}/api/campaign/respond`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ caseId: demo.id, argument: text, evidenceIds: discovered, history: debate }),
-        signal: controller.signal,
-      });
+      let result: DebateResult;
+      try {
+        result = await requestJson<DebateResult>(`${apiBaseUrl}/api/campaign/respond`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ caseId: demo.id, argument: text, evidenceIds: discovered, history: debate }),
+          signal: controller.signal,
+        });
+      } catch (apiError) {
+        if (controller.signal.aborted) return;
+        result = localRespond(demo as never, text, discovered, debate.length) as DebateResult;
+      }
       if (controller.signal.aborted) return;
       if (result.caseId !== demo.id) throw new Error('对方回应与当前案件不一致，请重试');
       setDebate((items) => [...items, { ...result, courtTurn: turn }]);
@@ -464,7 +475,12 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
     if (battleResult !== 'player_win' || submitting || verdict) return;
     setSubmitting(true); setError('');
     try {
-      const result = await requestJson<Verdict>(`${apiBaseUrl}/api/campaign/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ caseId: demo.id, evidenceIds: discovered, debate }) });
+      let result: Verdict;
+      try {
+        result = await requestJson<Verdict>(`${apiBaseUrl}/api/campaign/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ caseId: demo.id, evidenceIds: discovered, debate }) });
+      } catch (apiError) {
+        result = localVerdict(demo as never, discovered) as Verdict;
+      }
       if (result.caseId !== demo.id) throw new Error('裁决与当前案件不一致，请重试');
       setVerdict(result);
       if (result.status === 'partially_supported') onComplete(result.score);
