@@ -2,13 +2,10 @@
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { CatDocument, EvidenceArtwork, artworkFor } from './components/cat-evidence';
 import { artworkForEvidence } from './lib/evidence-art';
 import { createCourtSfx, soundForEffect } from './lib/court-sfx';
 import { battleReducer, canAffordCard, emptyBattle, HAND_SIZE, PLAYER_MAX_HP, PLAYER_MAX_SHIELD, PLAYER_MAX_STAMINA, TURN_SECONDS, OPPONENT_REACTION_DELAY_MS, type BattleCard as EvidenceCard, type BattleEffect, type BattleStage } from './lib/court-battle';
-
-type Section = 'campaign';
 
 type CaseDraft = {
   id: string;
@@ -62,10 +59,6 @@ type GameResult = 'player_win' | 'opponent_win';
 type Verdict = { caseId: string; gameResult: GameResult; status: GameResult; winner: string; score: number; award: string; chain: string[]; reasoning: string; sources: LawSource[]; disclaimer: string };
 
 type CommunityPost = { id: string; author: string; time: string; title: string; body: string; tags: string[]; likes: number; comments: number };
-
-const sections: Array<{ id: Section; label: string }> = [
-  { id: 'campaign', label: '法庭闯关' },
-];
 
 /* Collected exhibits form the attack deck; recovery cards replenish stamina. */
 const EVIDENCE_NATURE: Record<string, { label: string; power: number }> = {
@@ -143,7 +136,6 @@ export default function HomePage() {
   const pathname = usePathname();
   const router = useRouter();
   const apiBaseUrl = useMemo(() => (process.env.NEXT_PUBLIC_API_BASE_URL || '/argus-api').replace(/\/$/, ''), []);
-  const activeSection = 'campaign' as Section;
   const [caseDraft, setCaseDraft] = useState<CaseDraft | null>(null);
   const [caseLoading, setCaseLoading] = useState(false);
   const [caseError, setCaseError] = useState('');
@@ -177,17 +169,12 @@ export default function HomePage() {
     finally { setAuditLoading(false); }
   }
 
-  function chooseSection(section: Section) {
-    router.push(`/${section}`);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
   return (
     <main>
       <a className="skip-link" href="#main-content">跳到主要内容</a>
       <h1 className="sr-only">你的证词有猫饼 · Meow Court</h1>
       <header className="masthead">
-        <button className="brand" onClick={() => chooseSection('campaign')} aria-label="返回法庭闯关">
+        <button className="brand" onClick={() => router.push('/campaign')} aria-label="返回首页">
           <img src="/assets/lawyer-cat-transparent.png" alt="Meow Court 律师猫" />
           <span className="brand-wordmark">
             <strong className="cat-title">你的证词有猫饼</strong>
@@ -209,9 +196,6 @@ export default function HomePage() {
             </g>
           </svg>
         </button>
-        <nav aria-label="主导航">
-          {sections.map((section) => <Link key={section.id} className={activeSection === section.id ? 'active' : ''} aria-current={activeSection === section.id ? 'page' : undefined} href={`/${section.id}`} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>{section.label}</Link>)}
-        </nav>
       </header>
 
       <div className="page-shell" id="main-content">
