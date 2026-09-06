@@ -8,7 +8,6 @@ import { artworkForEvidence } from './lib/evidence-art';
 import { createCourtSfx, soundForEffect } from './lib/court-sfx';
 import { battleReducer, canAffordCard, emptyBattle, HAND_SIZE, PLAYER_MAX_HP, PLAYER_MAX_SHIELD, PLAYER_MAX_STAMINA, TURN_SECONDS, OPPONENT_REACTION_DELAY_MS, type BattleCard as EvidenceCard, type BattleEffect, type BattleStage } from './lib/court-battle';
 
-type ServiceState = 'checking' | 'online' | 'offline';
 type Section = 'campaign';
 
 type CaseDraft = {
@@ -145,8 +144,6 @@ export default function HomePage() {
   const router = useRouter();
   const apiBaseUrl = useMemo(() => (process.env.NEXT_PUBLIC_API_BASE_URL || '/argus-api').replace(/\/$/, ''), []);
   const activeSection = 'campaign' as Section;
-  const [serviceState, setServiceState] = useState<ServiceState>('checking');
-  const [serviceMessage, setServiceMessage] = useState('正在连接 ARGUS+ API…');
   const [caseDraft, setCaseDraft] = useState<CaseDraft | null>(null);
   const [caseLoading, setCaseLoading] = useState(false);
   const [caseError, setCaseError] = useState('');
@@ -159,22 +156,6 @@ export default function HomePage() {
   useEffect(() => {
     if (pathname !== '/campaign') router.replace('/campaign');
   }, [pathname, router]);
-
-  useEffect(() => {
-    let cancelled = false;
-    requestJson<{ status: string; service: string; version?: string }>(`${apiBaseUrl}/health`)
-      .then((health) => {
-        if (cancelled) return;
-        setServiceState('online');
-        setServiceMessage(`${health.service} v${health.version || '0.2.0'} 已连接`);
-      })
-      .catch((error: Error) => {
-        if (cancelled) return;
-        setServiceState('offline');
-        setServiceMessage(error.message);
-      });
-    return () => { cancelled = true; };
-  }, [apiBaseUrl]);
 
   async function createCase(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -231,7 +212,6 @@ export default function HomePage() {
         <nav aria-label="主导航">
           {sections.map((section) => <Link key={section.id} className={activeSection === section.id ? 'active' : ''} aria-current={activeSection === section.id ? 'page' : undefined} href={`/${section.id}`} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>{section.label}</Link>)}
         </nav>
-        <div className={`service-state ${serviceState}`} role="status" aria-live="polite"><span className="service-dot" /><span>{serviceMessage}</span></div>
       </header>
 
       <div className="page-shell" id="main-content">

@@ -95,7 +95,6 @@ button {
 .brand small,
 .eyebrow,
 code,
-.service-state,
 .tag {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
@@ -172,31 +171,6 @@ nav button.active {
   background: var(--yellow);
   box-shadow: 3px 3px 0 var(--ink);
   transform: translate(-1px, -1px);
-}
-
-.service-state {
-  display: flex;
-  max-width: 230px;
-  align-items: center;
-  gap: 0.45rem;
-  font-size: 0.68rem;
-}
-
-.service-dot {
-  width: 10px;
-  height: 10px;
-  flex: 0 0 10px;
-  border: 2px solid var(--ink);
-  border-radius: 50%;
-  background: var(--yellow);
-}
-
-.service-state.online .service-dot {
-  background: #65d184;
-}
-
-.service-state.offline .service-dot {
-  background: var(--red);
 }
 
 .page-shell {
@@ -502,10 +476,6 @@ textarea {
 
   nav button {
     flex: 0 0 auto;
-  }
-
-  .service-state {
-    max-width: none;
   }
 
   .field-grid,
