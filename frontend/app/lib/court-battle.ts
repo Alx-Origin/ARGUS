@@ -125,9 +125,14 @@ export function battleReducer(state: BattleState, action: BattleAction): BattleS
   if (action.type === 'reset') return emptyBattle(action.enemyHp);
   if (action.type === 'start') {
     if (!action.deck.length) return emptyBattle(action.enemyHp);
-    const templates = [...action.deck, ...RECOVERY_CARDS];
-    // A small investigation still gets four cards and a nonempty draw pile.
-    // Extra copies use only collected evidence, never undiscovered exhibits.
+    // The selected exhibits define the evidence-card types available in court.
+    // Tactical recovery and shield cards are always available, even when the
+    // player brings fewer than four exhibits.
+    const selectedEvidenceIds = new Set([...action.selectedIds].slice(0, HAND_SIZE));
+    const selectedDeck = action.deck.filter((card) => !card.evidenceId || selectedEvidenceIds.has(card.evidenceId));
+    const templates = [...selectedDeck, ...RECOVERY_CARDS];
+    // A small investigation still gets four hand slots and a nonempty draw pile.
+    // Extra copies use only selected evidence, never unselected exhibits.
     const cards = [...templates];
     while (cards.length < HAND_SIZE + 2) cards.push(templates[cards.length % templates.length]);
     const instances = cards.map((card, index) => ({ ...card, id: `${card.id}-instance-${index}` }));

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { CatDocument, EvidenceArtwork, artworkFor } from './components/cat-evidence';
 import { artworkForEvidence } from './lib/evidence-art';
 import { createCourtSfx, soundForEffect } from './lib/court-sfx';
+import { getAuthUser, getPlayerId, isSupabaseConfigured, isUsernameAvailable, loadLocalPlayerProfile, loadPlayerProfile, loginAccount, logoutAccount, normalizeUsername, onAuthChange, registerAccount, saveCampaignRun, savePlayerProfile, type AuthUser, type PlayerProfile } from './lib/supabase';
 import { battleReducer, canAffordCard, emptyBattle, HAND_SIZE, PLAYER_MAX_HP, PLAYER_MAX_SHIELD, PLAYER_MAX_STAMINA, TURN_SECONDS, OPPONENT_REACTION_DELAY_MS, type BattleCard as EvidenceCard, type BattleEffect, type BattleStage } from './lib/court-battle';
 
 type CaseDraft = {
@@ -59,6 +60,13 @@ type GameResult = 'player_win' | 'opponent_win';
 type Verdict = { caseId: string; gameResult: GameResult; status: GameResult; winner: string; score: number; award: string; chain: string[]; reasoning: string; sources: LawSource[]; disclaimer: string };
 
 type CommunityPost = { id: string; author: string; time: string; title: string; body: string; tags: string[]; likes: number; comments: number };
+
+const AVATARS = [
+  { id: 'lawyer', src: '/assets/lawyer-cat-transparent.png', label: '蓝袍律师猫' },
+  { id: 'opponent', src: '/assets/court/opponent-cat.webp', label: '法庭辩护猫' },
+  { id: 'tenant', src: '/assets/evidence/tenant-cat-transparent.webp', label: '租客证人猫' },
+  { id: 'landlord', src: '/assets/evidence/landlord-cat-transparent.webp', label: '房东证人猫' },
+] as const;
 
 /* Collected exhibits form the attack deck; recovery cards replenish stamina. */
 const EVIDENCE_NATURE: Record<string, { label: string; power: number }> = {
@@ -144,6 +152,58 @@ export default function HomePage() {
   const [auditError, setAuditError] = useState('');
   const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
   const [communityLoading, setCommunityLoading] = useState(false);
+  const [playerId, setPlayerId] = useState('');
+  const [playerProfile, setPlayerProfile] = useState<PlayerProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileError, setProfileError] = useState('');
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [entryAuthDismissed, setEntryAuthDismissed] = useState(false);
+
+  useEffect(() => {
+    let disposed = false;
+    let authReady = false;
+    async function hydrate(user: AuthUser | null) {
+      const localId = getPlayerId();
+      const id = user?.id || localId;
+      setPlayerId(id);
+      try {
+        let profile = await loadPlayerProfile(id);
+        if (!profile && user?.username) {
+          const local = loadLocalPlayerProfile(localId);
+          const seeded: PlayerProfile = { id, name: user.username, avatar: local?.avatar || AVATARS[0].src, totalScore: local?.totalScore || 0, completedLevels: local?.completedLevels || 0 };
+          try { profile = await savePlayerProfile(seeded); } catch { profile = seeded; }
+        }
+        if (!disposed) setPlayerProfile(profile);
+      } catch {
+        if (!disposed) setProfileError('云端档案暂时不可用，仍可使用本机模式。');
+      } finally {
+        if (!disposed) setProfileLoading(false);
+      }
+    }
+    const unsubscribe = onAuthChange((user) => {
+      // Supabase emits its initial session event asynchronously. Wait for the
+      // explicit getAuthUser() result first so a logged-in user never sees a
+      // transient registration modal while that session is still resolving.
+      if (!authReady) return;
+      setAuthUser(user);
+      setProfileLoading(true);
+      void hydrate(user);
+    });
+    getAuthUser().then((user) => {
+      if (disposed) return;
+      authReady = true;
+      setAuthUser(user);
+      void hydrate(user);
+    }).catch(() => {
+      if (disposed) return;
+      authReady = true;
+      setAuthUser(null);
+      void hydrate(null);
+    });
+    return () => { disposed = true; unsubscribe(); };
+  }, []);
 
   useEffect(() => {
     if (pathname !== '/campaign') router.replace('/campaign');
@@ -167,6 +227,80 @@ export default function HomePage() {
       setAuditResult(await requestJson<AuditResult>(`${apiBaseUrl}/api/contracts/audit`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(form.entries())) }));
     } catch (error) { setAuditError(error instanceof Error ? error.message : '合同审查失败'); }
     finally { setAuditLoading(false); }
+  }
+
+  async function handleSaveProfile(input: Pick<PlayerProfile, 'name' | 'avatar'>) {
+    const nextProfile: PlayerProfile = {
+      id: playerId || getPlayerId(),
+      ...input,
+      totalScore: playerProfile?.totalScore || 0,
+      completedLevels: playerProfile?.completedLevels || 0,
+    };
+    setProfileError('');
+    try {
+      const saved = await savePlayerProfile(nextProfile);
+      setPlayerProfile(saved);
+      setProfileOpen(false);
+    } catch {
+      setPlayerProfile(nextProfile);
+      setProfileOpen(false);
+      setProfileError('已保存到本机；配置 Supabase 后会自动同步云端。');
+    }
+  }
+
+  async function handleAuthSuccess(user: AuthUser, username: string) {
+    const local = loadLocalPlayerProfile(getPlayerId());
+    let profile = await loadPlayerProfile(user.id);
+    if (!profile) {
+      profile = {
+        id: user.id,
+        name: username,
+        avatar: local?.avatar || AVATARS[0].src,
+        totalScore: local?.totalScore || 0,
+        completedLevels: local?.completedLevels || 0,
+      };
+      try { profile = await savePlayerProfile(profile); } catch { /* local fallback below */ }
+    }
+    setAuthUser({ ...user, username: user.username || username });
+    setPlayerId(user.id);
+    setPlayerProfile(profile);
+    setAuthOpen(false);
+    setProfileOpen(false);
+    setProfileError('');
+  }
+
+  async function handleLogout() {
+    try {
+      await logoutAccount();
+      const localId = getPlayerId();
+      setAuthUser(null);
+      setPlayerId(localId);
+      setPlayerProfile(loadLocalPlayerProfile(localId));
+    } catch (error) {
+      setProfileError(error instanceof Error ? error.message : '退出登录失败');
+    }
+  }
+
+  function openAuthModal() {
+    setEntryAuthDismissed(true);
+    setProfileOpen(false);
+    setAuthOpen(true);
+  }
+
+  async function handleRunComplete(levelId: number, score: number) {
+    if (!playerProfile || !playerId) return;
+    const nextProfile: PlayerProfile = {
+      ...playerProfile,
+      totalScore: playerProfile.totalScore + score,
+      completedLevels: playerProfile.completedLevels + 1,
+    };
+    setPlayerProfile(nextProfile);
+    try {
+      await saveCampaignRun({ playerId, levelId, score, outcome: 'player_win' });
+      await savePlayerProfile(nextProfile);
+    } catch {
+      setProfileError('本局已记录在本机，云端同步将在 Supabase 配置后生效。');
+    }
   }
 
   return (
@@ -196,13 +330,24 @@ export default function HomePage() {
             </g>
           </svg>
         </button>
+        <div className="player-header-actions">
+          <button type="button" className="player-chip" onClick={() => authUser ? setProfileOpen(true) : isSupabaseConfigured ? openAuthModal() : setProfileOpen(true)} disabled={profileLoading}>
+            <img className="player-chip-avatar" src={playerProfile?.avatar || AVATARS[0].src} alt="" />
+            <span><strong>{playerProfile?.name || (authUser ? '完善玩家档案' : '登录 / 注册')}</strong><small>{authUser ? '已登录 · 点击编辑头像' : '用户名 + 密码'}</small></span>
+          </button>
+          <span className="player-score">⭐ {playerProfile?.totalScore || 0}</span>
+          {authUser && <button type="button" className="account-action" onClick={handleLogout}>退出</button>}
+        </div>
       </header>
 
       <div className="page-shell" id="main-content">
 
 
-        <CampaignSection />
+        <CampaignSection onRunComplete={handleRunComplete} />
       </div>
+      {profileError && <p className="profile-sync-note" role="status">{profileError}</p>}
+      {!profileLoading && !authOpen && ((!isSupabaseConfigured && (!playerProfile || profileOpen)) || (Boolean(authUser) && (!playerProfile || profileOpen))) && <ProfileModal profile={playerProfile} authenticated={Boolean(authUser)} onSave={handleSaveProfile} onClose={() => playerProfile && setProfileOpen(false)} onAuthRequest={openAuthModal} />}
+      {(!entryAuthDismissed && !profileLoading && isSupabaseConfigured && !authUser && !playerProfile) || authOpen ? <AuthModal onClose={() => { setAuthOpen(false); setEntryAuthDismissed(true); }} onSuccess={handleAuthSuccess} /> : null}
     </main>
   );
 }
@@ -246,7 +391,7 @@ function AuditSection({ onSubmit, loading, error, result }: { onSubmit: (event: 
   </section>;
 }
 
-function CampaignSection() {
+function CampaignSection({ onRunComplete }: { onRunComplete: (levelId: number, score: number) => Promise<void> }) {
   const apiBaseUrl = useMemo(() => (process.env.NEXT_PUBLIC_API_BASE_URL || '/argus-api').replace(/\/$/, ''), []);
   const [levels, setLevels] = useState<CampaignLevel[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -255,7 +400,6 @@ function CampaignSection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
-
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true); setError(''); setDemo(null);
@@ -276,7 +420,10 @@ function CampaignSection() {
   const nextLevel = levels[levels.findIndex((level) => level.id === selectedId) + 1];
   if (selectedId && demo?.id === selectedId) return <CampaignRun
     key={demo.id} demo={demo} apiBaseUrl={apiBaseUrl} onBack={() => selectLevel(null)}
-    onComplete={(score) => setCompleted((items) => ({ ...items, [demo.id]: Math.max(items[demo.id] || 0, score) }))}
+    onComplete={(score) => {
+      setCompleted((items) => ({ ...items, [demo.id]: Math.max(items[demo.id] || 0, score) }));
+      void onRunComplete(demo.levelId, score);
+    }}
     onNext={nextLevel ? () => selectLevel(nextLevel.id) : undefined}
   />;
   if (loading || error || selectedId) return <section className="panel loading-panel" aria-label="法庭闯关">
@@ -289,8 +436,7 @@ function CampaignSection() {
     <div className="campaign-map">{levels.map((level) => <button type="button" key={level.id} className={`level-node ${completed[level.id] ? 'completed' : level.id === recommended ? 'current' : ''}`} onClick={() => selectLevel(level.id)}>
       <span className="level-num">{level.levelId}</span><strong className="level-title">{level.title}</strong><small>{level.desc}</small><small>难度 {level.difficulty}/5 · {level.keyEvidenceCount} 份关键证据</small><span className="level-stars">{completed[level.id] ? '★★★' : '☆☆☆'}</span>
     </button>)}</div>
-    <div className="panel campaign-rules"><strong>闯关目标</strong><span>阅读本关案情与争议焦点 · 自由查看并收集关键原件 · 结合证据出牌、回应质疑并请求裁决</span></div>
-    <p className="disclaimer">全部案件与原件均为虚构训练材料；进度仅记录本次页面会话，不构成法律意见。</p>
+    <div className="panel campaign-rules"><strong>闯关目标</strong><span>阅读本关案情与争议焦点 · 自由查看并收集关键原件，然后选择最有利于自己的证据卡牌进入庭审，并出牌、回应质疑并请求裁决</span></div>
   </section>;
 }
 
@@ -402,7 +548,7 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
     try {
       const result = await requestJson<DebateResult>(`${apiBaseUrl}/api/campaign/respond`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ caseId: demo.id, argument: text, evidenceIds: discovered, history: debate }),
+        body: JSON.stringify({ caseId: demo.id, argument: text, evidenceIds: selectedEvidence, history: debate }),
         signal: controller.signal,
       });
       if (controller.signal.aborted) return;
@@ -441,7 +587,7 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
     if (!battleResult || submitting || verdict) return;
     setSubmitting(true); setError('');
     try {
-      const result = await requestJson<Verdict>(`${apiBaseUrl}/api/campaign/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ caseId: demo.id, evidenceIds: discovered, debate, gameResult: battleResult }) });
+      const result = await requestJson<Verdict>(`${apiBaseUrl}/api/campaign/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ caseId: demo.id, evidenceIds: selectedEvidence, debate, gameResult: battleResult }) });
       if (result.caseId !== demo.id) throw new Error('裁决与当前案件不一致，请重试');
       setVerdict(result);
       if (result.gameResult === 'player_win') onComplete(result.score);
@@ -466,21 +612,16 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
       return;
     }
     setDiscovered((ids) => [...ids, id]);
-    // Auto-selected only while there is room in the four-card hand.
-    setSelectedEvidence((ids) => (ids.includes(id) || ids.length >= HAND_SIZE ? ids : [...ids, id]));
     setInvestigationScore((value) => value + 5);
     setInvestigationLog((items) => [`发现证据：${label}`, ...items].slice(0, 5));
   };
   const toggleEvidence = (id: string) => {
-    // A selected card represents a collected exhibit that is going to court.
-    // Clicking it again withdraws the exhibit entirely, so it disappears from
-    // the inventory instead of lingering as an unselected white card.
+    // Collecting an exhibit and bringing it to court are separate choices.
+    // Clicking a card only toggles its court selection; an unselected card stays
+    // in the evidence deck so the player can compare it with the other exhibits.
     if (selectedEvidence.includes(id)) {
-      const item = demo.evidence.find((evidence) => evidence.id === id);
-      setDiscovered((ids) => ids.filter((itemId) => itemId !== id));
       setSelectedEvidence((ids) => ids.filter((itemId) => itemId !== id));
-      setInvestigationScore((value) => Math.max(0, value - 5));
-      setInvestigationLog((items) => [`取消证据：${item?.title || '证据'}`, ...items].slice(0, 5));
+      setInvestigationLog((items) => [`取消带庭选择：${demo.evidence.find((item) => item.id === id)?.title || '证据'}`, ...items].slice(0, 5));
       setError('');
       return;
     }
@@ -491,13 +632,13 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
     });
   };
   const enterCourt = () => {
-    if (!selectedEvidence.length) { setError('请先选择至少一张证据卡。'); return; }
+    if (!selectedEvidence.length) { setError('请先选择至少一张证据卡带入法庭。'); return; }
     // Unlock Web Audio in the entry click, before delayed combat effects run.
     courtSfxRef.current ??= createCourtSfx();
     courtSfxRef.current.unlock();
     lastSoundEffectRef.current = null;
     dispatchBattle({
-      type: 'start', deck: buildHand(demo, discovered), selectedIds: selectedEvidence,
+      type: 'start', deck: buildHand(demo, selectedEvidence), selectedIds: selectedEvidence,
       enemyHp: maxEnemyHp, seed: Math.floor(Math.random() * 4294967296),
     });
     setPhase('court'); setTurnTimer(TURN_SECONDS); setVerdict(null);
@@ -508,7 +649,7 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
     <div className="phase-rail"><span className={phase === 'investigate' ? 'active' : 'done'}>1 搜证</span><i>→</i><span className={phase === 'court' ? 'active' : ''}>2 卡牌庭审</span><i>→</i><span className={verdict ? 'active' : ''}>3 裁决</span></div>
     <small className="campaign-focus-line">争议焦点：{demo.focus.join(' · ')}</small>
     {phase === 'investigate' && error && <p className="error-message" role="alert">{error}</p>}
-{phase === 'court' ? <CourtArena demo={demo} onNext={onNext} onInvestigate={returnToInvestigation} hand={courtHand} cardsPlayed={cardsPlayed} battleStage={battle.stage} battleResult={battleResult} playerStamina={playerStamina} playerShield={playerShield} enemyHp={enemyHp} maxEnemyHp={maxEnemyHp} playerHp={playerHp} turn={turn} turnTimer={turnTimer} debate={debate} submitting={submitting} verdict={verdict} error={error} onPlayCard={playCard} onRequestVerdict={requestVerdict} courtEffect={courtEffect} /> : <div className="campaign-layout investigation-layout"><aside className="panel evidence-panel"><PanelHeading eyebrow="EVIDENCE HUB" title="现场搜证" badge="自由搜证" /><div className="scene-tabs">{demo.scenes.map((scene) => <button type="button" className={scene.id === activeScene.id ? 'active' : ''} key={scene.id} onClick={() => setSceneId(scene.id)}>{scene.title}</button>)}</div><div className="scene-board"><span className="scene-label">{activeScene.title}</span><p>{activeScene.description}</p><div className="hotspot-grid">{activeScene.hotspots.map((spot) => <button type="button" className={`hotspot ${discovered.includes(spot.evidenceId) ? 'found' : ''}`} key={spot.id} onClick={() => discoverEvidence(spot.evidenceId, spot.title)}><EvidenceArtwork art={artworkFor(spot.id)} /><strong>{spot.title}</strong><small>{discovered.includes(spot.evidenceId) ? '已收集 ✓' : `自由调查 · ${spot.hint}`}</small></button>)}</div></div><h3 className="subheading">搜证日志</h3><div className="investigation-log">{investigationLog.length ? investigationLog.map((item, index) => <span key={`${item}-${index}`}>{item}</span>) : <span>点击现场热点，寻找能互相印证的原件。</span>}</div></aside><div className="panel source-panel"><PanelHeading eyebrow="SOURCE READER" title={activeDocument.name} badge="具体租房材料" /><div className="source-documents"><h3 className="subheading">原始文件 · 与当前材料同组</h3><div className="document-list">{demo.documents.map((doc) => <button type="button" className={`document-button ${doc.id === documentId ? 'active' : ''}`} key={doc.id} onClick={() => setDocumentId(documentId === doc.id ? '' : doc.id)}><EvidenceArtwork art={artworkFor(doc.id, doc.type)} /><strong>{doc.name}<small>打开完整原件 →</small></strong></button>)}</div></div><div className="source-reader"><CatDocument doc={activeDocument} playerSide={demo.playerSide} discovered={discovered} onDiscover={discoverEvidence} /></div></div><aside className="panel evidence-cards-panel"><PanelHeading eyebrow="CASEBOARD" title="证据卡组" badge={`已选 ${selectedEvidence.length}/${HAND_SIZE}`} /><div className="evidence-inventory">{discovered.length ? demo.evidence.filter((item) => discovered.includes(item.id)).map((item) => { const card = evidenceCard(item, demo.keyEvidenceIds.includes(item.id), demo.levelId); const picked = selectedEvidence.includes(item.id); return <button type="button" className={`evidence-card ${picked ? 'selected' : ''}`} key={item.id} onClick={() => toggleEvidence(item.id)} aria-pressed={picked}><div><strong>{item.title}</strong><span className="tag">体力 {card.cost} · 伤害 {card.value}</span></div><p>{item.description}</p><small>{card.nature} · 可信度 {card.credibility}/10 · {card.key ? '关键证据' : '补充证据'} · {picked ? '✓ 已带上庭 · 点击取消' : '点击带上庭'}</small></button>; }) : <EmptyState text="点击左侧现场热点，或在材料中点击线索，收集到的证据会出现在这里。" />}</div><div className="court-entry"><p className="chain-tip">选择最多 {HAND_SIZE} 张起手证据。庭审始终保留 4 张手牌，打出后随机补牌；已搜集证据和恢复牌组成循环牌库。体力足够才能出牌，恢复靠卡牌，不随回合或超时自动增加。</p><button type="button" className="button primary enter-court" onClick={enterCourt} disabled={!selectedEvidence.length}>带着 {selectedEvidence.length} 张证据卡进入法庭 →</button></div></aside></div>}
+    {phase === 'court' ? <CourtArena demo={demo} onNext={onNext} onInvestigate={returnToInvestigation} hand={courtHand} cardsPlayed={cardsPlayed} battleStage={battle.stage} battleResult={battleResult} playerStamina={playerStamina} playerShield={playerShield} enemyHp={enemyHp} maxEnemyHp={maxEnemyHp} playerHp={playerHp} turn={turn} turnTimer={turnTimer} debate={debate} submitting={submitting} verdict={verdict} error={error} onPlayCard={playCard} onRequestVerdict={requestVerdict} courtEffect={courtEffect} /> : <div className="campaign-layout investigation-layout"><aside className="panel evidence-panel"><PanelHeading eyebrow="EVIDENCE HUB" title="现场搜证" badge="自由搜证" /><div className="scene-tabs">{demo.scenes.map((scene) => <button type="button" className={scene.id === activeScene.id ? 'active' : ''} key={scene.id} onClick={() => setSceneId(scene.id)}>{scene.title}</button>)}</div><div className="scene-board"><span className="scene-label">{activeScene.title}</span><p>{activeScene.description}</p><div className="hotspot-grid">{activeScene.hotspots.map((spot) => <button type="button" className={`hotspot ${discovered.includes(spot.evidenceId) ? 'found' : ''}`} key={spot.id} onClick={() => discoverEvidence(spot.evidenceId, spot.title)}><EvidenceArtwork art={artworkFor(spot.id)} /><strong>{spot.title}</strong><small>{discovered.includes(spot.evidenceId) ? '已收集 ✓' : `自由调查 · ${spot.hint}`}</small></button>)}</div></div><h3 className="subheading">搜证日志</h3><div className="investigation-log">{investigationLog.length ? investigationLog.map((item, index) => <span key={`${item}-${index}`}>{item}</span>) : <span>点击现场热点，寻找能互相印证的原件。</span>}</div></aside><div className="panel source-panel"><PanelHeading eyebrow="SOURCE READER" title={activeDocument.name} badge="具体租房材料" /><div className="source-documents"><h3 className="subheading">原始文件 · 与当前材料同组</h3><div className="document-list">{demo.documents.map((doc) => <button type="button" className={`document-button ${doc.id === documentId ? 'active' : ''}`} key={doc.id} onClick={() => setDocumentId(documentId === doc.id ? '' : doc.id)}><EvidenceArtwork art={artworkFor(doc.id, doc.type)} /><strong>{doc.name}<small>打开完整原件 →</small></strong></button>)}</div></div><div className="source-reader"><CatDocument doc={activeDocument} playerSide={demo.playerSide} discovered={discovered} onDiscover={discoverEvidence} /></div></div><aside className="panel evidence-cards-panel"><PanelHeading eyebrow="CASEBOARD" title="证据卡组" badge={`已选 ${selectedEvidence.length}/${HAND_SIZE}`} /><div className="evidence-inventory">{discovered.length ? demo.evidence.filter((item) => discovered.includes(item.id)).map((item) => { const card = evidenceCard(item, demo.keyEvidenceIds.includes(item.id), demo.levelId); const picked = selectedEvidence.includes(item.id); return <button type="button" className={`evidence-card ${picked ? 'selected' : ''}`} key={item.id} onClick={() => toggleEvidence(item.id)} aria-pressed={picked}><div><strong>{item.title}</strong><span className="evidence-proof" title={item.proofPurpose}>→ {item.proofPurpose}</span></div><p>{item.description}</p><small>{card.nature} · 可信度 {card.credibility}/10 · {card.key ? '关键证据' : '补充证据'} · {picked ? '✓ 已选入庭 · 点击取消选择' : '点击选择带上庭'}</small></button>; }) : <EmptyState text="点击左侧现场热点，或在材料中点击线索，收集到的证据会出现在这里。" />}</div><div className="court-entry"><p className="chain-tip">最多选择 {HAND_SIZE} 张证据卡，根据证据内容和重要性做取舍。选择几张，庭审就使用几种证据牌；护盾和回体力战术牌始终可用。</p><button type="button" className="button primary enter-court" onClick={enterCourt} disabled={!selectedEvidence.length}>{selectedEvidence.length ? `带着 ${selectedEvidence.length} 张证据卡进入法庭 →` : '请选择证据卡 →'}</button></div></aside></div>}
   </section>;
 }
 
@@ -521,6 +662,13 @@ function CourtArena({ demo, onNext, onInvestigate, hand, cardsPlayed, playerShie
   onPlayCard: (card: EvidenceCard) => void; onRequestVerdict: () => void;
   courtEffect: BattleEffect | null;
 }) {
+  // The case title is an opening cue, not a permanent overlay. CourtArena mounts
+  // when entering the courtroom, so this timer naturally restarts for a new run.
+  const [showCourtBench, setShowCourtBench] = useState(true);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowCourtBench(false), 1800);
+    return () => window.clearTimeout(timer);
+  }, []);
   const turnLabel = battleResult ? '本轮已结束' : battleStage === 'opponent-action' ? '对方反击' : battleStage === 'player-action' ? '对方准备反击…' : submitting ? '等待对方回应' : '轮到我方出牌';
   return <div className="court-arena">
     <div className="court-topbar">
@@ -530,7 +678,7 @@ function CourtArena({ demo, onNext, onInvestigate, hand, cardsPlayed, playerShie
     </div>
     <div className="court-stage">
       <div className="court-side court-side-opponent"><div className="court-nameplate"><span>对方</span><strong>{demo.opponentSide}</strong></div><div className={`court-cat court-cat-opponent ${courtEffect?.side === 'opponent' ? 'is-raising' : ''}`}><img src="/assets/court/opponent-cat.webp" alt="对方猫咪" /></div>{courtEffect?.side === 'opponent' && <div className="objection-bubble">{courtEffect.label}</div>}</div>
-      <div className="court-center"><div className="court-bench">⚖ <span>第 {demo.levelId} 关 · {demo.levelTitle}</span> ⚖</div><div className="court-dialogue-list">{debate.slice(-2).map((item, index) => <article key={item.turn?.id || index}>{item.turn?.argument && <div className="court-dialogue is-player"><small>我方陈词</small>{item.turn.argument}</div>}{item.courtTurn === turn && battleStage === 'player-action' ? <div className="court-dialogue court-dialogue-empty">对方正在组织回应…</div> : <div className="court-dialogue"><small>对方回应</small>{item.response}<small>法官提示：{item.judge}</small></div>}</article>)}{!debate.length && <div className="court-dialogue court-dialogue-empty">先看体力，再选择证据出牌。<br />出牌后随机补一张，体力不足时使用恢复牌。</div>}</div>{courtEffect && <div key={`${turn}-${courtEffect.side}`} className={`court-effect-flash ${courtEffect.kind === 'shield' ? 'is-shield' : ''}`}>{courtEffect.label}</div>}</div>
+      <div className="court-center">{showCourtBench && <div className="court-bench">⚖ <span>第 {demo.levelId} 关 · {demo.levelTitle}</span> ⚖</div>}<div className="court-dialogue-list">{debate.slice(-2).map((item, index) => <article key={item.turn?.id || index}>{item.turn?.argument && <div className="court-dialogue is-player"><small>我方陈词</small>{item.turn.argument}</div>}{item.courtTurn === turn && battleStage === 'player-action' ? <div className="court-dialogue court-dialogue-empty">对方正在组织回应…</div> : <div className="court-dialogue"><small>对方回应</small>{item.response}<small>法官提示：{item.judge}</small></div>}</article>)}{!debate.length && <div className="court-dialogue court-dialogue-empty">先看体力，再选择证据出牌。<br />出牌后随机补一张，体力不足时使用恢复牌。</div>}</div>{courtEffect && <div key={`${turn}-${courtEffect.side}`} className={`court-effect-flash ${courtEffect.kind === 'shield' ? 'is-shield' : ''}`}>{courtEffect.label}</div>}</div>
       <div className="court-side court-side-player"><div className="court-nameplate"><span>我方</span><strong>{demo.playerSide}</strong></div><div className={`court-cat court-cat-player ${courtEffect?.side === 'player' ? 'is-raising' : ''}`}><img src="/assets/lawyer-cat-transparent.png" alt="我方律师猫" /></div>{courtEffect?.side === 'player' && <div className="objection-bubble">{courtEffect.label}</div>}</div>
     </div>
     <div className="court-hand-wrap">
@@ -551,7 +699,6 @@ function CourtArena({ demo, onNext, onInvestigate, hand, cardsPlayed, playerShie
           <strong>{card.name}</strong>
           <small>{recovery || defensive ? '战术行动 · 不作为裁决证据' : `${card.nature} · 可信度 ${card.credibility}/10 · ${card.key ? '关键证据' : '补充证据'}`}</small>
           <small className="court-card-effect">效果：{card.effectText}</small>
-          <small className="court-card-hint">{hint}</small>
         </button>;
       })}</div>
       <p className="court-hand-rule">恢复和护盾都靠战术牌；护盾会优先吸收反击伤害。无牌可出时，补牌优先提供可用牌。</p>
@@ -580,6 +727,122 @@ function CommunitySection({ apiBaseUrl, posts, setPosts, loading }: { apiBaseUrl
     finally { setSubmitting(false); }
   }
   return <section className="community-shell"><div className="community-layout"><aside className="panel community-sidebar"><PanelHeading eyebrow="COMMUNITY SQUARE" title="社区广场" badge="脱敏分享" /><div className="leaderboard"><h3>本周训练榜</h3>{[['1','证据收藏家','2,520'],['2','仲裁员小王','2,180'],['3','法外狂徒张三','1,960']].map(([rank, name, score]) => <div className="leader-row" key={rank}><strong>{rank}</strong><span className="avatar avatar-cat" aria-hidden="true">猫</span><div><b>{name}</b><small>案件训练者</small></div><em>{score}</em></div>)}</div><div className="privacy-card"><strong>隐私 · 默认私有</strong><p>案件、合同和聊天记录不会自动公开。发布前请先脱敏，并确认内容不含个人信息。</p></div></aside><div className="community-main"><form className="panel share-form" onSubmit={submitPost}><PanelHeading eyebrow="SHARE A RUN" title="分享一次复盘" badge="POST" /><div className="field-grid"><label>标题<input name="title" required placeholder="例如：租赁押金关卡的证据链" /></label><label>标签<input name="tags" placeholder="#证据链 #租赁" /></label></div><label>内容<textarea name="body" required placeholder="分享你的思路、遇到的质证或合同审查方法…" /></label><label className="checkbox-line"><input type="checkbox" name="privacy" /> 我已脱敏，并确认不发布合同、聊天记录等原始文件</label><div className="button-row"><button className="button primary" disabled={submitting}>{submitting ? '正在发布…' : '发布到社区 →'}</button></div>{error && <p className="error-message">{error}</p>}</form><div className="feed-list">{loading ? <div className="panel loading-panel">正在加载社区动态…</div> : posts.map((post) => <article className="panel feed-card" key={post.id}><div className="feed-header"><div><span className="avatar avatar-cat" aria-hidden="true">猫</span><strong>{post.author}</strong></div><small>{post.time}</small></div><h3>{post.title}</h3><p>{post.body}</p><div>{post.tags.map((tag) => <span className="tag" key={tag}>{tag}</span>)}</div><div className="feed-actions"><button onClick={() => setLiked(liked.includes(post.id) ? liked.filter((id) => id !== post.id) : [...liked, post.id])}>{liked.includes(post.id) ? '♥' : '♡'} {post.likes + (liked.includes(post.id) ? 1 : 0)}</button><span>评论 {post.comments}</span></div></article>)}</div></div></div></section>;
+}
+
+function ProfileModal({ profile, authenticated, onSave, onClose, onAuthRequest }: { profile: PlayerProfile | null; authenticated: boolean; onSave: (input: Pick<PlayerProfile, 'name' | 'avatar'>) => Promise<void>; onClose: () => void; onAuthRequest: () => void }) {
+  const [name, setName] = useState(profile?.name || '');
+  const [avatar, setAvatar] = useState(profile?.avatar || AVATARS[0].src);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmed = normalizeUsername(name);
+    if (!/^[\p{L}\p{N}_-]{2,20}$/u.test(trimmed)) { setError('用户名需为 2-20 位字母、数字、下划线或短横线。'); return; }
+    setSaving(true); setError('');
+    try { await onSave({ name: trimmed, avatar }); }
+    catch { setError('保存失败，请稍后重试'); }
+    finally { setSaving(false); }
+  }
+
+  return <div className="profile-overlay" role="presentation">
+    <section className="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+      {profile && <button type="button" className="profile-close" onClick={onClose} aria-label="关闭身份卡">×</button>}
+      <div className="profile-hero"><img src="/assets/lawyer-cat-transparent.png" alt="律师猫" /><div><span className="eyebrow">ARGUS+ PLAYER FILE</span><h2 id="profile-title">{profile ? '编辑玩家档案' : '创建玩家档案'}</h2><p>只需设置昵称和头像，就可以开始记录闯关成绩。</p></div></div>
+      <form onSubmit={submit}>
+        <label className="profile-name-field">用户名 / 昵称 <span>{authenticated ? '账号名' : '必填'}</span><input value={name} onChange={(event) => setName(event.target.value)} maxLength={20} readOnly={authenticated} autoFocus={!profile} placeholder="例如：林墨" /></label>
+        <div className="avatar-picker"><div className="avatar-picker-heading"><strong>选择头像</strong><small>使用现有猫咪角色</small></div><div className="avatar-options">{AVATARS.map((item) => <button type="button" key={item.id} className={`avatar-option ${avatar === item.src ? 'selected' : ''}`} onClick={() => setAvatar(item.src)} aria-label={item.label} aria-pressed={avatar === item.src}><img src={item.src} alt="" /><span>{item.label}</span></button>)}</div></div>
+        <p className="profile-privacy">用户名用于登录并参与排行榜查重。密码只交给 Supabase Auth，不会写入玩家档案表。</p>
+        {error && <p className="error-message" role="alert">{error}</p>}
+        <div className="profile-actions"><button type="submit" className="button primary" disabled={saving}>{saving ? '正在保存…' : '保存并开始闯关 →'}</button>{profile && <button type="button" className="button secondary" onClick={onClose}>稍后再改</button>}</div>
+        {!authenticated && isSupabaseConfigured && <button type="button" className="profile-auth-link" onClick={onAuthRequest}>注册 / 登录账号（保存跨设备进度）</button>}
+      </form>
+    </section>
+  </div>;
+}
+
+function AuthModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (user: AuthUser, username: string) => Promise<void> }) {
+  const [mode, setMode] = useState<'login' | 'register'>('register');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [available, setAvailable] = useState<boolean | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  const usernameValid = /^[\p{L}\p{N}_-]{2,20}$/u.test(normalizeUsername(username));
+
+  async function checkAvailability() {
+    if (!usernameValid || !isSupabaseConfigured) return;
+    setChecking(true); setError('');
+    try { setAvailable(await isUsernameAvailable(normalizeUsername(username))); }
+    catch (checkError) { setError(checkError instanceof Error ? checkError.message : '查重失败'); }
+    finally { setChecking(false); }
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setError(''); setMessage('');
+    const cleanUsername = normalizeUsername(username);
+    if (!isSupabaseConfigured) { setError('当前未配置 Supabase，暂时只能使用本机试玩。'); return; }
+    if (!usernameValid) { setError('用户名需为 2-20 位字母、数字、下划线或短横线。'); return; }
+    if (password.length < 6) { setError('密码至少需要 6 位。'); return; }
+    if (mode === 'register') {
+      if (password !== confirmPassword) { setError('两次密码输入不一致。'); return; }
+      if (available === false) { setError('用户名已被占用，请换一个。'); return; }
+    }
+    setSubmitting(true);
+    try {
+      if (mode === 'register') {
+        if (available !== true) {
+          setChecking(true);
+          const canUse = await isUsernameAvailable(cleanUsername);
+          setAvailable(canUse);
+          setChecking(false);
+          if (!canUse) { setError('用户名已被占用，请换一个。'); return; }
+        }
+        const result = await registerAccount(cleanUsername, password);
+        if (result.needsEmailConfirmation || !result.user) {
+          setMessage('注册成功，但当前开启了邮箱确认。请在 Supabase Auth → Providers 中关闭 Confirm email 后再登录。');
+          return;
+        }
+        await onSuccess(result.user, cleanUsername);
+      } else {
+        const user = await loginAccount(cleanUsername, password);
+        await onSuccess(user, cleanUsername);
+      }
+    } catch (submitError) {
+      const raw = submitError instanceof Error ? submitError.message : '操作失败';
+      const normalized = raw.toLowerCase();
+      const message = normalized.includes('already registered') || normalized.includes('duplicate')
+        ? '用户名已被占用，请换一个。'
+        : normalized.includes('invalid login credentials')
+          ? '用户名或密码错误。'
+          : normalized.includes('email not confirmed')
+            ? '账号尚未确认，请先在 Supabase 中关闭 Confirm email。'
+            : raw;
+      setError(message);
+    } finally { setChecking(false); setSubmitting(false); }
+  }
+
+  return <div className="profile-overlay" role="presentation">
+    <section className="profile-modal auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <button type="button" className="profile-close" onClick={onClose} aria-label="关闭登录窗口">×</button>
+      <div className="profile-hero"><img src="/assets/lawyer-cat-transparent.png" alt="律师猫" /><div><span className="eyebrow">ARGUS+ ACCOUNT</span><h2 id="auth-title">{mode === 'register' ? '注册玩家账号' : '登录玩家账号'}</h2><p>用户名就是你的昵称，不需要填写邮箱。</p></div></div>
+      <div className="auth-tabs"><button type="button" className={mode === 'register' ? 'active' : ''} onClick={() => { setMode('register'); setError(''); setMessage(''); }}>注册</button><button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => { setMode('login'); setError(''); setMessage(''); }}>登录</button></div>
+      <form onSubmit={submit}>
+        <label className="profile-name-field">用户名 / 昵称 <span>2-20 位</span><div className="username-row"><input value={username} onChange={(event) => { setUsername(event.target.value); setAvailable(null); }} maxLength={20} autoFocus placeholder="例如：证据收藏家" /><button type="button" className="button secondary username-check" onClick={checkAvailability} disabled={!usernameValid || checking || mode === 'login'}>{checking ? '查中…' : mode === 'login' ? '登录' : available === true ? '可用 ✓' : '查重'}</button></div></label>
+        <label className="profile-name-field">密码 <span>至少 6 位</span><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={6} maxLength={72} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} placeholder="输入密码" /></label>
+        {mode === 'register' && <label className="profile-name-field">确认密码 <span>再次输入</span><input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} minLength={6} maxLength={72} autoComplete="new-password" placeholder="再次输入密码" /></label>}
+        {available === true && mode === 'register' && <p className="availability-ok">用户名可用，可以注册。</p>}
+        {available === false && mode === 'register' && <p className="availability-taken">用户名已被占用，请换一个。</p>}
+        {message && <p className="profile-status" role="status">{message}</p>}
+        {error && <p className="error-message" role="alert">{error}</p>}
+        <button type="submit" className="button primary auth-submit" disabled={submitting}>{submitting ? '处理中…' : mode === 'register' ? '注册并开始闯关 →' : '登录 →'}</button>
+      </form>
+    </section>
+  </div>;
 }
 
 function PanelHeading({ title, badge }: { eyebrow: string; title: string; badge: string }) { return <div className="panel-heading"><div><h2>{title}</h2></div><span className="tag ready">{badge}</span></div>; }

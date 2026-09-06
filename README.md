@@ -5,6 +5,7 @@ ARGUS+ 是一个法律训练产品原型，当前采用前后端分离的工作�
 - `frontend/`：Next.js App Router + React + TypeScript，默认运行在 `3000` 端口。
 - `backend/`：独立 Node.js HTTP API，默认运行在 `4000` 端口。
 - `frontend/app/`：唯一的 Next.js App Router 页面实现。
+- `supabase/schema.sql`：玩家档案、闯关记录和排行榜视图。
 
 ## 快速开始
 
@@ -14,6 +15,8 @@ npm run dev
 ```
 
 打开 <http://localhost:3000>。前端会通过 `NEXT_PUBLIC_API_BASE_URL` 访问 Node.js 服务；默认值为 `http://localhost:4000`。
+
+配置 Supabase 后，首次进入法庭闯关会直接弹出注册窗口，只需设置用户名（即昵称）和密码；登录后可在玩家档案中选择预设头像。用户名会在 `player_profiles` 中做不区分大小写查重，玩家档案、胜局分数和排行榜会同步到项目 `tshojzkaojcehjunhbju`。未配置 anon key 时仍保留本机试玩模式。
 
 也可以分别启动：
 
@@ -32,8 +35,11 @@ npm run dev:frontend
 
 1. 将仓库导入 Vercel，Root Directory 选择 `frontend/`。
 2. 在 Vercel 的 Production、Preview 环境分别配置 `NEXT_PUBLIC_API_BASE_URL`，生产值使用 `https://argus-api.tomeet.chat`。
-3. 将 `backend/` 部署到支持常驻 Node.js 进程的平台（例如 Render、Railway、Fly.io 或自有服务器）。
-4. 在后端配置 `CORS_ORIGIN`。多个 Vercel 生产/预览域名用英文逗号分隔，例如：
+3. 在 Vercel/Zeabur 的前端环境变量中配置 `NEXT_PUBLIC_SUPABASE_URL=https://tshojzkaojcehjunhbju.supabase.co`，再配置 Supabase Dashboard → Project Settings → API 中的 Publishable key（旧版名称为 `anon key`，代码支持 `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` 或 `NEXT_PUBLIC_SUPABASE_ANON_KEY`）。
+4. 前端不会要求用户填写或验证 Email。由于 Supabase Auth 的密码接口底层需要一个唯一 identity，代码会把用户名编码成不可见的 `argus.local` 内部标识；请在 Supabase Auth → Providers 中开启 Email、关闭 Confirm email，不会向用户展示或发送 Email。若完全关闭 Email provider，则需要改成自建服务端账号系统。
+5. 在 Supabase SQL Editor 中执行 [`supabase/schema.sql`](supabase/schema.sql)，创建玩家档案、用户名唯一索引、闯关记录、RLS 策略和排行榜视图。
+6. 将 `backend/` 部署到支持常驻 Node.js 进程的平台（例如 Render、Railway、Fly.io 或自有服务器）。
+7. 在后端配置 `CORS_ORIGIN`。多个 Vercel 生产/预览域名用英文逗号分隔，例如：
 
    ```env
    CORS_ORIGIN=https://argus.vercel.app,https://argus-git-main-988ms.vercel.app

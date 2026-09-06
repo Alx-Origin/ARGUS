@@ -74,6 +74,16 @@ test('even one collected exhibit fills all four slots without inventing evidence
   assert.equal(new Set(allCards(state).map((c) => c.id)).size, allCards(state).length);
 });
 
+test('fewer than four selected exhibits keep only those evidence types plus tactics', () => {
+  const deck = [1, 2, 3, 4, 5, 6].map((id) => exhibit(id));
+  const state = battleReducer(emptyBattle(1000), {
+    type: 'start', deck, selectedIds: ['e2', 'e5'], enemyHp: 1000, seed: 42,
+  });
+  assert.equal(state.hand.length, 4);
+  assert.deepEqual(new Set(allCards(state).filter((card) => card.evidenceId).map((card) => card.evidenceId)), new Set(['e2', 'e5']));
+  assert.ok(allCards(state).every((card) => card.evidenceId === null || card.evidenceId === 'e2' || card.evidenceId === 'e5'));
+});
+
 test('unaffordable, unknown and full-stamina recovery plays change nothing', () => {
   const state = { ...start(), stamina: 3 };
   assert.equal(play(state, state.hand[0]), state);
