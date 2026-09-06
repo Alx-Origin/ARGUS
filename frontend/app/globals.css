@@ -293,8 +293,7 @@ p {
 }
 
 .tag.ready {
-  color: white;
-  background: var(--green);
+  display: none;
 }
 
 .tag.danger {
@@ -640,6 +639,8 @@ textarea {
 .chain-list span { display:grid; place-items:center; width:24px; height:24px; border:2px solid var(--ink); border-radius:50%; font-weight:900; background:var(--yellow); }
 .chain-list strong { font-size:.72rem; }.chain-list small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.64rem; }
 .enter-court { width:100%; margin-top:.35rem; }
+.court-entry { margin-top:.7rem; padding-top:.7rem; border-top:2px solid var(--ink); }
+.court-entry .chain-tip { margin:0 0 .5rem; }
 .court-evidence-list { display:grid; gap:.5rem; }
 .court-evidence { display:grid; grid-template-columns:auto 1fr; gap:.3rem .5rem; padding:.65rem; border:2px solid var(--ink); background:#e7edff; }
 .court-evidence .tag { grid-row:span 2; align-self:start; }.court-evidence strong { font-size:.76rem; }.court-evidence small { grid-column:2; font-size:.64rem; line-height:1.35; }
@@ -667,6 +668,292 @@ textarea {
 @media (max-width:1100px) { .audit-shell,.campaign-layout,.community-layout { grid-template-columns:1fr; }.audit-intake,.community-sidebar { position:static; }.campaign-layout { grid-template-columns:1fr 1fr; }.debate-panel { grid-column:1 / -1; }.campaign-map { grid-template-columns:repeat(4, minmax(0, 1fr)); } }
 @media (max-width:680px) { .campaign-intro,.campaign-header { display:block; }.campaign-header-stats { margin-top:1rem; }.campaign-map { grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.7rem; }.level-node { min-height:140px; padding:.75rem; }.party-grid,.score-bars,.campaign-layout,.community-layout { grid-template-columns:1fr; }.court-layout .source-panel,.court-layout .debate-panel { grid-column:1; }.battle-hud { grid-template-columns:1fr; }.battle-round { order:-1; }.card-deck { grid-template-columns:1fr; }.finding-top small { width:100%; margin-left:0; }.hotspot-grid { grid-template-columns:1fr; } }
 
+/* Court card battle: opponent on the left, player on the right. */
+.court-arena { display:grid; gap:1rem; }
+.court-topbar { display:grid; grid-template-columns:1fr 150px 1fr; gap:.8rem; align-items:center; padding:.8rem 1rem; border:3px solid var(--ink); background:#29272d; color:#fffdf7; box-shadow:6px 6px 0 rgb(23 23 23 / 15%); }
+.court-meter { display:grid; grid-template-columns:1fr auto; gap:.25rem .6rem; align-items:center; font: .72rem "SFMono-Regular",Consolas,monospace; }
+.court-meter strong { color:var(--yellow); font-size:1rem; }.court-meter i { grid-column:1 / -1; display:block; height:11px; border:2px solid #fffdf7; background:#55535b; }.court-meter i b { display:block; height:100%; background:var(--red); transition:width .35s ease; }.player-meter i b { background:var(--blue); }.player-meter { text-align:right; }.player-meter small { grid-column:1 / -1; color:#d9d1c2; font-size:.65rem; }
+.court-round { display:grid; place-items:center; min-height:80px; border:2px solid var(--yellow); background:#3b3941; text-align:center; }.court-round small,.court-round span { font: .6rem "SFMono-Regular",Consolas,monospace; opacity:.78; }.court-round strong { color:var(--yellow); font-size:2rem; line-height:1; }.court-round em { margin-left:.2rem; font-style:normal; font-size:.65rem; }
+/* Courtroom interior, assembled from gradients so no extra image assets are needed:
+   a warm light pooling over the bench, oak wall above a chair rail, and a plank floor.
+   Percentage stops keep the horizon line in place as the stage height changes. */
+.court-stage { position:relative; display:grid; grid-template-columns:minmax(150px,.8fr) minmax(280px,1.5fr) minmax(150px,.8fr); min-height:420px; overflow:hidden; border:3px solid var(--ink); box-shadow:7px 7px 0 rgb(23 23 23 / 14%);
+  background:
+    radial-gradient(ellipse 75% 50% at 50% -10%, rgb(255 246 219 / 50%), transparent 72%),
+    radial-gradient(ellipse 100% 88% at 50% 42%, transparent 48%, rgb(56 32 14 / 24%)),
+    linear-gradient(90deg, transparent 0 28%, rgb(72 44 20 / 10%) 28% 72%, transparent 72%),
+    linear-gradient(180deg,
+      #c9a175 0%, #bb8f60 52%,
+      #e6c79a 52%, #e6c79a 55%,
+      #8b6036 55%, #8b6036 58%,
+      #ab7f52 58%, #ab7f52 64%,
+      #79512f 64%, #79512f 67%,
+      #a67e52 67%, #8d6640 100%);
+}
+/* Raised panelling on the wall above the chair rail. */
+.court-stage::before { position:absolute; inset:0 0 48%; content:""; pointer-events:none;
+  background:repeating-linear-gradient(90deg, transparent 0 76px, rgb(58 34 14 / 18%) 76px 78px, rgb(255 240 210 / 16%) 78px 81px, transparent 81px 88px); }
+/* Floorboards: wide seams plus faint board ends, confined to the floor band. */
+.court-stage::after { position:absolute; inset:auto 0 0; height:33%; content:""; opacity:.5; pointer-events:none;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 78px, rgb(60 36 16 / 22%) 78px 80px),
+    repeating-linear-gradient(180deg, transparent 0 26px, rgb(60 36 16 / 10%) 26px 27px); }
+.court-side { position:relative; z-index:2; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; padding:1rem .7rem 0; }.court-side-opponent { background:linear-gradient(90deg,rgb(185 54 54 / 13%),transparent); }.court-side-player { background:linear-gradient(270deg,rgb(49 92 255 / 13%),transparent); }.court-nameplate { align-self:stretch; display:flex; justify-content:space-between; gap:.5rem; padding:.5rem .65rem; border:2px solid var(--ink); background:#fffdf7; font-size:.7rem; }.court-nameplate span { font-family:"SFMono-Regular",Consolas,monospace; color:var(--red); }.court-side-player .court-nameplate span { color:var(--blue); }.court-nameplate strong { font-size:.78rem; }.court-cat { position:relative; display:grid; place-items:end center; width:min(100%,230px); height:300px; margin-top:auto; transform-origin:center bottom; }.court-cat img { width:100%; height:100%; object-fit:contain; object-position:center bottom; filter:drop-shadow(0 10px 10px rgb(23 23 23 / 25%)); transition:transform .2s ease; }.court-cat-player img { transform:scaleX(-1); }.court-cat.is-raising img { animation:catRaiseHand .95s cubic-bezier(.2,.8,.25,1.1) both; }.court-center { position:relative; z-index:3; display:flex; flex-direction:column; align-items:center; padding:1rem; }.court-bench { padding:.45rem .8rem; border:2px solid var(--ink); background:var(--yellow); font-weight:900; box-shadow:3px 3px 0 var(--ink); }.court-dialogue-list { display:flex; width:100%; max-width:440px; flex:1; flex-direction:column; justify-content:center; gap:.55rem; padding:1rem 0; }.court-dialogue { align-self:flex-start; max-width:90%; padding:.7rem .85rem; border:2px solid var(--ink); background:#fff5d9; font-size:.76rem; line-height:1.45; box-shadow:3px 3px 0 rgb(23 23 23 / 15%); animation:dialogueIn .35s ease both; }.court-dialogue.is-player { align-self:flex-end; background:#e7edff; }.court-dialogue small { display:block; margin-bottom:.2rem; font: .6rem "SFMono-Regular",Consolas,monospace; opacity:.7; }.court-dialogue-empty { align-self:center; border-style:dashed; color:#6e675d; background:rgb(255 253 247 / 78%); text-align:center; }.court-effect-flash { position:absolute; z-index:8; top:45%; left:50%; transform:translate(-50%,-50%) rotate(-5deg); padding:.5rem 1rem; color:#fff; background:var(--red); border:3px solid var(--ink); box-shadow:5px 5px 0 var(--ink); font-size:clamp(1.3rem,3vw,2.4rem); font-weight:950; white-space:nowrap; animation:objectionPop 1.1s ease both; }.court-effect-flash.is-shield { background:var(--blue); }.objection-bubble { position:absolute; z-index:10; top:34%; padding:.5rem .7rem; border:2px solid var(--ink); background:#fffdf7; box-shadow:3px 3px 0 var(--ink); font-weight:950; font-size:.85rem; white-space:nowrap; animation:objectionPop 1.1s ease both; }.court-side-opponent .objection-bubble { left:50%; }.court-side-player .objection-bubble { right:50%; }
+.court-hand-wrap { padding:1rem; border:3px solid var(--ink); background:#25242a; box-shadow:6px 6px 0 rgb(23 23 23 / 15%); }.hand-heading { display:flex; justify-content:space-between; margin-bottom:.7rem; color:#fffdf7; font: .72rem "SFMono-Regular",Consolas,monospace; }.hand-heading strong { color:var(--yellow); }.court-hand { display:grid; grid-template-columns:repeat(4,1fr); gap:.7rem; }.court-card { position:relative; display:grid; gap:.3rem; min-height:188px; padding:.55rem; overflow:hidden; border:3px solid var(--ink); background:#fff2c5; box-shadow:4px 4px 0 var(--ink); text-align:left; cursor:pointer; transition:transform .18s ease,filter .18s ease; }.court-card:hover:not(:disabled) { transform:translateY(-10px) rotate(-1deg); filter:saturate(1.12); }.court-card:disabled { cursor:not-allowed; opacity:.45; }/* Key exhibits read as the strong play; supplementary ones are visibly cooler. A card that
+   has been presented stays on the table greyed out rather than disappearing. */
+.court-card-key { background:#fff2c5; }
+.court-card-support { background:#e5edff; }
+.court-card.is-played { opacity:.4; filter:grayscale(.85); cursor:default; }
+.court-card.is-played:hover { transform:none; }.court-card img { width:100%; height:72px; object-fit:cover; border:2px solid var(--ink); }.court-card strong { font-size:.86rem; }.court-card small { font: .62rem/1.4 "SFMono-Regular",Consolas,monospace; }.court-card-cost { position:absolute; top:.65rem; right:.65rem; display:grid; place-items:center; width:28px; height:28px; border:2px solid var(--ink); border-radius:50%; background:var(--yellow); font-weight:900; }.court-actions { display:flex; justify-content:flex-end; }.court-actions .verdict-button { max-width:260px; }.court-error { margin:0; }
+@keyframes catRaiseHand { 0% { transform:translateY(0) rotate(0); } 35% { transform:translateY(-18px) rotate(-3deg); } 60% { transform:translateY(-12px) rotate(3deg); } 100% { transform:translateY(0) rotate(0); } }.court-cat-player.is-raising img { animation-name:catRaiseHandPlayer; }.court-cat-player img { transform:scaleX(-1); }.court-cat-player.is-raising img { animation:catRaiseHandPlayer .95s cubic-bezier(.2,.8,.25,1.1) both; } @keyframes catRaiseHandPlayer { 0% { transform:scaleX(-1) translateY(0) rotate(0); } 35% { transform:scaleX(-1) translateY(-18px) rotate(3deg); } 60% { transform:scaleX(-1) translateY(-12px) rotate(-3deg); } 100% { transform:scaleX(-1) translateY(0) rotate(0); } }
+@keyframes objectionPop { 0% { opacity:0; transform:translate(-50%,-40%) scale(.6) rotate(-12deg); } 18% { opacity:1; transform:translate(-50%,-50%) scale(1.12) rotate(-5deg); } 75% { opacity:1; transform:translate(-50%,-50%) scale(1) rotate(-5deg); } 100% { opacity:0; transform:translate(-50%,-70%) scale(.92) rotate(-2deg); } }.objection-bubble { animation-name:objectionBubble; } @keyframes objectionBubble { 0% { opacity:0; transform:translateY(12px) scale(.7); } 18% { opacity:1; transform:translateY(0) scale(1.08); } 75% { opacity:1; transform:translateY(0) scale(1); } 100% { opacity:0; transform:translateY(-18px) scale(.94); } } @keyframes dialogueIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+@media (max-width:800px) { .court-topbar { grid-template-columns:1fr 1fr; }.court-round { grid-column:1 / -1; grid-row:1; }.court-stage { grid-template-columns:1fr 1.15fr 1fr; min-height:340px; }.court-cat { height:220px; }.court-hand { grid-template-columns:repeat(2,1fr); }.court-card { min-height:160px; } }
+@media (max-width:560px) { .court-stage { grid-template-columns:1fr 1fr; min-height:510px; }.court-center { grid-column:1 / -1; grid-row:1; min-height:230px; }.court-side { grid-row:2; }.court-cat { height:220px; }.court-hand { grid-template-columns:1fr 1fr; }.court-card { min-height:150px; padding:.4rem; }.court-card img { height:52px; }.court-card strong { font-size:.75rem; }.court-card small { font-size:.56rem; } }
+
+/* The active game is a one-screen workspace: controls stay in view while long
+   evidence text/history scrolls inside its own small panel. */
+.campaign-run-shell {
+  min-height: calc(100dvh - 100px);
+  height: calc(100dvh - 100px);
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: .55rem;
+  overflow: hidden;
+}
+/* Pin the play area to the flexible last track. Header rows auto-place ahead of it, so
+   the stage still fills the screen when some of them are hidden per phase. */
+.campaign-run-shell > .court-arena,
+.campaign-run-shell > .investigation-layout {
+  grid-row: -2 / -1;
+  min-height: 0;
+}
+.campaign-map-shell {
+  min-height: calc(100dvh - 100px);
+  height: calc(100dvh - 100px);
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: .7rem;
+  overflow: hidden;
+}
+.campaign-map-shell .campaign-header { margin-bottom: 0; }
+.campaign-map-shell .campaign-header h2 { font-size: clamp(1.6rem, 3vw, 2.3rem); }
+.campaign-map-shell .campaign-lead { margin-top: .35rem; font-size: .78rem; line-height: 1.35; }
+.campaign-map-shell .campaign-map { min-height: 0; height: 100%; grid-template-rows: repeat(2, minmax(0, 1fr)); gap: .65rem; margin: 0; }
+.campaign-map-shell .level-node { min-height: 0; padding: .45rem; gap: .18rem; }
+.campaign-map-shell .level-num { font-size: clamp(1.45rem, 3vw, 2.1rem); }
+.campaign-map-shell .level-title { font-size: .82rem; }
+.campaign-map-shell .level-node small { margin-top: .05rem; font-size: .57rem; line-height: 1.18; }
+.campaign-map-shell .level-stars { margin-top: .1rem; font-size: .72rem; }
+.campaign-map-shell .campaign-rules { padding: .55rem .8rem; font-size: .7rem; }
+.campaign-map-shell .disclaimer { margin: 0; padding: .45rem .65rem; font-size: .62rem; }
+.campaign-focus-line { display: block; min-width: 0; margin: -.1rem 0 0; padding: .25rem .55rem; color: #625a4e; border-left: 3px solid var(--yellow); font: .62rem/1.25 "SFMono-Regular", Consolas, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.page-shell:has(.campaign-map-shell),
+.page-shell:has(.campaign-run-shell) { padding-top: 16px; padding-bottom: 0; }
+.campaign-run-shell .campaign-intro-wrap { gap: .35rem; }
+.campaign-run-shell .panel-heading h2 { margin: 0; font-size: 1.08rem; line-height: 1.1; }
+.campaign-run-shell .campaign-intro { padding: .7rem .9rem; align-items:center; }
+.campaign-run-shell .campaign-intro h2 { margin: .2rem 0 .25rem; font-size: clamp(1.2rem, 2.2vw, 1.8rem); line-height: 1.05; }
+.campaign-run-shell .campaign-intro p { max-width: 700px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: .72rem; line-height: 1.35; }
+.campaign-run-shell .campaign-kpis span { min-width: 70px; padding: .42rem; }
+.campaign-run-shell .campaign-kpis strong { margin-top: .15rem; font-size: 1rem; }
+.campaign-run-shell .phase-rail { margin: 0; }
+.campaign-run-shell .campaign-case-brief { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(280px, 1.4fr); gap: .7rem; align-items:center; padding: .5rem .8rem; }
+.campaign-run-shell .campaign-case-brief h3 { margin: 0; font-size: .8rem; white-space: nowrap; }
+.campaign-run-shell .campaign-case-brief > p:first-of-type { margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: .68rem; line-height: 1.35; }
+.campaign-run-shell .campaign-case-brief .info-list { margin: 0; }
+.campaign-run-shell .campaign-case-brief .info-list h4 { display: inline; margin-right: .35rem; font-size: .66rem; }
+.campaign-run-shell .campaign-case-brief .info-list ul { display: inline; padding: 0; font-size: .64rem; line-height: 1.3; }
+.campaign-run-shell .campaign-case-brief .info-list li { display: inline; margin-right: .45rem; }
+.campaign-run-shell .campaign-case-brief .info-list li::after { content: ' ·'; }
+.campaign-run-shell .campaign-case-brief .chain-tip { grid-column: 1 / -1; margin: 0; font-size: .62rem; line-height: 1.2; }
+.campaign-run-shell .investigation-layout { min-height: 0; height: 100%; grid-template-columns: minmax(190px, .8fr) minmax(240px, 1.1fr) minmax(190px, .85fr); gap: .65rem; }
+/* Each column is a flex stack so its main region absorbs the leftover height instead of
+   leaving a void under fixed-height content. */
+.campaign-run-shell .investigation-layout > .panel { display: flex; flex-direction: column; min-height: 0; height: 100%; overflow: hidden; padding: .75rem; }
+.campaign-run-shell .investigation-layout .evidence-panel .scene-board { flex: 1; min-height: 0; overflow: auto; }
+.campaign-run-shell .investigation-layout .source-panel .source-documents { flex: 0 0 auto; }
+.campaign-run-shell .investigation-layout .scene-tabs { grid-template-columns: repeat(3, 1fr); overflow: hidden; }
+.campaign-run-shell .investigation-layout .scene-tabs button { min-width: 0; padding: .4rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .62rem; }
+.campaign-run-shell .investigation-layout .scene-board { padding: .55rem; }
+.campaign-run-shell .investigation-layout .scene-board p { margin: .25rem 0; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; font-size: .6rem; }
+.campaign-run-shell .investigation-layout .hotspot-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .3rem; }
+.campaign-run-shell .investigation-layout .hotspot { min-height: 64px; padding: .35rem; gap: .08rem; }
+.campaign-run-shell .investigation-layout .hotspot span { font-size: 1rem; }
+.campaign-run-shell .investigation-layout .hotspot strong { font-size: .66rem; }
+.campaign-run-shell .investigation-layout .hotspot small { font-size: .55rem; line-height: 1.15; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.campaign-run-shell .investigation-layout .subheading { margin: .55rem 0 .3rem; font-size: .72rem; }
+.campaign-run-shell .investigation-layout .investigation-log { min-height: 44px; max-height: 56px; overflow: auto; padding: .4rem; font-size: .56rem; }
+.campaign-run-shell .investigation-layout .document-list { max-height: 132px; overflow: auto; }
+.campaign-run-shell .investigation-layout .evidence-panel .subheading:first-of-type,
+.campaign-run-shell .investigation-layout .evidence-panel .investigation-log { display: none; }
+.campaign-run-shell .investigation-layout .document-list { max-height: none; }
+.campaign-run-shell .investigation-layout .document-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem; }
+.campaign-run-shell .investigation-layout .document-button { padding: .42rem; gap: .35rem; }
+.campaign-run-shell .investigation-layout .document-button > span:first-child { font-size: .9rem; }
+.campaign-run-shell .investigation-layout .document-button strong { font-size: .62rem; }
+.campaign-run-shell .investigation-layout .document-button small { font-size: .54rem; }
+.campaign-run-shell .investigation-layout .source-reader { min-height: 0; height: 230px; max-height: none; padding: .5rem; }
+.campaign-run-shell .investigation-layout .source-reader pre { max-height: 105px; overflow: auto; font-size: .59rem; line-height: 1.35; }
+.campaign-run-shell .investigation-layout .source-hotspot { margin-top: .35rem; padding: .4rem; font-size: .59rem; }
+.campaign-run-shell .investigation-layout .evidence-inventory { min-height: 0; max-height: 180px; overflow: auto; }
+/* Third column: the collected deck scrolls, the entry action stays reachable at the bottom. */
+.campaign-run-shell .investigation-layout .evidence-cards-panel { grid-column: 3; grid-row: 1; display: flex; flex-direction: column; min-height: 0; height: 100%; overflow: hidden; padding: .75rem; }
+.campaign-run-shell .investigation-layout .evidence-cards-panel .evidence-inventory { flex: 1; min-height: 0; max-height: none; overflow: auto; align-content: start; }
+.campaign-run-shell .investigation-layout .evidence-cards-panel .subheading { margin-top: 0; }
+.campaign-run-shell .investigation-layout .evidence-card { padding: .45rem; }
+.campaign-run-shell .investigation-layout .evidence-card p { margin: .2rem 0; font-size: .6rem; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.campaign-run-shell .investigation-layout .evidence-card small { font-size: .53rem; }
+.campaign-run-shell .investigation-layout .court-entry .chain-tip { margin: .2rem 0; font-size: .6rem; }
+.campaign-run-shell .investigation-layout .enter-court { font-size: .7rem; padding: .55rem; }
+
+.campaign-run-shell .court-arena { min-height: 0; height: 100%; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: .55rem; overflow: hidden; }
+.campaign-run-shell .court-topbar { padding: .45rem .65rem; gap: .55rem; }
+.campaign-run-shell .court-round { min-height: 56px; }
+.campaign-run-shell .court-round strong { font-size: 1.35rem; }
+.campaign-run-shell .court-stage { min-height: 0; height: 100%; }
+/* Portraits track the stage rather than a fixed pixel height, so short viewports shrink
+   them instead of pushing the hand off screen. */
+.campaign-run-shell .court-cat { height: clamp(120px, 26vh, 240px); }
+.campaign-run-shell .court-dialogue-list { overflow: auto; padding: .5rem 0; }
+.campaign-run-shell .court-dialogue { padding: .45rem .55rem; font-size: .64rem; }
+.campaign-run-shell .court-hand-wrap { padding: .55rem .7rem; }
+.campaign-run-shell .court-hand { gap: .45rem; }
+/* No explicit row template: the art is dropped on narrow screens, and a fixed track count
+   would leave an empty flexible row behind. */
+.campaign-run-shell .court-card { min-height: 0; height: 100%; align-content: start; padding: .4rem; box-shadow: 3px 3px 0 var(--ink); }
+/* Card art is 3:2; a fixed short height cropped it to a sliver. Let it scale with the
+   viewport and keep the illustration's own proportions. */
+.campaign-run-shell .court-card img { height: clamp(34px, 7vh, 76px); object-fit: cover; object-position: center 32%; }
+.campaign-run-shell .court-card .court-evidence-art { height: clamp(48px, 9vh, 90px); object-fit: contain; object-position: center; background: #fffdf7; }
+.campaign-run-shell .court-card strong { font-size: clamp(.6rem, 1.05vw, .82rem); line-height: 1.25; }
+.campaign-run-shell .court-card small { font-size: clamp(.48rem, .82vw, .62rem); line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* The rules blurb is the first thing worth dropping when a card gets short. */
+.campaign-run-shell .court-card small:last-of-type { min-height: 0; -webkit-line-clamp: 3; }
+.campaign-run-shell .court-actions { min-height: 0; }
+.campaign-run-shell .court-actions .verdict-button { margin: 0; padding: .55rem .8rem; }
+.campaign-run-shell .verdict-card { max-height: 32vh; overflow: auto; margin: 0; padding: .65rem; }
+.campaign-run-shell .verdict-card p,.campaign-run-shell .verdict-card li { font-size: .64rem; line-height: 1.35; }
+.campaign-run-shell .verdict-card h4 { margin: .4rem 0 .2rem; font-size: .72rem; }
+
+/* Desktop-first: every source document remains a visible, compact control. */
+@media (min-width: 901px) {
+  .campaign-run-shell .investigation-layout .evidence-panel { padding: .6rem; }
+  .campaign-run-shell .investigation-layout .document-button { min-height: 48px; }
+  .campaign-run-shell .investigation-layout .document-button small { display: none; }
+  .campaign-run-shell .investigation-layout .source-panel .panel-heading { margin-bottom: .45rem; padding-bottom: .4rem; }
+  .campaign-run-shell .investigation-layout .source-panel .evidence-inventory { gap: .35rem; max-height: 154px; }
+  .campaign-run-shell .investigation-layout .source-panel .evidence-card { border-width: 2px; box-shadow: none; }
+}
+
+@media (max-width: 900px) {
+  .campaign-run-shell,
+  .campaign-map-shell { min-height: calc(100dvh - 161px); height: calc(100dvh - 161px); }
+  .campaign-run-shell .campaign-case-brief { grid-template-columns: auto 1fr; }
+  .campaign-run-shell .campaign-case-brief > p:first-of-type { grid-column: 2; }
+  .campaign-run-shell .campaign-case-brief .info-list { grid-column: 1 / -1; }
+  .campaign-run-shell .investigation-layout { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .campaign-run-shell .investigation-layout .evidence-cards-panel { grid-column: 3; }
+}
+@media (max-width: 680px) {
+  .page-shell:has(.campaign-map-shell),
+  .page-shell:has(.campaign-run-shell) { padding-top: 8px; }
+  .campaign-run-shell { min-height: calc(100dvh - 187px); height: calc(100dvh - 187px); gap: .35rem; }
+  .campaign-run-shell .campaign-intro { display: flex; padding: .45rem .6rem; }
+  .campaign-run-shell .campaign-focus-line { font-size: .52rem; }
+  .campaign-run-shell .campaign-intro-wrap .back-to-map { font-size: .64rem; padding: .35rem .5rem; }
+  .campaign-run-shell .campaign-intro h2 { font-size: 1rem; }
+  .campaign-run-shell .campaign-intro p { display: none; }
+  .campaign-run-shell .campaign-kpis { gap: .25rem; }
+  .campaign-run-shell .campaign-kpis span { min-width: 52px; padding: .25rem; }
+  .campaign-run-shell .campaign-kpis small { font-size: .5rem; }
+  .campaign-run-shell .campaign-kpis strong { font-size: .78rem; }
+  .campaign-run-shell .phase-rail { gap: .3rem; font-size: .55rem; }
+  .campaign-run-shell .phase-rail span { padding: .25rem .35rem; }
+  .campaign-run-shell .campaign-case-brief { grid-template-columns: 1fr; gap: .2rem; padding: .4rem .55rem; }
+  .campaign-run-shell .campaign-case-brief h3,.campaign-run-shell .campaign-case-brief > p:first-of-type,.campaign-run-shell .campaign-case-brief .info-list { grid-column: 1; }
+  .campaign-run-shell .campaign-case-brief > p:first-of-type { -webkit-line-clamp: 1; }
+  .campaign-run-shell .campaign-case-brief .info-list ul { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .campaign-run-shell .campaign-case-brief .chain-tip { display: none; }
+  .campaign-run-shell .investigation-layout { grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr) auto; gap: .4rem; }
+  .campaign-run-shell .investigation-layout > .panel { padding: .5rem; }
+  .campaign-run-shell .investigation-layout .evidence-panel { grid-column: 1; grid-row: 1; }
+  .campaign-run-shell .investigation-layout .source-panel { grid-column: 2; grid-row: 1; }
+  /* Too narrow for a third column: the deck collapses to a status bar spanning the bottom,
+     keeping the card count and the entry action visible while the list itself is dropped. */
+  .campaign-run-shell .investigation-layout .evidence-cards-panel { grid-column: 1 / -1; grid-row: 2; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .35rem; height: 64px; }
+  .campaign-run-shell .investigation-layout .evidence-cards-panel .panel-heading { display: contents; }
+  .campaign-run-shell .investigation-layout .evidence-cards-panel .panel-heading h2 { font-size: .72rem; }
+  .campaign-run-shell .investigation-layout .evidence-cards-panel .panel-heading .tag { font-size: .5rem; }
+  .campaign-run-shell .investigation-layout .evidence-cards-panel .evidence-inventory { display: none; }
+  .campaign-run-shell .investigation-layout .court-entry { display: contents; }
+  .campaign-run-shell .investigation-layout .court-entry .chain-tip { display: none; }
+  .campaign-run-shell .investigation-layout .enter-court { width: auto; margin-top: 0; white-space: nowrap; font-size: .58rem; }
+  .campaign-run-shell .investigation-layout .hotspot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .campaign-run-shell .investigation-layout .scene-board p { display: none; }
+  .campaign-run-shell .investigation-layout .scene-board { padding: .35rem; }
+  .campaign-run-shell .investigation-layout .hotspot { min-height: 52px; }
+  .campaign-run-shell .investigation-layout .document-button { padding: .28rem; }
+  .campaign-run-shell .court-stage { grid-template-columns: 1fr 1.2fr 1fr; min-height: 0; }
+  .campaign-run-shell .court-cat { height: min(21vh, 150px); }
+  .campaign-run-shell .court-hand { grid-template-columns: repeat(4, 1fr); }
+  .campaign-run-shell .court-card { min-height: 86px; }
+  .campaign-run-shell .court-card img { display: none; }
+  .campaign-run-shell .court-card strong { font-size: .58rem; }
+  .campaign-run-shell .court-card small { font-size: .46rem; }
+  .campaign-run-shell .court-nameplate { padding: .3rem; font-size: .55rem; }
+  .campaign-run-shell .court-nameplate strong { font-size: .55rem; }
+  .campaign-map-shell { min-height: calc(100dvh - 187px); height: calc(100dvh - 187px); gap: .35rem; }
+  .campaign-map-shell .campaign-header { display: flex; align-items: center; }
+  .campaign-map-shell .campaign-header h2 { font-size: 1.25rem; }
+  .campaign-map-shell .campaign-lead { display: none; }
+  .campaign-map-shell .campaign-header-stats { margin-top: 0; gap: .2rem; }
+  .campaign-map-shell .campaign-header-stats .tag { padding: .3rem; font-size: .48rem; }
+  .campaign-map-shell .campaign-map { grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: .35rem; }
+  .campaign-map-shell .level-node { min-height: 0; padding: .2rem; border-width: 2px; box-shadow: 3px 3px 0 rgb(23 23 23 / 15%); }
+  .campaign-map-shell .level-num { font-size: 1.1rem; }
+  .campaign-map-shell .level-title { font-size: .52rem; line-height: 1.1; }
+  .campaign-map-shell .level-node small { font-size: .4rem; line-height: 1.05; }
+  .campaign-map-shell .level-node small:nth-of-type(2) { display: none; }
+  .campaign-map-shell .level-stars { font-size: .5rem; }
+  .campaign-map-shell .campaign-rules { display: none; }
+  .campaign-map-shell .disclaimer { font-size: .5rem; line-height: 1.25; }
+}
+
+/* Once a case is open, the global navigation is noise. The freed viewport is
+   dedicated to the case header and the actual game controls. */
+body:has(.campaign-run-shell) .masthead { display: none; }
+body:has(.campaign-run-shell) .page-shell { padding-top: 8px; padding-bottom: 0; }
+body:has(.campaign-run-shell) .campaign-run-shell {
+  min-height: calc(100dvh - 8px);
+  height: calc(100dvh - 8px);
+}
+
+.court-cat.is-raising::after { position:absolute; z-index:3; top:11%; right:9%; content:'✋'; font-size:clamp(2.1rem,5vw,3.5rem); filter:drop-shadow(2px 3px 0 #fff); animation:pawRaise .95s cubic-bezier(.2,.8,.25,1.1) both; }
+.court-cat-player.is-raising::after { right:auto; left:9%; }
+@keyframes pawRaise { 0% { opacity:0; transform:translateY(24px) rotate(18deg) scale(.65); } 25% { opacity:1; transform:translateY(-4px) rotate(-12deg) scale(1.08); } 70% { opacity:1; transform:translateY(0) rotate(-4deg) scale(1); } 100% { opacity:0; transform:translateY(-20px) rotate(4deg) scale(.9); } }
+.source-documents { margin-bottom: 1rem; padding-bottom: .9rem; border-bottom: 2px solid var(--ink); }
+.source-documents .subheading { margin-top: 0; }
+.compact-run-nav { display:flex; align-items:center; gap:.7rem; margin-bottom:.55rem; }
+.compact-run-nav .phase-rail { margin:0; }
+.icon-back { width:36px; height:36px; padding:0; border:2px solid var(--ink); border-radius:4px; background:var(--paper-bright); box-shadow:3px 3px 0 var(--ink); font-size:1.35rem; line-height:1; cursor:pointer; }
+.campaign-run-shell > .campaign-intro-wrap, .campaign-run-shell > .phase-rail { display:none; }
+.compact-campaign-intro { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.7rem 1rem; }
+.compact-campaign-intro h2 { margin:0; font-size:1.4rem; }
+.compact-campaign-intro .campaign-kpis { display:flex; gap:.8rem; }
+.level-brief-overlay { position:fixed; inset:0; z-index:60; display:grid; place-items:center; padding:clamp(1rem,5vw,4rem); background:var(--paper); }
+.level-brief-card { width:min(760px,100%); min-height:min(620px,calc(100vh - 3rem)); display:flex; flex-direction:column; justify-content:center; padding:clamp(1.5rem,5vw,4rem); border:3px solid var(--ink); background:var(--paper-bright); box-shadow:10px 10px 0 var(--ink); }
+.level-brief-card h2 { margin:.5rem 0; font-size:clamp(2rem,6vw,3.4rem); }
+.level-brief-card h3 { margin:1rem 0 .3rem; }.level-brief-card p { line-height:1.65; }
+.level-brief-card .button { align-self:flex-start; margin-top:1.4rem; }
+.brief-stamp { display:inline-block; padding:.25rem .5rem; border:2px solid var(--ink); background:var(--yellow); font:700 .65rem "SFMono-Regular",Consolas,monospace; }
+@media (max-width:680px) { .compact-campaign-intro { display:block; }.compact-campaign-intro .campaign-kpis { margin-top:.55rem; }.compact-run-nav .phase-rail { font-size:.72rem; } }
+.evidence-inventory { display:grid; gap:.45rem; }
+.evidence-inventory .subheading { margin-bottom:.1rem; }
+.evidence-inventory .evidence-card { display:grid; grid-template-columns:1fr auto; gap:.2rem .55rem; width:100%; min-height:0; padding:.55rem .65rem; text-align:left; }
+.evidence-inventory .evidence-card > div { display:flex; align-items:center; justify-content:space-between; gap:.45rem; }
+.evidence-inventory .evidence-card strong { font-size:.84rem; line-height:1.2; }
+.evidence-inventory .evidence-card p { grid-column:1 / -1; margin:0; font-size:.68rem; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.evidence-inventory .evidence-card small { grid-column:1 / -1; font-size:.58rem; line-height:1.2; }
+.evidence-inventory .evidence-card .tag { white-space:nowrap; }
+
 /* The current courtroom is rendered from the latest original implementation. */
 .campaign-embed {
   width: 100%;
@@ -677,4 +964,197 @@ textarea {
 }
 @media (max-width: 680px) {
   .campaign-embed { margin: -1rem 0 -3rem; }
+}
+
+/* Meow Court wordmark: handwritten title with cat ears and a paw gavel. */
+.brand-wordmark { padding-top: 6px; }
+.brand .cat-title {
+  position: relative;
+  width: fit-content;
+  font-family: "HanziPen SC", "Hannotate SC", "STYuanti-SC", "YouYuan", ui-rounded, system-ui, sans-serif;
+  font-weight: 900;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+.cat-title::before,
+.cat-title::after {
+  content: "";
+  position: absolute;
+  top: -6px;
+  width: 10px;
+  height: 10px;
+  background: var(--ink);
+  clip-path: polygon(0 100%, 18% 0, 100% 100%);
+}
+.cat-title::before { left: 3px; transform: rotate(-14deg); }
+.cat-title::after { right: 3px; transform: scaleX(-1) rotate(-14deg); }
+.brand .cat-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 2px;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+.wordmark-paw { font-size: 0.8rem; filter: grayscale(1); transform: rotate(-18deg); }
+.paw-gavel { width: 60px; height: 58px; flex-shrink: 0; overflow: visible; }
+.paw-gavel-swing { transform-origin: 21px 58px; animation: gavel-knock 3.5s ease-in-out infinite; }
+.paw-gavel-tap { animation: gavel-tap 3.5s ease-in-out infinite; }
+@keyframes gavel-knock {
+  0%, 38%, 66%, 100% { transform: rotate(0deg); }
+  48% { transform: rotate(-18deg); }
+  56% { transform: rotate(17deg); }
+}
+@keyframes gavel-tap {
+  0%, 52%, 69%, 100% { opacity: 0; }
+  56%, 62% { opacity: 1; }
+}
+@media (max-width: 420px) {
+  .brand { gap: 0.4rem; padding-inline: 0; }
+  .brand img { width: 44px; height: 48px; }
+  .paw-gavel { width: 42px; height: 48px; }
+  .brand .cat-title { font-size: clamp(0.95rem, 4.5vw, 1.15rem); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .paw-gavel-swing, .paw-gavel-tap { animation: none; }
+}
+
+/* Cat-themed case files: artwork is decorative, the original text stays selectable. */
+.evidence-art { display:block; width:100%; height:auto; border-radius:6px; }
+.hotspot .evidence-art { aspect-ratio:3/2; object-fit:cover; }
+.document-button .evidence-art { width:76px; flex:0 0 76px; object-fit:cover; aspect-ratio:3/2; }
+.document-button { align-items:center; }
+.cat-document { min-width:0; padding:clamp(.7rem,2vw,1.2rem); border:2px solid var(--ink); background:#fffdf6; box-shadow:4px 4px 0 #ded3bd; }
+.document-art-label { display:flex; align-items:center; gap:.4rem; padding-bottom:.65rem; border-bottom:1px dashed #c7bba5; font:600 .6rem/1.4 monospace; letter-spacing:.1em; color:#71634d; }
+.document-art-label em { margin-left:auto; font-style:normal; font-size:.55rem; letter-spacing:.05em; }
+.evidence-paw { width:30px; height:30px; flex-shrink:0; color:#ac655e; }
+.document-art-label .evidence-paw { width:20px; height:20px; }
+.evidence-cat { display:block; width:52px; height:58px; object-fit:contain; border-radius:12px; background:transparent; }
+.document-heading { display:flex; gap:.6rem; align-items:center; justify-content:space-between; padding:.9rem 0; border-bottom:2px solid #b89561; }
+.document-heading .evidence-art { width:65px; flex:0 0 65px; aspect-ratio:3/2; object-fit:cover; }
+.document-heading strong { font-size:1.05rem; text-align:center; }
+.document-original-copy { font-family:"Songti SC", SimSun, serif; font-size:.85rem; line-height:1.95; overflow-wrap:anywhere; }
+.document-original-copy h3 { font-size:1.15rem; text-align:center; margin:1.4rem 0; }
+.document-original-copy p { white-space:pre-wrap; margin:1rem 0; }
+.cat-signatures { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; margin:1.4rem 0 .5rem; padding-top:1rem; border-top:1px solid #ddd2c1; }
+.cat-signatures > div { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:.4rem; font-size:.75rem; }
+.cat-signatures .evidence-paw { width:42px; height:42px; transform:rotate(-15deg); }
+.art-caption,.cat-photo figcaption { color:#786d5d; font-size:.6rem; line-height:1.5; text-align:center; }
+.cat-chat-heading { display:flex; justify-content:space-between; align-items:center; gap:.6rem; padding:.8rem 0; border-bottom:1px solid #c5d2c4; text-align:center; }
+.cat-chat-heading small { display:block; margin-top:.3rem; font-size:.64rem; }
+.document-chat { background:#eaf0e6; }
+.cat-chat-messages { display:grid; gap:1rem; padding:1rem 0; }
+.cat-chat-messages .chat-note { margin:0; padding:.55rem .7rem; border-left:3px solid #b6c7ac; background:#fffefa; font-size:.72rem; line-height:1.6; color:#5c6357; }
+.cat-message time { display:block; text-align:center; font:.6rem monospace; color:#6b7567; margin-bottom:.6rem; }
+.cat-message-row { display:flex; gap:.45rem; align-items:flex-start; }
+.cat-message-row > .evidence-cat { width:38px; height:43px; flex-shrink:0; }
+.cat-message-row > div { max-width:calc(100% - 45px); }
+.cat-message-row small { font-size:.65rem; }
+.cat-message-row p { margin:.25rem 0 0; padding:.6rem .7rem; background:#fffefa; border:1px solid #c9d1c3; border-radius:2px 12px 12px; font-size:.8rem; line-height:1.65; overflow-wrap:anywhere; }
+.tenant-message .cat-message-row { flex-direction:row-reverse; }
+.tenant-message .cat-message-row small { display:block; text-align:right; }
+.tenant-message .cat-message-row p { background:#c8e5a9; border-radius:12px 2px 12px 12px; }
+.cat-photo { margin:1rem 0; padding:.5rem .5rem .7rem; background:white; border:1px solid #ddd3c2; transform:rotate(-1deg); }
+.cat-photo figcaption { margin-top:.4rem; }
+.document-clues .source-hotspot { display:flex; gap:.5rem; align-items:center; font-size:.75rem; }
+.source-hotspot small { display:block; font-size:.6rem; margin-top:.3rem; }
+.document-plain-text { margin-top:1rem; font-size:.7rem; }
+.document-plain-text summary { cursor:pointer; color:#76654b; }
+.document-plain-text pre { white-space:pre-wrap; overflow-wrap:anywhere; font:.72rem/1.8 monospace; }
+
+/* The in-run reader is height-capped to keep the whole case on one screen, so the
+   case file scrolls inside it at a reduced scale. */
+.campaign-run-shell .investigation-layout .source-reader { flex: 1; height: auto; min-height: 0; }
+.campaign-run-shell .investigation-layout .cat-document { padding: .5rem; box-shadow: 2px 2px 0 #ded3bd; }
+.campaign-run-shell .investigation-layout .document-art-label { padding-bottom: .4rem; font-size: .52rem; }
+.campaign-run-shell .investigation-layout .document-heading { padding: .45rem 0; }
+.campaign-run-shell .investigation-layout .document-heading .evidence-art { width: 46px; flex: 0 0 46px; }
+.campaign-run-shell .investigation-layout .document-heading strong { font-size: .72rem; }
+.campaign-run-shell .investigation-layout .document-original-copy { font-size: .66rem; line-height: 1.7; }
+.campaign-run-shell .investigation-layout .document-original-copy h3 { margin: .6rem 0; font-size: .82rem; }
+.campaign-run-shell .investigation-layout .document-original-copy p { margin: .45rem 0; }
+.campaign-run-shell .investigation-layout .evidence-cat { width: 34px; height: 38px; }
+.campaign-run-shell .investigation-layout .cat-chat-heading { padding: .4rem 0; font-size: .66rem; }
+.campaign-run-shell .investigation-layout .cat-chat-messages { gap: .5rem; padding: .5rem 0; }
+.campaign-run-shell .investigation-layout .cat-message-row > .evidence-cat { width: 28px; height: 32px; }
+.campaign-run-shell .investigation-layout .cat-message-row p { padding: .4rem .5rem; font-size: .63rem; line-height: 1.45; }
+.campaign-run-shell .investigation-layout .cat-signatures { margin: .6rem 0 .2rem; padding-top: .5rem; }
+.campaign-run-shell .investigation-layout .cat-signatures .evidence-paw { width: 30px; height: 30px; }
+
+/* Keep outer panels/cards distinct without repeating heavy frames inside them. */
+.campaign-run-shell .investigation-layout :is(.scene-board, .scene-label, .hotspot, .document-button, .source-reader, .cat-document, .source-hotspot, .empty-state),
+.campaign-run-shell :is(.court-nameplate, .court-bench, .court-dialogue, .court-round, .court-card img, .court-card-cost, .evidence-card .tag) {
+  border: 0;
+  box-shadow: none;
+}
+.campaign-run-shell :is(.panel-heading, .source-documents, .court-entry) {
+  border-bottom: 0;
+  border-top: 0;
+}
+.campaign-run-shell .investigation-layout :is(.hotspot, .document-button, .source-hotspot),
+.campaign-run-shell :is(.court-dialogue, .court-nameplate, .court-card img) {
+  border-radius: 6px;
+}
+.campaign-run-shell .investigation-layout :is(.hotspot, .document-button, .source-hotspot):hover {
+  box-shadow: none;
+  filter: brightness(.96);
+}
+.campaign-run-shell .court-card {
+  border: 1px solid rgb(23 23 23 / 20%);
+  box-shadow: none;
+}
+.campaign-run-shell .evidence-card.selected {
+  border: 1px solid rgb(23 23 23 / 16%);
+  box-shadow: none;
+}
+.campaign-run-shell .evidence-card { width: 100%; font: inherit; }
+
+/* Health reaching zero ends the round; the way out is back to investigation. */
+.court-defeated { display:grid; gap:.5rem; justify-items:start; padding:.8rem 1rem; border:3px solid var(--ink); border-radius:8px; background:#ffe0e0; box-shadow:4px 4px 0 var(--ink); }
+.court-defeated strong { font-size:1rem; }
+.court-defeated p { margin:0; font-size:.78rem; line-height:1.6; }
+.campaign-run-shell .court-defeated { padding:.5rem .7rem; }
+.campaign-run-shell .court-defeated strong { font-size:.8rem; }
+.campaign-run-shell .court-defeated p { font-size:.66rem; }
+
+/* Turn-based battle feedback: stamina gates cards, then the opponent immediately answers. */
+.court-meter.player-meter small { grid-column: 1 / -1; color: #d9d1c2; font-size: .62rem; }
+.court-card-cost { color: #fff; background: var(--blue); padding: .18rem .35rem; border-radius: 3px; font: 800 .58rem "SFMono-Regular",Consolas,monospace; justify-self: start; }
+.court-card-effect { color: #7c2f22; font-weight: 800; }
+.court-card.is-exhausted { filter: grayscale(.65); opacity: .6; }
+.battle-result { display: grid; gap: .45rem; padding: .85rem 1rem; border: 3px solid var(--ink); box-shadow: 5px 5px 0 var(--ink); background: #fff5d9; }
+.battle-result.is-win { background: #dff0e2; border-color: var(--green); }
+.battle-result.is-loss { background: #ffe0e0; border-color: var(--red); }
+.battle-result strong { font-size: 1.35rem; }
+.battle-result p { margin: 0; font-size: .76rem; line-height: 1.45; }
+.battle-result .button { justify-self: start; }
+
+/* Four persistent hand slots; cost and recovery are readable even without card art. */
+.court-card-heading { display: flex; justify-content: space-between; align-items: center; gap: .3rem; font-size: .62rem; font-weight: 800; }
+.court-card-heading .court-card-cost { position: static; width: auto; height: auto; padding: .25rem .4rem; white-space: nowrap; border-radius: 4px; }
+.court-card-recovery { background: #e2f2df; }
+.court-card-recovery .court-card-effect { color: #295e36; }
+.court-card-recovery .court-card-cost { background: #356b43; }
+.court-card-recovery .court-card-heading > span:first-child { color: #295e36; }
+.campaign-run-shell .court-card .court-card-effect { font-size: .68rem; line-height: 1.4; -webkit-line-clamp: unset; overflow: visible; }
+.campaign-run-shell .court-card .court-card-hint { color: #4e4941; font-size: .58rem; }
+.court-hand-rule { margin: .55rem 0 0; color: #d4d0c4; font-size: .62rem; line-height: 1.5; }
+.court-footer { min-height: 0; max-height: 32vh; overflow: auto; }
+.campaign-run-shell .court-stage { grid-template-rows: minmax(0, 1fr); }
+.campaign-run-shell :is(.court-center, .court-side, .court-dialogue-list) { min-height: 0; }
+.campaign-run-shell .court-cat { flex-shrink: 1; min-height: 0; grid-template-rows: minmax(0, 1fr); }
+.campaign-run-shell .court-cat img { min-height: 0; max-height: 100%; }
+.court-actions { align-items: center; gap: .8rem; }
+.court-actions > small { font-size: .65rem; }
+.campaign-run-shell .battle-result { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; padding: .65rem .8rem; box-shadow: none; }
+.campaign-run-shell .battle-result strong { font-size: 1.05rem; }
+@media (max-width: 680px) {
+  .court-card-heading { flex-wrap: wrap; font-size: .52rem; }
+  .court-card-heading .court-card-cost { font-size: .5rem; padding: .2rem; }
+  .campaign-run-shell .court-card .court-card-effect { font-size: .56rem; }
+  .campaign-run-shell .court-card .court-card-hint { font-size: .48rem; }
+  .hand-heading { gap: .4rem; font-size: .6rem; }
+  .campaign-run-shell .battle-result { grid-template-columns: 1fr auto; }
+  .campaign-run-shell .battle-result p { grid-column: 1 / -1; grid-row: 2; }
 }

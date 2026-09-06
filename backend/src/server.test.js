@@ -149,6 +149,121 @@ test('POST /api/campaign/verdict returns the explainable evidence-chain result',
   });
 });
 
+const historicalLevelTitles = ['押金猎人', '七天无理由', '加班费幽灵', '信息饕餮', '版权窃贼', '竞业锁链', '格式条款恶魔', '仲裁迷宫', '证据湮灭', '终极审判'];
+
+async function postCampaign(baseUrl, route, data) {
+  const response = await fetch(`${baseUrl}/api/campaign/${route}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  return { response, body: await response.json() };
+}
+
+test('all ten historical levels have distinct, complete and reachable cases', async () => {
+  await withServer(async (baseUrl) => {
+    const { data: levels } = await (await fetch(`${baseUrl}/api/campaign/levels`)).json();
+    assert.deepEqual(levels.map((level) => level.title), historicalLevelTitles);
+    assert.deepEqual(levels.map((level) => level.difficulty), [1, 1, 2, 2, 3, 3, 4, 4, 5, 5]);
+    assert.equal(new Set(levels.map((level) => level.id)).size, 10);
+    const allEvidenceIds = new Set();
+    for (const level of levels) {
+      const response = await fetch(`${baseUrl}/api/campaign/cases/${level.id}`);
+      const { data: caseData } = await response.json();
+      assert.equal(response.status, 200);
+      assert.equal(caseData.id, level.id);
+      assert.equal(caseData.levelId, level.levelId);
+      assert.equal(caseData.levelTitle, level.title);
+      assert.ok(caseData.title.startsWith(level.title));
+      assert.ok(caseData.summary && caseData.goal && caseData.playerSide && caseData.opponentSide);
+      assert.equal(caseData.focus.length, 3);
+      assert.equal(caseData.scenes.length, 3);
+      assert.equal(caseData.cards.length, 4);
+      assert.ok(caseData.cards.every((card) => card.text && card.cost <= 4));
+      assert.equal(caseData.keyEvidenceIds.length, level.keyEvidenceCount);
+      assert.ok(caseData.keyEvidenceIds.length <= caseData.actionPoints, 'key chain must be attainable within the AP budget');
+      assert.equal(caseData.judgment, undefined, 'case endpoint does not leak the verdict');
+      const sceneEvidence = new Set(caseData.scenes.flatMap((scene) => scene.hotspots.map((spot) => spot.evidenceId)));
+      const documentEvidence = new Set(caseData.documents.flatMap((document) => document.hotspots.map((spot) => spot.evidenceId)));
+      const documents = new Map(caseData.documents.map((document) => [document.id, document]));
+      for (const evidence of caseData.evidence) {
+        assert.ok(!allEvidenceIds.has(evidence.id), 'evidence identifiers must not be shared across cases');
+        allEvidenceIds.add(evidence.id);
+        assert.ok(sceneEvidence.has(evidence.id));
+        assert.ok(documentEvidence.has(evidence.id));
+        const source = documents.get(evidence.sourceDocumentId);
+        assert.ok(source?.content.includes('虚构训练材料'));
+        assert.ok(source.hotspots.some((spot) => spot.evidenceId === evidence.id));
+        assert.ok(evidence.sourceRange && evidence.proofPurpose);
+      }
+      assert.ok([...sceneEvidence, ...documentEvidence, ...caseData.keyEvidenceIds].every((id) => caseData.evidence.some((evidence) => evidence.id === id)));
+      const { data: numberedCase } = await (await fetch(`${baseUrl}/api/campaign/cases/${level.levelId}`)).json();
+      assert.equal(numberedCase.id, caseData.id);
+      if (level.levelId > 1) assert.doesNotMatch(JSON.stringify(caseData), /墙面|房东|租客|退租/);
+    }
+  });
+});
+
+test('each level completes its own debate and verdict, and missing keys remain insufficient', async () => {
+  await withServer(async (baseUrl) => {
+    for (let levelId = 1; levelId <= 10; levelId += 1) {
+      const { data: caseData } = await (await fetch(`${baseUrl}/api/campaign/cases/${levelId}`)).json();
+      const payload = { caseId: caseData.id, evidenceIds: caseData.keyEvidenceIds };
+      for (const card of caseData.cards) {
+        const { response, body } = await postCampaign(baseUrl, 'respond', { ...payload, argument: card.text });
+        assert.equal(response.status, 200);
+        assert.equal(body.data.caseId, caseData.id);
+        assert.equal(body.data.turn.argument, card.text);
+        assert.deepEqual(new Set(body.data.turn.evidenceIds), new Set(caseData.keyEvidenceIds));
+        assert.ok(body.data.scoreChange > 10);
+        if (levelId > 1) assert.doesNotMatch(body.data.response + body.data.judge, /押金|墙面|房东|租客/);
+      }
+      const { response, body } = await postCampaign(baseUrl, 'verdict', payload);
+      assert.equal(response.status, 200);
+      assert.equal(body.data.caseId, caseData.id);
+      assert.equal(body.data.status, 'partially_supported');
+      assert.ok(body.data.winner.includes(caseData.playerSide));
+      assert.equal(body.data.chain.length, caseData.keyEvidenceIds.length);
+      assert.ok(body.data.award && body.data.reasoning && body.data.sources.length);
+      if (levelId > 1) assert.doesNotMatch(JSON.stringify(body.data), /押金|墙面|房东|租客/);
+      const { body: partial } = await postCampaign(baseUrl, 'verdict', { ...payload, evidenceIds: caseData.keyEvidenceIds.slice(1) });
+      assert.equal(partial.data.status, 'insufficient_evidence');
+      assert.ok(partial.data.score < body.data.score);
+      assert.ok(partial.data.award.includes(caseData.evidence.find((item) => item.id === caseData.keyEvidenceIds[0]).title));
+    }
+  });
+});
+
+test('unknown levels fail explicitly instead of silently loading the rental demo', async () => {
+  await withServer(async (baseUrl) => {
+    for (const identifier of ['0', '11', 'unknown-case', 'toString']) {
+      assert.equal((await fetch(`${baseUrl}/api/campaign/cases/${identifier}`)).status, 404);
+      for (const route of ['respond', 'verdict']) {
+        const { response } = await postCampaign(baseUrl, route, { caseId: identifier, argument: '本案证据', evidenceIds: ['ev-contract'] });
+        assert.equal(response.status, 404);
+      }
+    }
+    assert.equal((await postCampaign(baseUrl, 'respond', { caseId: 'overtime-pay-003', argument: '   ' })).response.status, 400);
+  });
+});
+
+test('foreign, fabricated and duplicate evidence cannot complete or inflate another case', async () => {
+  await withServer(async (baseUrl) => {
+    const { data: caseData } = await (await fetch(`${baseUrl}/api/campaign/cases/2`)).json();
+    const foreignIds = ['ev-movein-photo', 'ev-chat', 'ev-contract', 'ev-repair', 'made-up'];
+    const input = { caseId: caseData.id, argument: caseData.cards[0].text, evidenceIds: foreignIds };
+    const { body: debate } = await postCampaign(baseUrl, 'respond', input);
+    assert.deepEqual(debate.data.turn.evidenceIds, []);
+    assert.ok(debate.data.scoreChange < 0);
+    const { body: verdict } = await postCampaign(baseUrl, 'verdict', input);
+    assert.equal(verdict.data.status, 'insufficient_evidence');
+    assert.equal(verdict.data.score, 0);
+    const oneKey = caseData.keyEvidenceIds.slice(0, 1);
+    const { body: single } = await postCampaign(baseUrl, 'respond', { ...input, evidenceIds: oneKey });
+    const { body: duplicates } = await postCampaign(baseUrl, 'respond', { ...input, evidenceIds: [...oneKey, ...oneKey, ...foreignIds] });
+    assert.equal(single.data.scoreChange, duplicates.data.scoreChange);
+    assert.deepEqual(duplicates.data.turn.evidenceIds, oneKey);
+  });
+});
+
 test('POST /api/community/posts requires explicit share content', async () => {
   await withServer(async (baseUrl) => {
     const response = await fetch(`${baseUrl}/api/community/posts`, {

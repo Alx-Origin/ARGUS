@@ -1,6 +1,7 @@
 const http = require('node:http');
 const { randomUUID } = require('node:crypto');
 const { URL } = require('node:url');
+const { getCampaignLevels, getCampaignCase, demoCase, respondToDebate, buildVerdict } = require('./campaign');
 
 const DEFAULT_PORT = 4000;
 const MAX_BODY_BYTES = 3 * 1024 * 1024;
@@ -132,107 +133,12 @@ function auditContract(input) {
   };
 }
 
-const demoCase = {
-  id: 'rental-deposit-001', title: '租赁押金争议：墙面划痕是谁造成？', type: '房屋租赁合同纠纷', difficulty: 1,
-  playerSide: '原告 · 租客张某', opponentSide: '被告 · 房东李某', goal: '证明房东无权扣留全部押金，并指出维修金额缺乏真实凭证。',
-  focus: ['损坏是否由租客造成', '房东是否有权扣除全部押金', '维修金额是否有证据'],
-  scenes: [
-    { id: 'rental-room', title: '场景一 · 出租屋', description: '退租当天的出租屋。墙面、家具、钥匙和验收单都可能留下时间线线索。', hotspots: [
-      { id: 'wall', title: '墙面划痕', icon: '🧱', evidenceId: 'ev-movein-photo', hint: '刮痕边缘已有旧灰尘。' }, { id: 'furniture', title: '旧家具', icon: '🪑', evidenceId: 'ev-inventory', hint: '入住清单记载已有磨损。' }, { id: 'keys', title: '钥匙与验收单', icon: '🔑', evidenceId: 'ev-checkout', hint: '退租交接没有双方签字。' },
-    ] },
-    { id: 'phone', title: '场景二 · 手机聊天', description: '连续微信对话、转账记录和房东发送的维修报价。', hotspots: [
-      { id: 'chat', title: '微信对话', icon: '💬', evidenceId: 'ev-chat', hint: '房东曾说“墙面本来就有几道痕”。' }, { id: 'transfer', title: '押金转账', icon: '💴', evidenceId: 'ev-transfer', hint: '3000 元押金有完整流水。' },
-    ] },
-    { id: 'document-desk', title: '场景三 · 文件桌', description: '完整租赁合同、入住照片和维修报价单。点击原件中的黄色区域获得证据。', hotspots: [
-      { id: 'contract', title: '租赁合同', icon: '📄', evidenceId: 'ev-contract', hint: '第5条约定无损坏应在7日内退还押金。' }, { id: 'repair', title: '维修报价单', icon: '🧾', evidenceId: 'ev-repair', hint: '只有报价，没有付款凭证。' },
-    ] },
-  ],
-  documents: [
-    { id: 'doc-contract', name: '房屋租赁合同（完整）', type: 'doc', content: '《房屋租赁合同》\n第一条 租赁房屋位于杭州市西湖区某小区，租期自2025年3月1日至2026年2月28日。\n第二条 月租金5000元，乙方于签约时支付押金3000元。\n第五条 租赁期满，乙方无违约行为且房屋无损坏的，甲方应在7日内全额退还押金。\n第六条 退租时双方应共同验收并签署交接单。', hotspots: [{ id: 'doc-contract-deposit', evidenceId: 'ev-contract', label: '第五条：7日内全额退还押金' }] },
-    { id: 'doc-chat', name: '微信聊天记录（完整）', type: 'chat', content: '2026-02-20 09:14 张某：今天晚上可以验收吗？\n2026-02-20 09:18 李某：我先看看，墙面本来就有几道痕，之前没来得及处理。\n2026-02-20 18:32 张某：那几道痕入住时照片里就有。\n2026-02-20 18:40 李某：我核对一下照片。\n2026-02-28 10:05 李某：维修报价要 2500 元，押金先全部扣着。', hotspots: [{ id: 'doc-chat-old-damage', evidenceId: 'ev-chat', label: '房东确认墙面本来就有痕迹' }] },
-    { id: 'doc-photo', name: '入住照片与元数据', type: 'img', content: '照片 IMG_0301.jpg\n形成时间：2025-03-01 12:06\n拍摄位置：客厅东侧墙面\n可见：与退租时相同位置存在浅色横向划痕。', hotspots: [{ id: 'doc-photo-scratch', evidenceId: 'ev-movein-photo', label: '入住当天已存在同位置划痕' }] },
-    { id: 'doc-repair', name: '维修报价单', type: 'doc', content: '墙面修补及家具清洁报价：2500元。\n出具方：个人维修联系人。\n缺少：维修完成照片、付款流水、盖章发票和分项明细。', hotspots: [{ id: 'doc-repair-no-proof', evidenceId: 'ev-repair', label: '报价单没有付款和分项凭证' }] },
-  ],
-  evidence: [
-    { id: 'ev-movein-photo', title: '入住照片：旧划痕', type: 'image', sourceDocumentId: 'doc-photo', sourceRange: 'IMG_0301.jpg · 2025-03-01 12:06', description: '入住当天同一墙面已经存在浅色横向划痕。', proofPurpose: '证明损坏形成时间早于租客退租。', authenticity: '原始文件待核验', relevance: '高', credibility: 9 },
-    { id: 'ev-chat', title: '微信确认：墙面本来就有痕', type: 'chat', sourceDocumentId: 'doc-chat', sourceRange: '2026-02-20 09:18', description: '房东在聊天中先于争议确认墙面原本已有痕迹。', proofPurpose: '证明相对方对既有损坏有先行陈述。', authenticity: '含上下文', relevance: '高', credibility: 8 },
-    { id: 'ev-contract', title: '合同第5条：7日退还押金', type: 'document', sourceDocumentId: 'doc-contract', sourceRange: '第五条', description: '无违约且无损坏时，房东应在7日内全额退还押金。', proofPurpose: '证明押金退还条件和期限。', authenticity: '合同原件', relevance: '高', credibility: 9 },
-    { id: 'ev-repair', title: '维修报价：缺少实际支出凭证', type: 'receipt', sourceDocumentId: 'doc-repair', sourceRange: '报价单全文', description: '报价单没有付款流水、发票和分项明细。', proofPurpose: '质疑损失金额和证明力。', authenticity: '待核验', relevance: '高', credibility: 6 },
-    { id: 'ev-transfer', title: '押金转账：3000元', type: 'payment', sourceDocumentId: 'doc-chat', sourceRange: '转账记录（完整）', description: '租客支付3000元押金的流水。', proofPurpose: '证明押金实际交付。', authenticity: '银行流水截图', relevance: '中', credibility: 8 },
-    { id: 'ev-inventory', title: '入住清单：家具旧磨损', type: 'document', sourceDocumentId: 'doc-contract', sourceRange: '附件一 · 入住清单', description: '清单记载家具已有轻微磨损，退租验收未单独标注新增损坏。', proofPurpose: '证明房屋原状及损耗背景。', authenticity: '附件原件', relevance: '中', credibility: 7 },
-    { id: 'ev-checkout', title: '退租交接：未共同签字', type: 'document', sourceDocumentId: 'doc-contract', sourceRange: '第六条及交接记录', description: '房东单方面查看并扣押押金，交接单没有双方签字。', proofPurpose: '质疑验收程序和单方扣款。', authenticity: '待核验', relevance: '高', credibility: 7 },
-  ],
-  keyEvidenceIds: ['ev-movein-photo', 'ev-chat', 'ev-contract', 'ev-repair'],
-};
 
 const communityPosts = [
   { id: 'post-1', author: '证据收藏家', time: '今天 09:20', title: '租赁押金关卡复盘', body: '先找入住照片，再用聊天确认时间线，最后用合同条款和维修凭证完成闭环。', tags: ['#证据链', '#租赁'], likes: 18, comments: 4 },
   { id: 'post-2', author: '仲裁员小王', time: '昨天 21:05', title: '合同审查顺序', body: '我会先做主体与期限，再看付款、验收和违约责任，最后检查争议解决。', tags: ['#合同审查', '#方法论'], likes: 32, comments: 7 },
 ];
 
-function getDemoCase() { return JSON.parse(JSON.stringify(demoCase)); }
-
-function respondToDebate(input) {
-  const argument = String(input.argument || '').trim();
-  if (!argument) {
-    const error = new Error('argument 不能为空');
-    error.statusCode = 400;
-    throw error;
-  }
-  const evidenceIds = Array.isArray(input.evidenceIds) ? input.evidenceIds.filter(Boolean) : [];
-  const history = Array.isArray(input.history) ? input.history : [];
-  const has = (id) => evidenceIds.includes(id);
-  const mentionsCausation = /入住|形成时间|原有|既有|因果|造成/.test(argument);
-  const mentionsAmount = /维修|报价|付款|凭证|2500|实际损失/.test(argument);
-  const mentionsClause = /合同|第五条|押金|七日|退还/.test(argument);
-  let response;
-  let judge;
-  let scoreChange = 2;
-  if (has('ev-movein-photo') && has('ev-chat')) {
-    response = '对方律师：我方注意到你同时提交了入住照片和聊天原文。即便墙面存在旧痕，仍请说明退租时是否出现了新的扩大损坏，以及照片是否保留完整元数据。';
-    judge = '证据链已覆盖“形成时间”和“相对方陈述”，关联性较强；继续补足损失金额。';
-    scoreChange += 16;
-  } else if (has('ev-contract') && mentionsClause) {
-    response = '对方律师：合同确实写有押金退还期限，但“无损坏”仍是条件。请不要只引用期限，还需要证明损坏并非由租客造成。';
-    judge = '规则引用与争点相关，但仍需要事实证据支撑条件是否成就。';
-    scoreChange += 10;
-  } else if (has('ev-repair') && mentionsAmount) {
-    response = '对方律师：报价单只是修复估算，并不等于没有实际损失。请说明你如何核对报价人的身份、维修范围和合理市场价格。';
-    judge = '你已抓住证明力问题；若能指出没有付款凭证和分项明细，论证会更完整。';
-    scoreChange += 12;
-  } else if (!evidenceIds.length) {
-    response = '对方律师：这是单方陈述。请先指出事实发生的具体时间，并提交能定位到原始文件的证据。';
-    judge = '当前没有出示证据，事实、关联性和证明力均不足。';
-    scoreChange -= 9;
-  } else {
-    response = '对方律师：你提交的材料与押金争点有一定关联，但还没有解释形成时间、损失金额和合同条件之间的完整联系。请继续补足证据链。';
-    judge = '已有材料入库，建议围绕“时间—损坏—金额—条款”四个节点组织论证。';
-    scoreChange += Math.min(12, evidenceIds.length * 3);
-  }
-  if (mentionsCausation) scoreChange += 4;
-  if (mentionsAmount) scoreChange += 4;
-  if (mentionsClause) scoreChange += 3;
-  const normalizedScore = Math.max(-20, Math.min(30, scoreChange));
-  if (history.length > 0) {
-    const followUps = [
-      '请把你的回答定位到具体页码、时间戳或形成记录。',
-      '请区分“对方主张”和“已经被原件证明的事实”。',
-      '请说明这份材料如何排除其他合理解释。',
-    ];
-    response += ` ${followUps[history.length % followUps.length]}`;
-  }
-  const turn = { id: randomUUID(), speaker: 'opponent', argument, evidenceIds, response, judge, scoreChange: normalizedScore, createdAt: new Date().toISOString() };
-  const allKeyEvidence = demoCase.keyEvidenceIds.every((id) => evidenceIds.includes(id));
-  const strongArgument = mentionsCausation && mentionsAmount && (mentionsClause || /证据|举证/.test(argument));
-  const won = allKeyEvidence && strongArgument;
-  return { turn, response, judge, scoreChange: normalizedScore, opponentScoreChange: won ? -18 : normalizedScore > 10 ? -6 : 2, nextPrompt: won ? '关键证据链已闭合，可以请求法官裁判。' : '继续从完整原件中选择证据，回应对方刚才的具体质疑。', status: won ? 'ready_for_verdict' : 'in_progress', historyCount: history.length + 1 };
-}
-
-function buildVerdict(input) {
-  const evidenceIds = Array.isArray(input.evidenceIds) ? input.evidenceIds : [];
-  const hasAll = demoCase.keyEvidenceIds.every((id) => evidenceIds.includes(id));
-  return { status: hasAll ? 'partially_supported' : 'insufficient_evidence', winner: hasAll ? '原告 · 租客张某（部分支持）' : '待裁决', score: hasAll ? 88 : Math.min(62, evidenceIds.length * 14), award: hasAll ? '建议房东退还押金2500元；其余500元需有合理清洁或维修凭证。' : '请继续搜证并补足形成时间、损失金额和合同条款之间的联系。', chain: hasAll ? ['入住照片证明旧划痕', '微信聊天形成相互印证', '合同第5条明确退还期限', '报价单缺少实际支出凭证'] : ['当前证据链仍有缺口'], reasoning: hasAll ? '原告已就损坏形成时间和押金返还条件提供相互印证材料；房东对2500元维修损失的证明不足，全部扣留押金缺少充分依据。' : '尚未取得全部关键原件，法官无法对损坏形成时间和实际损失作出稳定判断。', sources: [LAW_SOURCES.civil710, LAW_SOURCES.civil713] };
-}
 
 function resolveCorsOrigin(requestOrigin, configuredOrigin) {
   const allowedOrigins = String(configuredOrigin || '*').split(',').map((origin) => origin.trim()).filter(Boolean);
@@ -267,10 +173,13 @@ function createRequestHandler(options = {}) {
     if (req.method === 'OPTIONS') { json(res, 204, {}, corsOrigin); return; }
     try {
       if (req.method === 'GET' && url.pathname === '/health') { json(res, 200, { status: 'ok', service: 'argus-backend', runtime: 'node', version: '0.2.0', timestamp: new Date().toISOString() }, corsOrigin); return; }
-      if (req.method === 'GET' && url.pathname === '/api') { json(res, 200, { name: 'ARGUS+ API', version: '0.2.0', endpoints: ['GET /health', 'POST /api/cases/draft', 'POST /api/contracts/audit', 'GET /api/campaign/demo', 'POST /api/campaign/respond', 'POST /api/campaign/verdict', 'GET /api/community/feed', 'POST /api/community/posts'] }, corsOrigin); return; }
+      if (req.method === 'GET' && url.pathname === '/api') { json(res, 200, { name: 'ARGUS+ API', version: '0.2.0', endpoints: ['GET /health', 'POST /api/cases/draft', 'POST /api/contracts/audit', 'GET /api/campaign/levels', 'GET /api/campaign/cases/:id', 'GET /api/campaign/demo', 'POST /api/campaign/respond', 'POST /api/campaign/verdict', 'GET /api/community/feed', 'POST /api/community/posts'] }, corsOrigin); return; }
       if (req.method === 'POST' && url.pathname === '/api/cases/draft') { json(res, 201, { data: buildCaseDraft(await readJson(req)) }, corsOrigin); return; }
       if (req.method === 'POST' && url.pathname === '/api/contracts/audit') { json(res, 200, { data: auditContract(await readJson(req)) }, corsOrigin); return; }
-      if (req.method === 'GET' && url.pathname === '/api/campaign/demo') { json(res, 200, { data: getDemoCase() }, corsOrigin); return; }
+      if (req.method === 'GET' && url.pathname === '/api/campaign/levels') { json(res, 200, { data: getCampaignLevels() }, corsOrigin); return; }
+      const caseRoute = url.pathname.match(/^\/api\/campaign\/cases\/([^/]+)$/);
+      if (req.method === 'GET' && caseRoute) { json(res, 200, { data: getCampaignCase(caseRoute[1]) }, corsOrigin); return; }
+      if (req.method === 'GET' && url.pathname === '/api/campaign/demo') { json(res, 200, { data: getCampaignCase() }, corsOrigin); return; }
       if (req.method === 'POST' && url.pathname === '/api/campaign/respond') { json(res, 200, { data: respondToDebate(await readJson(req)) }, corsOrigin); return; }
       if (req.method === 'POST' && url.pathname === '/api/campaign/verdict') { json(res, 200, { data: buildVerdict(await readJson(req)) }, corsOrigin); return; }
       if (req.method === 'GET' && url.pathname === '/api/community/feed') { json(res, 200, { data: { posts: communityPosts } }, corsOrigin); return; }
