@@ -78,11 +78,20 @@ const EVIDENCE_NATURE: Record<string, { label: string; power: number }> = {
   chat: { label: '对话记录', power: 2 },
 };
 
-function evidenceCard(item: CampaignEvidence, key: boolean): EvidenceCard {
+const BEGINNER_LEVEL_ID = 1;
+const BEGINNER_ENEMY_HP = 20;
+
+function evidenceCard(item: CampaignEvidence, key: boolean, levelId = 0): EvidenceCard {
   const nature = EVIDENCE_NATURE[item.type || 'document'] || { label: '其他材料', power: 2 };
   const credibility = item.credibility >= 9 ? 2 : item.credibility >= 7 ? 1 : 0;
   const value = (key ? 3 : 1) + nature.power + credibility;
-  const cost = Math.max(2, Math.min(6, Math.ceil(value / 2)));
+  // The rental dispute is the tutorial encounter. Its evidence remains just as
+  // strong, but the first four cards should be affordable from the starting
+  // stamina pool instead of forcing a recovery-card draw before the player has
+  // learned the combat loop.
+  const cost = levelId === BEGINNER_LEVEL_ID
+    ? Math.max(2, Math.min(4, Math.ceil(value / 3)))
+    : Math.max(2, Math.min(6, Math.ceil(value / 2)));
   return {
     id: `card-${item.id}`, evidenceId: item.id, name: item.title,
     nature: nature.label, key, value,
@@ -98,16 +107,19 @@ function buildHand(demo: DemoCase, evidenceIds: string[]): EvidenceCard[] {
   return evidenceIds
     .map((id) => demo.evidence.find((item) => item.id === id))
     .filter((item): item is CampaignEvidence => Boolean(item))
-    .map((item) => evidenceCard(item, demo.keyEvidenceIds.includes(item.id)));
+    .map((item) => evidenceCard(item, demo.keyEvidenceIds.includes(item.id), demo.levelId));
 }
 
 /* Keep case difficulty tied to the strongest four exhibits, independent of random draws. */
 function opponentHealth(demo: DemoCase) {
-  return demo.evidence
-    .map((item) => evidenceCard(item, demo.keyEvidenceIds.includes(item.id)))
+  const health = demo.evidence
+    .map((item) => evidenceCard(item, demo.keyEvidenceIds.includes(item.id), demo.levelId))
     .sort((a, b) => Number(b.key) - Number(a.key) || b.value - a.value)
     .slice(0, HAND_SIZE)
+    // Keep the first case readable as a tutorial: one full player health bar
+    // is a clear target, while later cases retain their evidence-derived scale.
     .reduce((total, card) => total + card.value, 0);
+  return demo.levelId === BEGINNER_LEVEL_ID ? Math.min(BEGINNER_ENEMY_HP, health) : health;
 }
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -532,7 +544,7 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
     <div className="phase-rail"><span className={phase === 'investigate' ? 'active' : 'done'}>1 搜证</span><i>→</i><span className={phase === 'court' ? 'active' : ''}>2 卡牌庭审</span><i>→</i><span className={verdict ? 'active' : ''}>3 裁决</span></div>
     <small className="campaign-focus-line">争议焦点：{demo.focus.join(' · ')}</small>
     {phase === 'investigate' && error && <p className="error-message" role="alert">{error}</p>}
-{phase === 'court' ? <CourtArena demo={demo} onNext={onNext} onInvestigate={returnToInvestigation} hand={courtHand} cardsPlayed={cardsPlayed} battleStage={battle.stage} battleResult={battleResult} playerStamina={playerStamina} playerShield={playerShield} enemyHp={enemyHp} maxEnemyHp={maxEnemyHp} playerHp={playerHp} turn={turn} turnTimer={turnTimer} debate={debate} submitting={submitting} verdict={verdict} error={error} onPlayCard={playCard} onRequestVerdict={requestVerdict} courtEffect={courtEffect} /> : <div className="campaign-layout investigation-layout"><aside className="panel evidence-panel"><PanelHeading eyebrow="EVIDENCE HUB" title="现场搜证" badge="自由搜证" /><div className="scene-tabs">{demo.scenes.map((scene) => <button type="button" className={scene.id === activeScene.id ? 'active' : ''} key={scene.id} onClick={() => setSceneId(scene.id)}>{scene.title}</button>)}</div><div className="scene-board"><span className="scene-label">{activeScene.title}</span><p>{activeScene.description}</p><div className="hotspot-grid">{activeScene.hotspots.map((spot) => <button type="button" className={`hotspot ${discovered.includes(spot.evidenceId) ? 'found' : ''}`} key={spot.id} onClick={() => discoverEvidence(spot.evidenceId, spot.title)}><EvidenceArtwork art={artworkFor(spot.id)} /><strong>{spot.title}</strong><small>{discovered.includes(spot.evidenceId) ? '已收集 ✓' : `自由调查 · ${spot.hint}`}</small></button>)}</div></div><h3 className="subheading">搜证日志</h3><div className="investigation-log">{investigationLog.length ? investigationLog.map((item, index) => <span key={`${item}-${index}`}>{item}</span>) : <span>点击现场热点，寻找能互相印证的原件。</span>}</div></aside><div className="panel source-panel"><PanelHeading eyebrow="SOURCE READER" title={activeDocument.name} badge="具体租房材料" /><div className="source-documents"><h3 className="subheading">原始文件 · 与当前材料同组</h3><div className="document-list">{demo.documents.map((doc) => <button type="button" className={`document-button ${doc.id === documentId ? 'active' : ''}`} key={doc.id} onClick={() => setDocumentId(documentId === doc.id ? '' : doc.id)}><EvidenceArtwork art={artworkFor(doc.id, doc.type)} /><strong>{doc.name}<small>打开完整原件 →</small></strong></button>)}</div></div><div className="source-reader"><CatDocument doc={activeDocument} playerSide={demo.playerSide} discovered={discovered} onDiscover={discoverEvidence} /></div></div><aside className="panel evidence-cards-panel"><PanelHeading eyebrow="CASEBOARD" title="证据卡组" badge={`已选 ${selectedEvidence.length}/${HAND_SIZE}`} /><div className="evidence-inventory">{discovered.length ? demo.evidence.filter((item) => discovered.includes(item.id)).map((item) => { const card = evidenceCard(item, demo.keyEvidenceIds.includes(item.id)); const picked = selectedEvidence.includes(item.id); return <button type="button" className={`evidence-card ${picked ? 'selected' : ''}`} key={item.id} onClick={() => toggleEvidence(item.id)} aria-pressed={picked}><div><strong>{item.title}</strong><span className="tag">体力 {card.cost} · 伤害 {card.value}</span></div><p>{item.description}</p><small>{card.nature} · 可信度 {item.credibility}/10 · {card.key ? '关键证据' : '补充证据'} · {picked ? '✓ 已带上庭 · 点击取消' : '点击带上庭'}</small></button>; }) : <EmptyState text="点击左侧现场热点，或在材料中点击线索，收集到的证据会出现在这里。" />}</div><div className="court-entry"><p className="chain-tip">选择最多 {HAND_SIZE} 张起手证据。庭审始终保留 4 张手牌，打出后随机补牌；已搜集证据和恢复牌组成循环牌库。体力足够才能出牌，恢复靠卡牌，不随回合或超时自动增加。</p><button type="button" className="button primary enter-court" onClick={enterCourt} disabled={!selectedEvidence.length}>带着 {selectedEvidence.length} 张证据卡进入法庭 →</button></div></aside></div>}
+{phase === 'court' ? <CourtArena demo={demo} onNext={onNext} onInvestigate={returnToInvestigation} hand={courtHand} cardsPlayed={cardsPlayed} battleStage={battle.stage} battleResult={battleResult} playerStamina={playerStamina} playerShield={playerShield} enemyHp={enemyHp} maxEnemyHp={maxEnemyHp} playerHp={playerHp} turn={turn} turnTimer={turnTimer} debate={debate} submitting={submitting} verdict={verdict} error={error} onPlayCard={playCard} onRequestVerdict={requestVerdict} courtEffect={courtEffect} /> : <div className="campaign-layout investigation-layout"><aside className="panel evidence-panel"><PanelHeading eyebrow="EVIDENCE HUB" title="现场搜证" badge="自由搜证" /><div className="scene-tabs">{demo.scenes.map((scene) => <button type="button" className={scene.id === activeScene.id ? 'active' : ''} key={scene.id} onClick={() => setSceneId(scene.id)}>{scene.title}</button>)}</div><div className="scene-board"><span className="scene-label">{activeScene.title}</span><p>{activeScene.description}</p><div className="hotspot-grid">{activeScene.hotspots.map((spot) => <button type="button" className={`hotspot ${discovered.includes(spot.evidenceId) ? 'found' : ''}`} key={spot.id} onClick={() => discoverEvidence(spot.evidenceId, spot.title)}><EvidenceArtwork art={artworkFor(spot.id)} /><strong>{spot.title}</strong><small>{discovered.includes(spot.evidenceId) ? '已收集 ✓' : `自由调查 · ${spot.hint}`}</small></button>)}</div></div><h3 className="subheading">搜证日志</h3><div className="investigation-log">{investigationLog.length ? investigationLog.map((item, index) => <span key={`${item}-${index}`}>{item}</span>) : <span>点击现场热点，寻找能互相印证的原件。</span>}</div></aside><div className="panel source-panel"><PanelHeading eyebrow="SOURCE READER" title={activeDocument.name} badge="具体租房材料" /><div className="source-documents"><h3 className="subheading">原始文件 · 与当前材料同组</h3><div className="document-list">{demo.documents.map((doc) => <button type="button" className={`document-button ${doc.id === documentId ? 'active' : ''}`} key={doc.id} onClick={() => setDocumentId(documentId === doc.id ? '' : doc.id)}><EvidenceArtwork art={artworkFor(doc.id, doc.type)} /><strong>{doc.name}<small>打开完整原件 →</small></strong></button>)}</div></div><div className="source-reader"><CatDocument doc={activeDocument} playerSide={demo.playerSide} discovered={discovered} onDiscover={discoverEvidence} /></div></div><aside className="panel evidence-cards-panel"><PanelHeading eyebrow="CASEBOARD" title="证据卡组" badge={`已选 ${selectedEvidence.length}/${HAND_SIZE}`} /><div className="evidence-inventory">{discovered.length ? demo.evidence.filter((item) => discovered.includes(item.id)).map((item) => { const card = evidenceCard(item, demo.keyEvidenceIds.includes(item.id), demo.levelId); const picked = selectedEvidence.includes(item.id); return <button type="button" className={`evidence-card ${picked ? 'selected' : ''}`} key={item.id} onClick={() => toggleEvidence(item.id)} aria-pressed={picked}><div><strong>{item.title}</strong><span className="tag">体力 {card.cost} · 伤害 {card.value}</span></div><p>{item.description}</p><small>{card.nature} · 可信度 {card.credibility}/10 · {card.key ? '关键证据' : '补充证据'} · {picked ? '✓ 已带上庭 · 点击取消' : '点击带上庭'}</small></button>; }) : <EmptyState text="点击左侧现场热点，或在材料中点击线索，收集到的证据会出现在这里。" />}</div><div className="court-entry"><p className="chain-tip">选择最多 {HAND_SIZE} 张起手证据。庭审始终保留 4 张手牌，打出后随机补牌；已搜集证据和恢复牌组成循环牌库。体力足够才能出牌，恢复靠卡牌，不随回合或超时自动增加。</p><button type="button" className="button primary enter-court" onClick={enterCourt} disabled={!selectedEvidence.length}>带着 {selectedEvidence.length} 张证据卡进入法庭 →</button></div></aside></div>}
   </section>;
 }
 

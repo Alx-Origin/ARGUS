@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import test from 'node:test';
-import { battleReducer, canAffordCard, emptyBattle, HAND_SIZE, PLAYER_MAX_SHIELD, PLAYER_MAX_STAMINA } from './court-battle.ts';
+import { battleReducer, canAffordCard, emptyBattle, HAND_SIZE, PLAYER_MAX_SHIELD, PLAYER_MAX_STAMINA, TURN_SECONDS } from './court-battle.ts';
 
 const exhibit = (index, cost = 4, damage = 7) => ({
   id: `evidence-${index}`, evidenceId: `e${index}`, name: `证据 ${index}`, nature: '书证',
@@ -16,6 +16,7 @@ const next = (state) => battleReducer(battleReducer(state, { type: 'opponent', l
 const allCards = (state) => [...state.hand, ...state.drawPile, ...state.discardPile];
 
 test('starts full, keeps selected exhibits, adds recovery to the deck', () => {
+  assert.equal(TURN_SECONDS, 25);
   const state = start();
   assert.equal(state.stamina, PLAYER_MAX_STAMINA);
   assert.equal(state.playerHp, 20);

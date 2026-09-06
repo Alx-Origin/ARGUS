@@ -2,7 +2,8 @@ export const HAND_SIZE = 4;
 export const PLAYER_MAX_HP = 20;
 export const PLAYER_MAX_SHIELD = 8;
 export const PLAYER_MAX_STAMINA = 10;
-export const TURN_SECONDS = 15;
+// Give players enough time to read an evidence card and make a considered move.
+export const TURN_SECONDS = 25;
 // The player's hit animation lasts ~1.1s; leave a readable pause after it.
 export const OPPONENT_REACTION_DELAY_MS = 2000;
 const TIMEOUT_DAMAGE = 2;
