@@ -1,6 +1,8 @@
 // Titles, order and difficulty restored from 33b0175:frontend/public/argus-original.html.
 // Levels 1–3 retain the historical case premises; levels 4–10 expand its topic outline.
+// The imported EAZO set is appended as levels 11–20 and kept in a separate module.
 // All documents below are fictional training exhibits, not real case records.
+const { eazoCampaignCases } = require('./eazo-campaign-cases');
 const cardTemplates = [
   { id: 'recorded', name: '已为您记录', type: 'damage', cost: 1, value: 2, hint: '用原件固定关键事实' },
   { id: 'verify', name: '正在核实', type: 'damage', cost: 2, value: 4, hint: '核对争议材料的证明力' },
@@ -303,5 +305,5 @@ rentalCase.documents[1].content += '\n转账记录（完整）：2025-03-01张�
 rentalCase.documents[1].hotspots.push({ id: 'doc-transfer', evidenceId: 'ev-transfer', label: '银行流水：押金3000元已支付' });
 rentalCase.documents.forEach((document) => { document.content = '【虚构训练材料】\n' + document.content; });
 
-const campaignCases = [rentalCase, ...additionalCases];
+const campaignCases = [rentalCase, ...additionalCases, ...eazoCampaignCases];
 module.exports = { campaignCases };

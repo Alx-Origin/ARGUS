@@ -202,7 +202,7 @@ test('100 seeds × 40 plays: always four cards, affordable option, recyclable di
   }
 });
 
-test('actual ten campaign cases keep each collected deck scoped and playable past four uses', () => {
+test('all twenty campaign cases keep each collected deck scoped and playable past four uses', () => {
   const require = createRequire(import.meta.url);
   const { campaignCases } = require('../../../backend/src/campaign-cases.js');
   for (const campaign of campaignCases) {

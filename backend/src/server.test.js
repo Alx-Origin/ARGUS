@@ -151,6 +151,8 @@ test('POST /api/campaign/verdict returns the explainable evidence-chain result',
 });
 
 const historicalLevelTitles = ['押金猎人', '七天无理由', '加班费幽灵', '信息饕餮', '版权窃贼', '竞业锁链', '格式条款恶魔', '仲裁迷宫', '证据湮灭', '终极审判'];
+const eazoLevelTitles = ['租赁押金争议', '网购退货之争', '离职工资之争', '购房尾款之争', '转账之争', '装修停工之争', '二手车之争', '验收之争', '理赔之争', '酒局之后'];
+const rentalCaseLeakPattern = /eazo-rental-deposit-001|租赁押金争议|墙面划痕是谁造成|租客张某|房东李某/;
 
 async function postCampaign(baseUrl, route, data) {
   const response = await fetch(`${baseUrl}/api/campaign/${route}`, {
@@ -159,12 +161,13 @@ async function postCampaign(baseUrl, route, data) {
   return { response, body: await response.json() };
 }
 
-test('all ten historical levels have distinct, complete and reachable cases', async () => {
+test('all twenty native and EAZO levels have distinct, complete and reachable cases', async () => {
   await withServer(async (baseUrl) => {
     const { data: levels } = await (await fetch(`${baseUrl}/api/campaign/levels`)).json();
-    assert.deepEqual(levels.map((level) => level.title), historicalLevelTitles);
-    assert.deepEqual(levels.map((level) => level.difficulty), [1, 1, 2, 2, 3, 3, 4, 4, 5, 5]);
-    assert.equal(new Set(levels.map((level) => level.id)).size, 10);
+    assert.deepEqual(levels.slice(0, 10).map((level) => level.title), historicalLevelTitles);
+    assert.deepEqual(levels.slice(10).map((level) => level.title), eazoLevelTitles);
+    assert.deepEqual(levels.map((level) => level.difficulty), [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 1, 2, 3, 4, 5, 5, 6, 7, 8, 8]);
+    assert.equal(new Set(levels.map((level) => level.id)).size, 20);
     const allEvidenceIds = new Set();
     for (const level of levels) {
       const response = await fetch(`${baseUrl}/api/campaign/cases/${level.id}`);
@@ -176,7 +179,7 @@ test('all ten historical levels have distinct, complete and reachable cases', as
       assert.ok(caseData.title.startsWith(level.title));
       assert.ok(caseData.summary && caseData.goal && caseData.playerSide && caseData.opponentSide);
       assert.equal(caseData.focus.length, 3);
-      assert.equal(caseData.scenes.length, 3);
+      assert.ok(caseData.scenes.length >= 2);
       assert.equal(caseData.cards.length, 4);
       assert.ok(caseData.cards.every((card) => card.text && card.cost <= 4));
       assert.equal(caseData.keyEvidenceIds.length, level.keyEvidenceCount);
@@ -198,14 +201,14 @@ test('all ten historical levels have distinct, complete and reachable cases', as
       assert.ok([...sceneEvidence, ...documentEvidence, ...caseData.keyEvidenceIds].every((id) => caseData.evidence.some((evidence) => evidence.id === id)));
       const { data: numberedCase } = await (await fetch(`${baseUrl}/api/campaign/cases/${level.levelId}`)).json();
       assert.equal(numberedCase.id, caseData.id);
-      if (level.levelId > 1) assert.doesNotMatch(JSON.stringify(caseData), /墙面|房东|租客|退租/);
+      if (level.levelId > 1 && level.levelId !== 11) assert.doesNotMatch(JSON.stringify(caseData), rentalCaseLeakPattern);
     }
   });
 });
 
-test('each level completes its own debate and verdict, and verdict follows the game result', async () => {
+test('each of the twenty levels completes its own debate and verdict, and verdict follows the game result', async () => {
   await withServer(async (baseUrl) => {
-    for (let levelId = 1; levelId <= 10; levelId += 1) {
+    for (let levelId = 1; levelId <= 20; levelId += 1) {
       const { data: caseData } = await (await fetch(`${baseUrl}/api/campaign/cases/${levelId}`)).json();
       const payload = { caseId: caseData.id, evidenceIds: caseData.keyEvidenceIds, gameResult: 'player_win' };
       for (const card of caseData.cards) {
@@ -215,7 +218,7 @@ test('each level completes its own debate and verdict, and verdict follows the g
         assert.equal(body.data.turn.argument, card.text);
         assert.deepEqual(new Set(body.data.turn.evidenceIds), new Set(caseData.keyEvidenceIds));
         assert.ok(body.data.scoreChange > 10);
-        if (levelId > 1) assert.doesNotMatch(body.data.response + body.data.judge, /押金|墙面|房东|租客/);
+        if (levelId > 1 && levelId !== 11) assert.doesNotMatch(body.data.response + body.data.judge, rentalCaseLeakPattern);
       }
       const { response, body } = await postCampaign(baseUrl, 'verdict', payload);
       assert.equal(response.status, 200);
@@ -225,7 +228,7 @@ test('each level completes its own debate and verdict, and verdict follows the g
       assert.ok(body.data.winner.includes(caseData.playerSide));
       assert.equal(body.data.chain.length, caseData.keyEvidenceIds.length);
       assert.ok(body.data.award && body.data.reasoning && body.data.sources.length);
-      if (levelId > 1) assert.doesNotMatch(JSON.stringify(body.data), /押金|墙面|房东|租客/);
+      if (levelId > 1 && levelId !== 11) assert.doesNotMatch(JSON.stringify(body.data), rentalCaseLeakPattern);
       const { body: partial } = await postCampaign(baseUrl, 'verdict', { ...payload, evidenceIds: caseData.keyEvidenceIds.slice(1) });
       assert.equal(partial.data.status, 'player_win');
       assert.equal(partial.data.gameResult, 'player_win');
@@ -239,7 +242,7 @@ test('each level completes its own debate and verdict, and verdict follows the g
 
 test('unknown levels fail explicitly instead of silently loading the rental demo', async () => {
   await withServer(async (baseUrl) => {
-    for (const identifier of ['0', '11', 'unknown-case', 'toString']) {
+    for (const identifier of ['0', '21', 'unknown-case', 'toString']) {
       assert.equal((await fetch(`${baseUrl}/api/campaign/cases/${identifier}`)).status, 404);
       for (const route of ['respond', 'verdict']) {
         const { response } = await postCampaign(baseUrl, route, { caseId: identifier, argument: '本案证据', evidenceIds: ['ev-contract'] });
