@@ -432,7 +432,7 @@ function CampaignSection({ onRunComplete }: { onRunComplete: (levelId: number, s
   </section>;
   const recommended = levels.find((level) => !completed[level.id])?.id;
   return <section className="campaign-shell campaign-map-shell" aria-label="法庭闯关关卡选择">
-    <div className="campaign-header"><div><h2>法庭闯关 <small>证据 → 卡牌 → 裁决</small></h2><p className="campaign-lead">先在案发现场搜证，再把证据编成卡牌连击。20 个独立案件，由押金纠纷逐步进阶到 EAZO 导入的综合案例。</p></div><div className="campaign-header-stats"><span className="tag">搜证 + 庭审</span><span className="tag ready">全部 {levels.length} 关开放</span><span className="tag">本次完成 {Object.keys(completed).length}/{levels.length}</span></div></div>
+    <div className="campaign-header"><div><h2>法庭闯关 <small>证据 → 卡牌 → 裁决</small></h2><p className="campaign-lead">先在案发现场搜证，再把证据编成卡牌连击。10 个独立案件，由押金纠纷逐步进阶到综合审判。</p></div><div className="campaign-header-stats"><span className="tag">搜证 + 庭审</span><span className="tag ready">全部 {levels.length} 关开放</span><span className="tag">本次完成 {Object.keys(completed).length}/{levels.length}</span></div></div>
     <div className="campaign-map">{levels.map((level) => <button type="button" key={level.id} className={`level-node ${completed[level.id] ? 'completed' : level.id === recommended ? 'current' : ''}`} onClick={() => selectLevel(level.id)}>
       <span className="level-num">{level.levelId}</span><strong className="level-title">{level.title}</strong><small>{level.desc}</small><small>难度 {level.difficulty} · {level.keyEvidenceCount} 份关键证据</small><span className="level-stars">{completed[level.id] ? '★★★' : '☆☆☆'}</span>
     </button>)}</div>
