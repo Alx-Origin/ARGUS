@@ -75,6 +75,27 @@ button {
   gap: .65rem;
 }
 
+.locale-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: var(--paper);
+}
+.locale-switch button {
+  min-width: 2.35rem;
+  padding: .34rem .45rem;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  font: 800 .62rem "SFMono-Regular", Consolas, monospace;
+}
+.locale-switch button:hover { background: var(--yellow); }
+.locale-switch button.active { color: #fff; background: var(--blue); box-shadow: 2px 2px 0 var(--ink); }
+
 .player-chip {
   display: inline-flex;
   align-items: center;

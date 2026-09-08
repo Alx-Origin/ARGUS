@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { CatDocument, EvidenceArtwork, artworkFor } from './components/cat-evidence';
 import { artworkForEvidence } from './lib/evidence-art';
 import { createCourtSfx, soundForEffect } from './lib/court-sfx';
+import { APP_COPY, LocaleContext, LOCALE_STORAGE_KEY, detectLocale, getBattleEffectCopy, getEvidenceNatureCopy, getLevelCopy, getTacticalCardCopy, getTypeCopy, interpolate, normalizeLocale, translatePartyLabel, useLocale, type Locale } from './lib/localization';
 import { getAuthUser, getPlayerId, isSupabaseConfigured, isUsernameAvailable, loadLocalPlayerProfile, loadPlayerProfile, loginAccount, logoutAccount, normalizeUsername, onAuthChange, registerAccount, saveCampaignRun, savePlayerProfile, type AuthUser, type PlayerProfile } from './lib/supabase';
 import { battleReducer, canAffordCard, emptyBattle, HAND_SIZE, PLAYER_MAX_HP, PLAYER_MAX_SHIELD, PLAYER_MAX_STAMINA, TURN_SECONDS, OPPONENT_REACTION_DELAY_MS, type BattleCard as EvidenceCard, type BattleEffect, type BattleStage } from './lib/court-battle';
 
@@ -81,7 +82,7 @@ const EVIDENCE_NATURE: Record<string, { label: string; power: number }> = {
 const BEGINNER_LEVEL_ID = 1;
 const BEGINNER_ENEMY_HP = 20;
 
-function evidenceCard(item: CampaignEvidence, key: boolean, levelId = 0): EvidenceCard {
+function evidenceCard(item: CampaignEvidence, key: boolean, levelId = 0, locale: Locale = 'zh'): EvidenceCard {
   const nature = EVIDENCE_NATURE[item.type || 'document'] || { label: '其他材料', power: 2 };
   const credibility = item.credibility >= 9 ? 2 : item.credibility >= 7 ? 1 : 0;
   const value = (key ? 3 : 1) + nature.power + credibility;
@@ -94,26 +95,26 @@ function evidenceCard(item: CampaignEvidence, key: boolean, levelId = 0): Eviden
     : Math.max(2, Math.min(6, Math.ceil(value / 2)));
   return {
     id: `card-${item.id}`, evidenceId: item.id, name: item.title,
-    nature: nature.label, key, value,
+    nature: getEvidenceNatureCopy(nature.label, locale), key, value,
     credibility: item.credibility,
     cost, staminaRecovery: 0, shieldGain: 0,
-    effectText: `造成 ${value} 点伤害 · 消耗 ${cost} 点体力`,
+    effectText: locale === 'en' ? `Deal ${value} damage · Cost ${cost} stamina` : `造成 ${value} 点伤害 · 消耗 ${cost} 点体力`,
     // Cites its own exhibit so the rebuttal engine can match it against the case's disputes.
     text: `依据「${item.title}」：${item.description}${item.proofPurpose}`,
   };
 }
 
-function buildHand(demo: DemoCase, evidenceIds: string[]): EvidenceCard[] {
+function buildHand(demo: DemoCase, evidenceIds: string[], locale: Locale = 'zh'): EvidenceCard[] {
   return evidenceIds
     .map((id) => demo.evidence.find((item) => item.id === id))
     .filter((item): item is CampaignEvidence => Boolean(item))
-    .map((item) => evidenceCard(item, demo.keyEvidenceIds.includes(item.id), demo.levelId));
+    .map((item) => evidenceCard(item, demo.keyEvidenceIds.includes(item.id), demo.levelId, locale));
 }
 
 /* Keep case difficulty tied to the strongest four exhibits, independent of random draws. */
-function opponentHealth(demo: DemoCase) {
+function opponentHealth(demo: DemoCase, locale: Locale = 'zh') {
   const health = demo.evidence
-    .map((item) => evidenceCard(item, demo.keyEvidenceIds.includes(item.id), demo.levelId))
+    .map((item) => evidenceCard(item, demo.keyEvidenceIds.includes(item.id), demo.levelId, locale))
     .sort((a, b) => Number(b.key) - Number(a.key) || b.value - a.value)
     .slice(0, HAND_SIZE)
     // Keep the first case readable as a tutorial: one full player health bar
@@ -144,6 +145,7 @@ export default function HomePage() {
   const pathname = usePathname();
   const router = useRouter();
   const apiBaseUrl = useMemo(() => (process.env.NEXT_PUBLIC_API_BASE_URL || '/argus-api').replace(/\/$/, ''), []);
+  const [locale, setLocale] = useState<Locale>('zh');
   const [caseDraft, setCaseDraft] = useState<CaseDraft | null>(null);
   const [caseLoading, setCaseLoading] = useState(false);
   const [caseError, setCaseError] = useState('');
@@ -162,6 +164,20 @@ export default function HomePage() {
   const [entryAuthDismissed, setEntryAuthDismissed] = useState(false);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = window.localStorage.getItem(LOCALE_STORAGE_KEY);
+    const nextLocale = normalizeLocale(stored || detectLocale());
+    setLocale(nextLocale);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+    document.documentElement.lang = locale === 'en' ? 'en' : 'zh-CN';
+    document.title = locale === 'en' ? 'Courtroom Quest · ARGUS+' : '法庭闯关 · ARGUS+';
+  }, [locale]);
+
+  useEffect(() => {
     let disposed = false;
     let authReady = false;
     async function hydrate(user: AuthUser | null) {
@@ -177,7 +193,7 @@ export default function HomePage() {
         }
         if (!disposed) setPlayerProfile(profile);
       } catch {
-        if (!disposed) setProfileError('云端档案暂时不可用，仍可使用本机模式。');
+        if (!disposed) setProfileError(APP_COPY[locale].profileCloudUnavailable);
       } finally {
         if (!disposed) setProfileLoading(false);
       }
@@ -215,7 +231,7 @@ export default function HomePage() {
     try {
       const form = new FormData(event.currentTarget);
       setCaseDraft(await requestJson<CaseDraft>(`${apiBaseUrl}/api/cases/draft`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(form.entries())) }));
-    } catch (error) { setCaseError(error instanceof Error ? error.message : '案件生成失败'); }
+    } catch (error) { setCaseError(error instanceof Error ? error.message : (locale === 'en' ? 'Could not generate case' : '案件生成失败')); }
     finally { setCaseLoading(false); }
   }
 
@@ -225,7 +241,7 @@ export default function HomePage() {
     try {
       const form = new FormData(event.currentTarget);
       setAuditResult(await requestJson<AuditResult>(`${apiBaseUrl}/api/contracts/audit`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(form.entries())) }));
-    } catch (error) { setAuditError(error instanceof Error ? error.message : '合同审查失败'); }
+    } catch (error) { setAuditError(error instanceof Error ? error.message : (locale === 'en' ? 'Contract review failed' : '合同审查失败')); }
     finally { setAuditLoading(false); }
   }
 
@@ -244,7 +260,7 @@ export default function HomePage() {
     } catch {
       setPlayerProfile(nextProfile);
       setProfileOpen(false);
-      setProfileError('已保存到本机；配置 Supabase 后会自动同步云端。');
+      setProfileError(APP_COPY[locale].profileSavedLocal);
     }
   }
 
@@ -277,7 +293,7 @@ export default function HomePage() {
       setPlayerId(localId);
       setPlayerProfile(loadLocalPlayerProfile(localId));
     } catch (error) {
-      setProfileError(error instanceof Error ? error.message : '退出登录失败');
+      setProfileError(error instanceof Error ? error.message : APP_COPY[locale].logoutError);
     }
   }
 
@@ -299,56 +315,60 @@ export default function HomePage() {
       await saveCampaignRun({ playerId, levelId, score, outcome: 'player_win' });
       await savePlayerProfile(nextProfile);
     } catch {
-      setProfileError('本局已记录在本机，云端同步将在 Supabase 配置后生效。');
+      setProfileError(APP_COPY[locale].profileRunSavedLocal);
     }
   }
 
   return (
-    <main>
-      <a className="skip-link" href="#main-content">跳到主要内容</a>
-      <h1 className="sr-only">你的证词有猫饼 · Meow Court</h1>
-      <header className="masthead">
-        <button className="brand" onClick={() => router.push('/campaign')} aria-label="返回首页">
-          <img src="/assets/lawyer-cat-transparent.png" alt="Meow Court 律师猫" />
-          <span className="brand-wordmark">
-            <strong className="cat-title">你的证词有猫饼</strong>
-            <small className="cat-subtitle">Meow Court<span className="wordmark-paw" aria-hidden="true">🐾</span></small>
-          </span>
-          <svg className="paw-gavel" viewBox="0 0 88 76" fill="none" aria-hidden="true" focusable="false">
-            <path d="M42 66h34l4 6H38z" fill="#b97843" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />
-            <g className="paw-gavel-swing" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m24 54 35-30" stroke="#171717" strokeWidth="9" />
-              <path d="m24 54 35-30" stroke="#b97843" strokeWidth="4" />
-              <path d="m48 15 8-7 23 26-8 7z" fill="#b97843" />
-              <path d="m47 16 10-9M70 42l10-9" strokeWidth="6" />
-              <path d="M5 63 19 45c-3-5-1-10 3-10 2-6 7-6 10-2 5-2 9 2 8 6 6 4 3 10-2 12L23 70" fill="#fff1dc" />
-              <path d="M22 52c-2-4 1-9 5-8 4-3 9 0 8 4-1 5-9 8-13 4Z" fill="#df9c9c" strokeWidth="1.5" />
-              <path d="m22 40 1 1m7-3 1 2m6 2-1 2" stroke="#df9c9c" strokeWidth="4" />
-            </g>
-            <g className="paw-gavel-tap" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="m59 56-1-5m12 7 4-4m-25 4-4-3" />
-            </g>
-          </svg>
-        </button>
-        <div className="player-header-actions">
-          <button type="button" className="player-chip" onClick={() => authUser ? setProfileOpen(true) : isSupabaseConfigured ? openAuthModal() : setProfileOpen(true)} disabled={profileLoading}>
-            <img className="player-chip-avatar" src={playerProfile?.avatar || AVATARS[0].src} alt="" />
-            <span><strong>{playerProfile?.name || (authUser ? '完善玩家档案' : '登录 / 注册')}</strong><small>{authUser ? '已登录 · 点击编辑头像' : '用户名 + 密码'}</small></span>
+    <LocaleContext.Provider value={{ locale, setLocale }}>
+      <main>
+        <a className="skip-link" href="#main-content">{APP_COPY[locale].skipLink}</a>
+        <h1 className="sr-only">{APP_COPY[locale].brandTitle} · {APP_COPY[locale].brandSubtitle}</h1>
+        <header className="masthead">
+          <button className="brand" onClick={() => router.push('/campaign')} aria-label={APP_COPY[locale].campaignBack}>
+            <img src="/assets/lawyer-cat-transparent.png" alt={APP_COPY[locale].brandAlt} />
+            <span className="brand-wordmark">
+              <strong className="cat-title">{APP_COPY[locale].brandTitle}</strong>
+              <small className="cat-subtitle">{APP_COPY[locale].brandSubtitle}<span className="wordmark-paw" aria-hidden="true">🐾</span></small>
+            </span>
+            <svg className="paw-gavel" viewBox="0 0 88 76" fill="none" aria-hidden="true" focusable="false">
+              <path d="M42 66h34l4 6H38z" fill="#b97843" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />
+              <g className="paw-gavel-swing" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m24 54 35-30" stroke="#171717" strokeWidth="9" />
+                <path d="m24 54 35-30" stroke="#b97843" strokeWidth="4" />
+                <path d="m48 15 8-7 23 26-8 7z" fill="#b97843" />
+                <path d="m47 16 10-9M70 42l10-9" strokeWidth="6" />
+                <path d="M5 63 19 45c-3-5-1-10 3-10 2-6 7-6 10-2 5-2 9 2 8 6 6 4 3 10-2 12L23 70" fill="#fff1dc" />
+                <path d="M22 52c-2-4 1-9 5-8 4-3 9 0 8 4-1 5-9 8-13 4Z" fill="#df9c9c" strokeWidth="1.5" />
+                <path d="m22 40 1 1m7-3 1 2m6 2-1 2" stroke="#df9c9c" strokeWidth="4" />
+              </g>
+              <g className="paw-gavel-tap" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="m59 56-1-5m12 7 4-4m-25 4-4-3" />
+              </g>
+            </svg>
           </button>
-          <span className="player-score">⭐ {playerProfile?.totalScore || 0}</span>
-          {authUser && <button type="button" className="account-action" onClick={handleLogout}>退出</button>}
+          <div className="player-header-actions">
+            <div className="locale-switch" role="tablist" aria-label="Language switch">
+              <button type="button" role="tab" aria-selected={locale === 'zh'} className={locale === 'zh' ? 'active' : ''} onClick={() => setLocale('zh')}>{APP_COPY.zh.localeZh}</button>
+              <button type="button" role="tab" aria-selected={locale === 'en'} className={locale === 'en' ? 'active' : ''} onClick={() => setLocale('en')}>{APP_COPY.zh.localeEn}</button>
+            </div>
+            <button type="button" className="player-chip" onClick={() => authUser ? setProfileOpen(true) : isSupabaseConfigured ? openAuthModal() : setProfileOpen(true)} disabled={profileLoading}>
+              <img className="player-chip-avatar" src={playerProfile?.avatar || AVATARS[0].src} alt="" />
+              <span><strong>{playerProfile?.name || (authUser ? APP_COPY[locale].profileMissingName : APP_COPY[locale].login)}</strong><small>{authUser ? APP_COPY[locale].editProfile : APP_COPY[locale].loginHint}</small></span>
+            </button>
+            <span className="player-score">⭐ {playerProfile?.totalScore || 0}</span>
+            {authUser && <button type="button" className="account-action" onClick={handleLogout}>{APP_COPY[locale].logout}</button>}
+          </div>
+        </header>
+
+        <div className="page-shell" id="main-content">
+          <CampaignSection onRunComplete={handleRunComplete} />
         </div>
-      </header>
-
-      <div className="page-shell" id="main-content">
-
-
-        <CampaignSection onRunComplete={handleRunComplete} />
-      </div>
-      {profileError && <p className="profile-sync-note" role="status">{profileError}</p>}
-      {!profileLoading && !authOpen && ((!isSupabaseConfigured && (!playerProfile || profileOpen)) || (Boolean(authUser) && (!playerProfile || profileOpen))) && <ProfileModal profile={playerProfile} authenticated={Boolean(authUser)} onSave={handleSaveProfile} onClose={() => playerProfile && setProfileOpen(false)} onAuthRequest={openAuthModal} />}
-      {(!entryAuthDismissed && !profileLoading && isSupabaseConfigured && !authUser && !playerProfile) || authOpen ? <AuthModal onClose={() => { setAuthOpen(false); setEntryAuthDismissed(true); }} onSuccess={handleAuthSuccess} /> : null}
-    </main>
+        {profileError && <p className="profile-sync-note" role="status">{profileError}</p>}
+        {!profileLoading && !authOpen && ((!isSupabaseConfigured && (!playerProfile || profileOpen)) || (Boolean(authUser) && (!playerProfile || profileOpen))) && <ProfileModal profile={playerProfile} authenticated={Boolean(authUser)} onSave={handleSaveProfile} onClose={() => playerProfile && setProfileOpen(false)} onAuthRequest={openAuthModal} />}
+        {(!entryAuthDismissed && !profileLoading && isSupabaseConfigured && !authUser && !playerProfile) || authOpen ? <AuthModal onClose={() => { setAuthOpen(false); setEntryAuthDismissed(true); }} onSuccess={handleAuthSuccess} /> : null}
+      </main>
+    </LocaleContext.Provider>
   );
 }
 
@@ -392,6 +412,8 @@ function AuditSection({ onSubmit, loading, error, result }: { onSubmit: (event: 
 }
 
 function CampaignSection({ onRunComplete }: { onRunComplete: (levelId: number, score: number) => Promise<void> }) {
+  const { locale } = useLocale();
+  const copy = APP_COPY[locale];
   const apiBaseUrl = useMemo(() => (process.env.NEXT_PUBLIC_API_BASE_URL || '/argus-api').replace(/\/$/, ''), []);
   const [levels, setLevels] = useState<CampaignLevel[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -427,20 +449,35 @@ function CampaignSection({ onRunComplete }: { onRunComplete: (levelId: number, s
     onNext={nextLevel ? () => selectLevel(nextLevel.id) : undefined}
   />;
   if (loading || error || selectedId) return <section className="panel loading-panel" aria-label="法庭闯关">
-    {selectedId && <button type="button" className="button secondary" onClick={() => selectLevel(null)}>← 返回关卡地图</button>}
-    {error ? <><p className="error-message" role="alert">{error}</p><button type="button" className="button primary" onClick={() => setRetry((value) => value + 1)}>重新加载</button></> : <p role="status">正在载入{selectedId ? '本关案件' : '关卡地图'}…</p>}
+    {selectedId && <button type="button" className="button secondary" onClick={() => selectLevel(null)}>{copy.campaignBack}</button>}
+    {error ? <><p className="error-message" role="alert">{error}</p><button type="button" className="button primary" onClick={() => setRetry((value) => value + 1)}> {locale === 'en' ? 'Reload' : '重新加载'} </button></> : <p role="status">{selectedId ? copy.campaignLoadingCase : copy.campaignLoadingMap}</p>}
   </section>;
   const recommended = levels.find((level) => !completed[level.id])?.id;
-  return <section className="campaign-shell campaign-map-shell" aria-label="法庭闯关关卡选择">
-    <div className="campaign-header"><div><h2>法庭闯关 <small>证据 → 卡牌 → 裁决</small></h2><p className="campaign-lead">先在案发现场搜证，再把证据编成卡牌连击。20 个独立案件，由押金纠纷逐步进阶到综合审判。</p></div><div className="campaign-header-stats"><span className="tag">搜证 + 庭审</span><span className="tag ready">全部 {levels.length} 关开放</span><span className="tag">本次完成 {Object.keys(completed).length}/{levels.length}</span></div></div>
-    <div className="campaign-map">{levels.map((level) => <button type="button" key={level.id} className={`level-node ${completed[level.id] ? 'completed' : level.id === recommended ? 'current' : ''}`} onClick={() => selectLevel(level.id)}>
-      <span className="level-num">{level.levelId}</span><strong className="level-title">{level.title}</strong><small>{level.desc}</small><small>难度 {level.difficulty} · {level.keyEvidenceCount} 份关键证据</small><span className="level-stars">{completed[level.id] ? '★★★' : '☆☆☆'}</span>
+  const visibleLevels = levels.map((level) => ({
+    ...level,
+    ...getLevelCopy(level.levelId, locale, { title: level.title, desc: level.desc }),
+  }));
+  return <section className="campaign-shell campaign-map-shell" aria-label={copy.campaignTitle}>
+    <div className="campaign-header"><div><h2>{copy.campaignTitle} <small>{copy.campaignSubtitle}</small></h2><p className="campaign-lead">{copy.campaignLead}</p></div><div className="campaign-header-stats"><span className="tag">{copy.campaignTag}</span><span className="tag ready">{interpolate(copy.campaignOpen, { count: levels.length })}</span><span className="tag">{interpolate(copy.campaignProgress, { done: Object.keys(completed).length, total: levels.length })}</span></div></div>
+    <div className="campaign-map">{visibleLevels.map((level) => <button type="button" key={level.id} className={`level-node ${completed[level.id] ? 'completed' : level.id === recommended ? 'current' : ''}`} onClick={() => selectLevel(level.id)}>
+      <span className="level-num">{level.levelId}</span><strong className="level-title">{level.title}</strong><small>{level.desc}</small><small>{copy.campaignDifficulty} {level.difficulty} · {level.keyEvidenceCount} {copy.campaignKeyEvidenceCount}</small><span className="level-stars">{completed[level.id] ? '★★★' : '☆☆☆'}</span>
     </button>)}</div>
-    <div className="panel campaign-rules"><strong>闯关目标</strong><span>阅读本关案情与争议焦点 · 自由查看并收集关键原件，然后选择最有利于自己的证据卡牌进入庭审，并出牌、回应质疑并请求裁决</span></div>
+    <div className="panel campaign-rules"><strong>{copy.campaignRulesTitle}</strong><span>{copy.campaignRulesBody}</span></div>
   </section>;
 }
 
 function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: DemoCase; apiBaseUrl: string; onBack: () => void; onComplete: (score: number) => void; onNext?: () => void }) {
+  const { locale } = useLocale();
+  const copy = APP_COPY[locale];
+  const levelCopy = getLevelCopy(demo.levelId, locale, { title: demo.levelTitle, desc: demo.type });
+  const visibleDemo = useMemo(() => ({
+    ...demo,
+    title: levelCopy.title,
+    levelTitle: levelCopy.title,
+    type: getTypeCopy(demo.type, locale),
+    playerSide: translatePartyLabel(demo.playerSide, locale),
+    opponentSide: translatePartyLabel(demo.opponentSide, locale),
+  }), [demo, levelCopy.desc, levelCopy.title, locale]);
   const [phase, setPhase] = useState<'investigate' | 'court'>('investigate');
   const [sceneId, setSceneId] = useState(demo.scenes[0].id);
   const [documentId, setDocumentId] = useState(demo.documents[0].id);
@@ -448,7 +485,7 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
   const [selectedEvidence, setSelectedEvidence] = useState<string[]>([]);
   const [investigationScore, setInvestigationScore] = useState(0);
   const [investigationLog, setInvestigationLog] = useState<string[]>([]);
-  const maxEnemyHp = useMemo(() => opponentHealth(demo), [demo]);
+  const maxEnemyHp = useMemo(() => opponentHealth(demo, locale), [demo, locale]);
   const [battle, dispatchBattle] = useReducer(battleReducer, maxEnemyHp, emptyBattle);
   const { enemyHp, playerHp, playerShield, stamina: playerStamina, hand: courtHand, turn, cardsPlayed, result: battleResult, effect: courtEffect } = battle;
   const [turnTimer, setTurnTimer] = useState(TURN_SECONDS);
@@ -552,10 +589,10 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
         signal: controller.signal,
       });
       if (controller.signal.aborted) return;
-      if (result.caseId !== demo.id) throw new Error('对方回应与当前案件不一致，请重试');
+      if (result.caseId !== demo.id) throw new Error(locale === 'en' ? 'The reply does not match the current case. Please retry.' : '对方回应与当前案件不一致，请重试');
       setDebate((items) => [...items, { ...result, courtTurn: turn }]);
     } catch (e) {
-      if (!controller.signal.aborted) setError(e instanceof Error ? e.message : '提交论点失败');
+      if (!controller.signal.aborted) setError(e instanceof Error ? e.message : (locale === 'en' ? 'Failed to submit argument' : '提交论点失败'));
     } finally {
       if (!controller.signal.aborted) setSubmitting(false);
     }
@@ -588,11 +625,11 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
     setSubmitting(true); setError('');
     try {
       const result = await requestJson<Verdict>(`${apiBaseUrl}/api/campaign/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ caseId: demo.id, evidenceIds: selectedEvidence, debate, gameResult: battleResult }) });
-      if (result.caseId !== demo.id) throw new Error('裁决与当前案件不一致，请重试');
+      if (result.caseId !== demo.id) throw new Error(locale === 'en' ? 'The verdict does not match the current case. Please retry.' : '裁决与当前案件不一致，请重试');
       setVerdict(result);
       if (result.gameResult === 'player_win') onComplete(result.score);
     }
-    catch (e) { setError(e instanceof Error ? e.message : '裁决请求失败'); }
+    catch (e) { setError(e instanceof Error ? e.message : (locale === 'en' ? 'Failed to request verdict' : '裁决请求失败')); }
     finally { setSubmitting(false); }
   }
 
@@ -607,13 +644,13 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
       setDiscovered((ids) => ids.filter((item) => item !== id));
       setSelectedEvidence((ids) => ids.filter((item) => item !== id));
       setInvestigationScore((value) => Math.max(0, value - 5));
-      setInvestigationLog((items) => [`取消证据：${label}`, ...items].slice(0, 5));
+      setInvestigationLog((items) => [`${locale === 'en' ? 'Removed evidence' : '取消证据'}：${label}`, ...items].slice(0, 5));
       setError('');
       return;
     }
     setDiscovered((ids) => [...ids, id]);
     setInvestigationScore((value) => value + 5);
-    setInvestigationLog((items) => [`发现证据：${label}`, ...items].slice(0, 5));
+    setInvestigationLog((items) => [`${locale === 'en' ? 'Found evidence' : '发现证据'}：${label}`, ...items].slice(0, 5));
   };
   const toggleEvidence = (id: string) => {
     // Collecting an exhibit and bringing it to court are separate choices.
@@ -621,35 +658,35 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
     // in the evidence deck so the player can compare it with the other exhibits.
     if (selectedEvidence.includes(id)) {
       setSelectedEvidence((ids) => ids.filter((itemId) => itemId !== id));
-      setInvestigationLog((items) => [`取消带庭选择：${demo.evidence.find((item) => item.id === id)?.title || '证据'}`, ...items].slice(0, 5));
+      setInvestigationLog((items) => [`${locale === 'en' ? 'Removed from trial' : '取消带庭选择'}：${demo.evidence.find((item) => item.id === id)?.title || (locale === 'en' ? 'evidence' : '证据')}`, ...items].slice(0, 5));
       setError('');
       return;
     }
     setSelectedEvidence((ids) => {
-      if (ids.length >= HAND_SIZE) { setError(`上庭最多带 ${HAND_SIZE} 张证据卡，请先取消一张。`); return ids; }
+      if (ids.length >= HAND_SIZE) { setError(locale === 'en' ? `You can bring at most ${HAND_SIZE} evidence cards.` : `上庭最多带 ${HAND_SIZE} 张证据卡，请先取消一张。`); return ids; }
       setError('');
       return [...ids, id];
     });
   };
   const enterCourt = () => {
-    if (!selectedEvidence.length) { setError('请先选择至少一张证据卡带入法庭。'); return; }
+    if (!selectedEvidence.length) { setError(locale === 'en' ? 'Select at least one evidence card before entering trial.' : '请先选择至少一张证据卡带入法庭。'); return; }
     // Unlock Web Audio in the entry click, before delayed combat effects run.
     courtSfxRef.current ??= createCourtSfx();
     courtSfxRef.current.unlock();
     lastSoundEffectRef.current = null;
     dispatchBattle({
-      type: 'start', deck: buildHand(demo, selectedEvidence), selectedIds: selectedEvidence,
+      type: 'start', deck: buildHand(demo, selectedEvidence, locale), selectedIds: selectedEvidence,
       enemyHp: maxEnemyHp, seed: Math.floor(Math.random() * 4294967296),
     });
     setPhase('court'); setTurnTimer(TURN_SECONDS); setVerdict(null);
     setDebate([]); setScore(0); setSubmitting(false); setError('');
   };
-  return <section className="campaign-shell campaign-run-shell" aria-label="法庭闯关">
-    <div className="compact-run-nav"><button type="button" className="icon-back" onClick={onBack} aria-label="返回关卡地图">←</button><div className="phase-rail"><span className={phase === 'investigate' ? 'active' : 'done'}>搜证</span><i>→</i><span className={phase === 'court' ? 'active' : ''}>卡牌庭审</span><i>→</i><span className={verdict ? 'active' : ''}>裁决</span></div></div>{briefOpen && <div className="level-brief-overlay"><div className="level-brief-card"><span className="brief-stamp">CASE {demo.levelId}</span><h2>{demo.title}</h2><p>{demo.summary}</p><h3>本关目标</h3><p>{demo.goal}</p><button type="button" className="button primary" onClick={() => setBriefOpen(false)}>开始搜证 →</button></div></div>}<div className="campaign-intro-wrap"><button type="button" className="button secondary back-to-map">← 返回关卡地图</button><div className="panel campaign-intro"><div><span className="tag ready">第 {demo.levelId} 关 · {demo.type} · 难度 {demo.difficulty}</span><h2>{`${phase === 'investigate' ? '搜证' : '庭审'}：${demo.title}`}</h2><p>{demo.goal}</p></div><div className="campaign-kpis"><span><small>{phase === 'investigate' ? '已取证' : '我方血量'}</small><strong>{phase === 'investigate' ? `${discovered.length}` : `${playerHp}/${PLAYER_MAX_HP}`}</strong></span><span><small>{phase === 'investigate' ? '关键证据' : '对方血量'}</small><strong>{phase === 'investigate' ? `${demo.keyEvidenceIds.filter((id) => discovered.includes(id)).length}/${demo.keyEvidenceIds.length}` : `${enemyHp}/${maxEnemyHp}`}</strong></span><span><small>总分</small><strong>{investigationScore + score}</strong></span></div></div></div>
-    <div className="phase-rail"><span className={phase === 'investigate' ? 'active' : 'done'}>1 搜证</span><i>→</i><span className={phase === 'court' ? 'active' : ''}>2 卡牌庭审</span><i>→</i><span className={verdict ? 'active' : ''}>3 裁决</span></div>
-    <small className="campaign-focus-line">争议焦点：{demo.focus.join(' · ')}</small>
+  return <section className="campaign-shell campaign-run-shell" aria-label={locale === 'en' ? 'Courtroom quest' : '法庭闯关'}>
+    <div className="compact-run-nav"><button type="button" className="icon-back" onClick={onBack} aria-label={copy.campaignBack}>{locale === 'en' ? '←' : '←'}</button><div className="phase-rail"><span className={phase === 'investigate' ? 'active' : 'done'}>{copy.courtInvestigate}</span><i>→</i><span className={phase === 'court' ? 'active' : ''}>{copy.courtTrial}</span><i>→</i><span className={verdict ? 'active' : ''}>{copy.courtVerdict}</span></div></div>{briefOpen && <div className="level-brief-overlay"><div className="level-brief-card"><span className="brief-stamp">CASE {demo.levelId}</span><h2>{visibleDemo.title}</h2><p>{visibleDemo.summary}</p><h3>{copy.briefTitle}</h3><p>{visibleDemo.goal}</p><button type="button" className="button primary" onClick={() => setBriefOpen(false)}>{copy.campaignStart}</button></div></div>}<div className="campaign-intro-wrap"><button type="button" className="button secondary back-to-map" onClick={onBack}>{copy.campaignBack}</button><div className="panel campaign-intro"><div><span className="tag ready">{locale === 'en' ? 'Level' : '第'} {demo.levelId} {locale === 'en' ? '·' : '关 ·'} {visibleDemo.type} {locale === 'en' ? '· Difficulty' : '· 难度'} {demo.difficulty}</span><h2>{`${phase === 'investigate' ? copy.courtInvestigate : copy.courtTrial}：${visibleDemo.title}`}</h2><p>{visibleDemo.goal}</p></div><div className="campaign-kpis"><span><small>{phase === 'investigate' ? (locale === 'en' ? 'Collected' : '已取证') : copy.courtPlayerHp}</small><strong>{phase === 'investigate' ? `${discovered.length}` : `${playerHp}/${PLAYER_MAX_HP}`}</strong></span><span><small>{phase === 'investigate' ? (locale === 'en' ? 'Key evidence' : '关键证据') : copy.courtOpponentHp}</small><strong>{phase === 'investigate' ? `${demo.keyEvidenceIds.filter((id) => discovered.includes(id)).length}/${demo.keyEvidenceIds.length}` : `${enemyHp}/${maxEnemyHp}`}</strong></span><span><small>{locale === 'en' ? 'Score' : '总分'}</small><strong>{investigationScore + score}</strong></span></div></div></div>
+    <div className="phase-rail"><span className={phase === 'investigate' ? 'active' : 'done'}>1 {copy.courtInvestigate}</span><i>→</i><span className={phase === 'court' ? 'active' : ''}>2 {copy.courtTrial}</span><i>→</i><span className={verdict ? 'active' : ''}>3 {copy.courtVerdict}</span></div>
+    <small className="campaign-focus-line">{copy.campaignFocusLabel}{locale === 'en' ? ': ' : '：'}{visibleDemo.focus.join(' · ')}</small>
     {phase === 'investigate' && error && <p className="error-message" role="alert">{error}</p>}
-    {phase === 'court' ? <CourtArena demo={demo} onNext={onNext} onInvestigate={returnToInvestigation} hand={courtHand} cardsPlayed={cardsPlayed} battleStage={battle.stage} battleResult={battleResult} playerStamina={playerStamina} playerShield={playerShield} enemyHp={enemyHp} maxEnemyHp={maxEnemyHp} playerHp={playerHp} turn={turn} turnTimer={turnTimer} debate={debate} submitting={submitting} verdict={verdict} error={error} onPlayCard={playCard} onRequestVerdict={requestVerdict} courtEffect={courtEffect} /> : <div className="campaign-layout investigation-layout"><aside className="panel evidence-panel"><PanelHeading eyebrow="EVIDENCE HUB" title="现场搜证" badge="自由搜证" /><div className="scene-tabs">{demo.scenes.map((scene) => <button type="button" className={scene.id === activeScene.id ? 'active' : ''} key={scene.id} onClick={() => setSceneId(scene.id)}>{scene.title}</button>)}</div><div className="scene-board"><span className="scene-label">{activeScene.title}</span><p>{activeScene.description}</p><div className="hotspot-grid">{activeScene.hotspots.map((spot) => <button type="button" className={`hotspot ${discovered.includes(spot.evidenceId) ? 'found' : ''}`} key={spot.id} onClick={() => discoverEvidence(spot.evidenceId, spot.title)}><EvidenceArtwork art={artworkFor(spot.id)} /><strong>{spot.title}</strong><small>{discovered.includes(spot.evidenceId) ? '已收集 ✓' : `自由调查 · ${spot.hint}`}</small></button>)}</div></div><h3 className="subheading">搜证日志</h3><div className="investigation-log">{investigationLog.length ? investigationLog.map((item, index) => <span key={`${item}-${index}`}>{item}</span>) : <span>点击现场热点，寻找能互相印证的原件。</span>}</div></aside><div className="panel source-panel"><PanelHeading eyebrow="SOURCE READER" title={activeDocument.name} badge="具体租房材料" /><div className="source-documents"><h3 className="subheading">原始文件 · 与当前材料同组</h3><div className="document-list">{demo.documents.map((doc) => <button type="button" className={`document-button ${doc.id === documentId ? 'active' : ''}`} key={doc.id} onClick={() => setDocumentId(documentId === doc.id ? '' : doc.id)}><EvidenceArtwork art={artworkFor(doc.id, doc.type)} /><strong>{doc.name}<small>打开完整原件 →</small></strong></button>)}</div></div><div className="source-reader"><CatDocument doc={activeDocument} playerSide={demo.playerSide} discovered={discovered} onDiscover={discoverEvidence} /></div></div><aside className="panel evidence-cards-panel"><PanelHeading eyebrow="CASEBOARD" title="证据卡组" badge={`已选 ${selectedEvidence.length}/${HAND_SIZE}`} /><div className="evidence-inventory">{discovered.length ? demo.evidence.filter((item) => discovered.includes(item.id)).map((item) => { const card = evidenceCard(item, demo.keyEvidenceIds.includes(item.id), demo.levelId); const picked = selectedEvidence.includes(item.id); return <button type="button" className={`evidence-card ${picked ? 'selected' : ''}`} key={item.id} onClick={() => toggleEvidence(item.id)} aria-pressed={picked}><div><strong>{item.title}</strong><span className="evidence-proof" title={item.proofPurpose}>→ {item.proofPurpose}</span></div><p>{item.description}</p><small>{card.nature} · 可信度 {card.credibility}/10 · {card.key ? '关键证据' : '补充证据'} · {picked ? '✓ 已选入庭 · 点击取消选择' : '点击选择带上庭'}</small></button>; }) : <EmptyState text="点击左侧现场热点，或在材料中点击线索，收集到的证据会出现在这里。" />}</div><div className="court-entry"><p className="chain-tip">最多选择 {HAND_SIZE} 张证据卡，根据证据内容和重要性做取舍。选择几张，庭审就使用几种证据牌；护盾和回体力战术牌始终可用。</p><button type="button" className="button primary enter-court" onClick={enterCourt} disabled={!selectedEvidence.length}>{selectedEvidence.length ? `带着 ${selectedEvidence.length} 张证据卡进入法庭 →` : '请选择证据卡 →'}</button></div></aside></div>}
+    {phase === 'court' ? <CourtArena demo={visibleDemo} onNext={onNext} onInvestigate={returnToInvestigation} hand={courtHand} cardsPlayed={cardsPlayed} battleStage={battle.stage} battleResult={battleResult} playerStamina={playerStamina} playerShield={playerShield} enemyHp={enemyHp} maxEnemyHp={maxEnemyHp} playerHp={playerHp} turn={turn} turnTimer={turnTimer} debate={debate} submitting={submitting} verdict={verdict} error={error} onPlayCard={playCard} onRequestVerdict={requestVerdict} courtEffect={courtEffect} /> : <div className="campaign-layout investigation-layout"><aside className="panel evidence-panel"><PanelHeading eyebrow="EVIDENCE HUB" title={copy.campaignSearchTitle} badge={copy.campaignSearchBadge} /><div className="scene-tabs">{demo.scenes.map((scene) => <button type="button" className={scene.id === activeScene.id ? 'active' : ''} key={scene.id} onClick={() => setSceneId(scene.id)}>{scene.title}</button>)}</div><div className="scene-board"><span className="scene-label">{activeScene.title}</span><p>{activeScene.description}</p><div className="hotspot-grid">{activeScene.hotspots.map((spot) => <button type="button" className={`hotspot ${discovered.includes(spot.evidenceId) ? 'found' : ''}`} key={spot.id} onClick={() => discoverEvidence(spot.evidenceId, spot.title)}><EvidenceArtwork art={artworkFor(spot.id)} locale={locale} /><strong>{spot.title}</strong><small>{discovered.includes(spot.evidenceId) ? (locale === 'en' ? 'Collected ✓' : '已收集 ✓') : `${locale === 'en' ? 'Explore' : '自由调查'} · ${spot.hint}`}</small></button>)}</div></div><h3 className="subheading">{copy.campaignSearchLog}</h3><div className="investigation-log">{investigationLog.length ? investigationLog.map((item, index) => <span key={`${item}-${index}`}>{item}</span>) : <span>{copy.campaignInvestigateHint}</span>}</div></aside><div className="panel source-panel"><PanelHeading eyebrow="SOURCE READER" title={copy.campaignSourceReader} badge={copy.campaignSourceBadge} /><div className="source-documents"><h3 className="subheading">{copy.campaignSourceTitle}</h3><div className="document-list">{demo.documents.map((doc) => <button type="button" className={`document-button ${doc.id === documentId ? 'active' : ''}`} key={doc.id} onClick={() => setDocumentId(documentId === doc.id ? '' : doc.id)}><EvidenceArtwork art={artworkFor(doc.id, doc.type)} locale={locale} /><strong>{doc.name}<small>{locale === 'en' ? 'Open full original →' : '打开完整原件 →'}</small></strong></button>)}</div></div><div className="source-reader"><CatDocument doc={activeDocument} playerSide={visibleDemo.playerSide} discovered={discovered} onDiscover={discoverEvidence} locale={locale} /></div></div><aside className="panel evidence-cards-panel"><PanelHeading eyebrow="CASEBOARD" title={copy.campaignEvidenceTitle} badge={interpolate(copy.campaignEvidenceBadge, { selected: selectedEvidence.length, total: HAND_SIZE })} /><div className="evidence-inventory">{discovered.length ? demo.evidence.filter((item) => discovered.includes(item.id)).map((item) => { const card = evidenceCard(item, demo.keyEvidenceIds.includes(item.id), demo.levelId, locale); const picked = selectedEvidence.includes(item.id); return <button type="button" className={`evidence-card ${picked ? 'selected' : ''}`} key={item.id} onClick={() => toggleEvidence(item.id)} aria-pressed={picked}><div><strong>{item.title}</strong><span className="evidence-proof" title={item.proofPurpose}>→ {item.proofPurpose}</span></div><p>{item.description}</p><small>{card.nature} · 可信度 {card.credibility}/10 · {card.key ? (locale === 'en' ? 'Key evidence' : '关键证据') : (locale === 'en' ? 'Supporting evidence' : '补充证据')} · {picked ? (locale === 'en' ? '✓ Selected · click to remove' : '✓ 已选入庭 · 点击取消选择') : (locale === 'en' ? 'Click to select for trial' : '点击选择带上庭')}</small></button>; }) : <EmptyState text={copy.campaignInvestigateHint} />}</div><div className="court-entry"><p className="chain-tip">{interpolate(copy.campaignCourtEntryHint, { total: HAND_SIZE })}</p><button type="button" className="button primary enter-court" onClick={enterCourt} disabled={!selectedEvidence.length}>{selectedEvidence.length ? interpolate(copy.campaignEnterCourt, { count: selectedEvidence.length }) : copy.campaignChooseEvidence}</button></div></aside></div>}
   </section>;
 }
 
@@ -662,6 +699,8 @@ function CourtArena({ demo, onNext, onInvestigate, hand, cardsPlayed, playerShie
   onPlayCard: (card: EvidenceCard) => void; onRequestVerdict: () => void;
   courtEffect: BattleEffect | null;
 }) {
+  const { locale } = useLocale();
+  const copy = APP_COPY[locale];
   // The case title is an opening cue, not a permanent overlay. CourtArena mounts
   // when entering the courtroom, so this timer naturally restarts for a new run.
   const [showCourtBench, setShowCourtBench] = useState(true);
@@ -669,49 +708,54 @@ function CourtArena({ demo, onNext, onInvestigate, hand, cardsPlayed, playerShie
     const timer = window.setTimeout(() => setShowCourtBench(false), 1800);
     return () => window.clearTimeout(timer);
   }, []);
-  const turnLabel = battleResult ? '本轮已结束' : battleStage === 'opponent-action' ? '对方反击' : battleStage === 'player-action' ? '对方准备反击…' : submitting ? '等待对方回应' : '轮到我方出牌';
+  const turnLabel = battleResult ? copy.courtTurnEnd : battleStage === 'opponent-action' ? copy.courtTurnOpponent : battleStage === 'player-action' ? copy.courtTurnPreparing : submitting ? copy.courtWaiting : copy.courtTurnPlayer;
+  const visibleEffect = courtEffect ? getBattleEffectCopy(courtEffect.label, locale) : '';
   return <div className="court-arena">
     <div className="court-topbar">
-      <div className="court-meter opponent-meter"><span>对方血量</span><strong>{enemyHp}/{maxEnemyHp}</strong><i><b style={{ width: `${maxEnemyHp ? enemyHp / maxEnemyHp * 100 : 0}%` }} /></i></div>
-      <div className="court-round" aria-live="polite"><small>庭审回合 {turn}</small><strong>{battleStage === 'player' && !submitting ? turnTimer : '—'}<em>秒</em></strong><span>{turnLabel}</span></div>
-      <div className="court-meter player-meter"><span>我方血量</span><strong>{playerHp}/{PLAYER_MAX_HP}</strong><i><b style={{ width: `${playerHp / PLAYER_MAX_HP * 100}%` }} /></i><small>体力 {playerStamina}/{PLAYER_MAX_STAMINA} · 护盾 {playerShield}/{PLAYER_MAX_SHIELD}</small><div className="court-shield-track" aria-label={`护盾 ${playerShield}/${PLAYER_MAX_SHIELD}`}><b style={{ width: `${playerShield / PLAYER_MAX_SHIELD * 100}%` }} /></div></div>
+      <div className="court-meter opponent-meter"><span>{copy.courtOpponentHp}</span><strong>{enemyHp}/{maxEnemyHp}</strong><i><b style={{ width: `${maxEnemyHp ? enemyHp / maxEnemyHp * 100 : 0}%` }} /></i></div>
+      <div className="court-round" aria-live="polite"><small>{copy.courtRound} {turn}</small><strong>{battleStage === 'player' && !submitting ? turnTimer : '—'}<em>{copy.courtSeconds}</em></strong><span>{turnLabel}</span></div>
+      <div className="court-meter player-meter"><span>{copy.courtPlayerHp}</span><strong>{playerHp}/{PLAYER_MAX_HP}</strong><i><b style={{ width: `${playerHp / PLAYER_MAX_HP * 100}%` }} /></i><small>{copy.courtStamina} {playerStamina}/{PLAYER_MAX_STAMINA} · {copy.courtShield} {playerShield}/{PLAYER_MAX_SHIELD}</small><div className="court-shield-track" aria-label={interpolate(copy.courtShieldAria, { current: playerShield, max: PLAYER_MAX_SHIELD })}><b style={{ width: `${playerShield / PLAYER_MAX_SHIELD * 100}%` }} /></div></div>
     </div>
     <div className="court-stage">
-      <div className="court-side court-side-opponent"><div className="court-nameplate"><span>对方</span><strong>{demo.opponentSide}</strong></div><div className={`court-cat court-cat-opponent ${courtEffect?.side === 'opponent' ? 'is-raising' : ''}`}><img src="/assets/court/opponent-cat.webp" alt="对方猫咪" /></div>{courtEffect?.side === 'opponent' && <div className="objection-bubble">{courtEffect.label}</div>}</div>
-      <div className="court-center">{showCourtBench && <div className="court-bench">⚖ <span>第 {demo.levelId} 关 · {demo.levelTitle}</span> ⚖</div>}<div className="court-dialogue-list">{debate.slice(-2).map((item, index) => <article key={item.turn?.id || index}>{item.turn?.argument && <div className="court-dialogue is-player"><small>我方陈词</small>{item.turn.argument}</div>}{item.courtTurn === turn && battleStage === 'player-action' ? <div className="court-dialogue court-dialogue-empty">对方正在组织回应…</div> : <div className="court-dialogue"><small>对方回应</small>{item.response}<small>法官提示：{item.judge}</small></div>}</article>)}{!debate.length && <div className="court-dialogue court-dialogue-empty">先看体力，再选择证据出牌。<br />出牌后随机补一张，体力不足时使用恢复牌。</div>}</div>{courtEffect && <div key={`${turn}-${courtEffect.side}`} className={`court-effect-flash ${courtEffect.kind === 'shield' ? 'is-shield' : ''}`}>{courtEffect.label}</div>}</div>
-      <div className="court-side court-side-player"><div className="court-nameplate"><span>我方</span><strong>{demo.playerSide}</strong></div><div className={`court-cat court-cat-player ${courtEffect?.side === 'player' ? 'is-raising' : ''}`}><img src="/assets/lawyer-cat-transparent.png" alt="我方律师猫" /></div>{courtEffect?.side === 'player' && <div className="objection-bubble">{courtEffect.label}</div>}</div>
+      <div className="court-side court-side-opponent"><div className="court-nameplate"><span>{copy.courtTheirSide}</span><strong>{demo.opponentSide}</strong></div><div className={`court-cat court-cat-opponent ${courtEffect?.side === 'opponent' ? 'is-raising' : ''}`}><img src="/assets/court/opponent-cat.webp" alt={copy.courtTheirSide} /></div>{courtEffect?.side === 'opponent' && <div className="objection-bubble">{visibleEffect}</div>}</div>
+      <div className="court-center">{showCourtBench && <div className="court-bench">⚖ <span>{locale === 'en' ? 'Level' : '第'} {demo.levelId} {locale === 'en' ? '·' : '关 ·'} {demo.levelTitle}</span> ⚖</div>}<div className="court-dialogue-list">{debate.slice(-2).map((item, index) => <article key={item.turn?.id || index}>{item.turn?.argument && <div className="court-dialogue is-player"><small>{copy.courtPlayerStatement}</small>{item.turn.argument}</div>}{item.courtTurn === turn && battleStage === 'player-action' ? <div className="court-dialogue court-dialogue-empty">{copy.courtOpponentReplyPending}</div> : <div className="court-dialogue"><small>{copy.courtOpponentReply}</small>{item.response}<small>{copy.courtJudgePrompt} {item.judge}</small></div>}</article>)}{!debate.length && <div className="court-dialogue court-dialogue-empty">{copy.courtNoDebate}</div>}</div>{courtEffect && <div key={`${turn}-${courtEffect.side}`} className={`court-effect-flash ${courtEffect.kind === 'shield' ? 'is-shield' : ''}`}>{visibleEffect}</div>}</div>
+      <div className="court-side court-side-player"><div className="court-nameplate"><span>{copy.courtOurSide}</span><strong>{demo.playerSide}</strong></div><div className={`court-cat court-cat-player ${courtEffect?.side === 'player' ? 'is-raising' : ''}`}><img src="/assets/lawyer-cat-transparent.png" alt={copy.courtOurSide} /></div>{courtEffect?.side === 'player' && <div className="objection-bubble">{visibleEffect}</div>}</div>
     </div>
-    <div className="court-hand-wrap">
-      <div className="hand-heading"><span>手牌 {hand.length}/{HAND_SIZE} · 出牌后随机补一张</span><strong>已出 {cardsPlayed} 张 · 体力 {playerStamina}/{PLAYER_MAX_STAMINA}</strong></div>
+      <div className="court-hand-wrap">
+      <div className="hand-heading"><span>{interpolate(copy.courtHand, { count: hand.length, total: HAND_SIZE })}</span><strong>{interpolate(copy.courtPlayed, { count: cardsPlayed, stamina: playerStamina, max: PLAYER_MAX_STAMINA })}</strong></div>
       <div className="court-hand">{hand.map((card) => {
         const recovery = card.staminaRecovery > 0;
         const defensive = !!card.shieldGain;
+        const tactical = getTacticalCardCopy(card.id.replace(/-instance-\d+$/, ''), locale);
         const exhausted = playerStamina < card.cost;
         const full = (recovery && playerStamina >= PLAYER_MAX_STAMINA) || (defensive && playerShield >= PLAYER_MAX_SHIELD);
         const unavailable = battleStage !== 'player' || submitting || !!verdict || !!battleResult;
-        const hint = full ? (defensive ? '护盾已满 · 暂不可用' : '体力已满 · 暂不可用') : exhausted ? `体力不足 · 还需 ${card.cost - playerStamina} 点` : unavailable ? turnLabel : defensive ? '使用后获得护盾 · 对方仍会反击' : recovery ? '使用后恢复体力 · 对方仍会反击' : '点击出牌 · 扣除体力并攻击';
+        const hint = full ? (defensive ? copy.courtShieldFull : copy.courtRecoveryFull) : exhausted ? interpolate(copy.courtLowStamina, { cost: card.cost - playerStamina }) : unavailable ? turnLabel : defensive ? copy.courtDefenseHint : recovery ? copy.courtRecoveryHint : copy.courtPlayHint;
+        const cardName = tactical?.name || card.name;
+        const cardNature = tactical?.nature || card.nature;
+        const cardEffect = tactical?.effect || card.effectText;
         return <button type="button" className={`court-card ${recovery ? 'court-card-recovery' : defensive ? 'court-card-defense' : card.key ? 'court-card-key' : 'court-card-support'} ${exhausted || full ? 'is-exhausted' : ''}`}
           disabled={unavailable || !canAffordCard(card, playerStamina, playerShield)} key={card.id} onClick={() => onPlayCard(card)}
           data-card-kind={recovery ? 'recovery' : defensive ? 'defense' : 'evidence'} data-cost={card.cost} data-recovery={card.staminaRecovery} data-shield={card.shieldGain || 0} data-damage={card.value}
           title={hint}>
-          <div className="court-card-heading"><span>{recovery ? '恢复牌' : defensive ? '防御牌' : '证据牌'}</span><span className="court-card-cost">消耗 {card.cost} 体力</span></div>
-          {card.evidenceId ? <EvidenceArtwork art={artworkForEvidence(demo, card.evidenceId)} className="court-evidence-art" /> : <img src="/assets/court/card-art-05.webp" alt="" />}
-          <strong>{card.name}</strong>
-          <small>{recovery || defensive ? '战术行动 · 不作为裁决证据' : `${card.nature} · 可信度 ${card.credibility}/10 · ${card.key ? '关键证据' : '补充证据'}`}</small>
-          <small className="court-card-effect">效果：{card.effectText}</small>
+          <div className="court-card-heading"><span>{recovery ? copy.courtRecoveryPlay : defensive ? copy.courtDefensePlay : copy.courtEvidencePlay}</span><span className="court-card-cost">{interpolate(copy.courtCost, { cost: card.cost })}</span></div>
+          {card.evidenceId ? <EvidenceArtwork art={artworkForEvidence(demo, card.evidenceId)} className="court-evidence-art" locale={locale} /> : <img src="/assets/court/card-art-05.webp" alt="" />}
+          <strong>{cardName}</strong>
+          <small>{recovery || defensive ? copy.courtAction : `${cardNature} · ${interpolate(copy.courtEvidenceAccuracy, { score: card.credibility })} · ${card.key ? copy.courtEvidenceKey : copy.courtEvidenceSupport}`}</small>
+          <small className="court-card-effect">{copy.courtEffect}{cardEffect}</small>
         </button>;
       })}</div>
-      <p className="court-hand-rule">恢复和护盾都靠战术牌；护盾会优先吸收反击伤害。无牌可出时，补牌优先提供可用牌。</p>
+      <p className="court-hand-rule">{copy.campaignCourtRule}</p>
     </div>
     <div className="court-footer">
       {battleResult && !verdict && <div className={`battle-result ${battleResult === 'player_win' ? 'is-win' : 'is-loss'}`} role="status">
-        <strong>{battleResult === 'player_win' ? '我方胜利！' : '对方胜利'}</strong>
-        <p>{battleResult === 'player_win' ? '对方血量先归零，证据链压制成功。现在可以请求法官裁决。' : '我方血量先归零。本局最终裁决将按游戏结果作出，证据链仅用于展示本局过程。'}</p>
-        <button type="button" className="button primary" onClick={onRequestVerdict} disabled={submitting}>{submitting ? '正在等待庭审反馈…' : '请求法官裁决'}</button>
+        <strong>{battleResult === 'player_win' ? copy.campaignVictory : copy.campaignDefeat}</strong>
+        <p>{battleResult === 'player_win' ? copy.courtBattleResultWin : copy.courtBattleResultLoss}</p>
+        <button type="button" className="button primary" onClick={onRequestVerdict} disabled={submitting}>{submitting ? copy.courtBattleFeedback : copy.campaignRequestVerdict}</button>
       </div>}
       {error && <p className="error-message court-error" role="alert">{error}</p>}
-      {!battleResult && <div className="court-actions"><small>对方血量归零后可请求裁决</small><button type="button" className="button verdict-button" disabled>请求法官裁决</button></div>}
-      {verdict && <div className="verdict-card"><div className="verdict-header"><span>{verdict.winner}</span><strong>{verdict.score} 分</strong></div><p>{verdict.award}</p><p>{verdict.reasoning}</p><h4>证据链</h4><ol>{verdict.chain.map((item) => <li key={item}>{item}</li>)}</ol><h4>法律检索线索</h4><ul>{verdict.sources.map((source) => <li key={source.title}><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a></li>)}</ul><p className="disclaimer">{verdict.disclaimer}</p>{verdict.gameResult === 'opponent_win' ? <button type="button" className="button secondary" onClick={onInvestigate}>返回搜证重试</button> : onNext && <button type="button" className="button primary" onClick={onNext}>下一关 →</button>}</div>}
+      {!battleResult && <div className="court-actions"><small>{copy.courtVerdictLocked}</small><button type="button" className="button verdict-button" disabled>{copy.campaignRequestVerdict}</button></div>}
+      {verdict && <div className="verdict-card"><div className="verdict-header"><span>{verdict.winner}</span><strong>{locale === 'en' ? `${verdict.score} pts` : `${verdict.score} 分`}</strong></div><p>{verdict.award}</p><p>{verdict.reasoning}</p><h4>{copy.courtEvidenceChain}</h4><ol>{verdict.chain.map((item) => <li key={item}>{item}</li>)}</ol><h4>{copy.courtLegalLeads}</h4><ul>{verdict.sources.map((source) => <li key={source.title}><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a></li>)}</ul><p className="disclaimer">{verdict.disclaimer}</p>{verdict.gameResult === 'opponent_win' ? <button type="button" className="button secondary" onClick={onInvestigate}>{copy.campaignReturnRetry}</button> : onNext && <button type="button" className="button primary" onClick={onNext}>{copy.campaignNext}</button>}</div>}
     </div>
   </div>;
 }
@@ -730,6 +774,8 @@ function CommunitySection({ apiBaseUrl, posts, setPosts, loading }: { apiBaseUrl
 }
 
 function ProfileModal({ profile, authenticated, onSave, onClose, onAuthRequest }: { profile: PlayerProfile | null; authenticated: boolean; onSave: (input: Pick<PlayerProfile, 'name' | 'avatar'>) => Promise<void>; onClose: () => void; onAuthRequest: () => void }) {
+  const { locale } = useLocale();
+  const copy = APP_COPY[locale];
   const [name, setName] = useState(profile?.name || '');
   const [avatar, setAvatar] = useState(profile?.avatar || AVATARS[0].src);
   const [saving, setSaving] = useState(false);
@@ -738,30 +784,32 @@ function ProfileModal({ profile, authenticated, onSave, onClose, onAuthRequest }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = normalizeUsername(name);
-    if (!/^[\p{L}\p{N}_-]{2,20}$/u.test(trimmed)) { setError('用户名需为 2-20 位字母、数字、下划线或短横线。'); return; }
+    if (!/^[\p{L}\p{N}_-]{2,20}$/u.test(trimmed)) { setError(copy.profileInvalidName); return; }
     setSaving(true); setError('');
     try { await onSave({ name: trimmed, avatar }); }
-    catch { setError('保存失败，请稍后重试'); }
+    catch { setError(copy.profileSaveError); }
     finally { setSaving(false); }
   }
 
   return <div className="profile-overlay" role="presentation">
     <section className="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title">
-      {profile && <button type="button" className="profile-close" onClick={onClose} aria-label="关闭身份卡">×</button>}
-      <div className="profile-hero"><img src="/assets/lawyer-cat-transparent.png" alt="律师猫" /><div><span className="eyebrow">ARGUS+ PLAYER FILE</span><h2 id="profile-title">{profile ? '编辑玩家档案' : '创建玩家档案'}</h2><p>只需设置昵称和头像，就可以开始记录闯关成绩。</p></div></div>
+      {profile && <button type="button" className="profile-close" onClick={onClose} aria-label={copy.profileClose}>×</button>}
+      <div className="profile-hero"><img src="/assets/lawyer-cat-transparent.png" alt={copy.brandAlt} /><div><span className="eyebrow">ARGUS+ PLAYER FILE</span><h2 id="profile-title">{profile ? copy.profileTitleEdit : copy.profileTitleNew}</h2><p>{copy.profileDesc}</p></div></div>
       <form onSubmit={submit}>
-        <label className="profile-name-field">用户名 / 昵称 <span>{authenticated ? '账号名' : '必填'}</span><input value={name} onChange={(event) => setName(event.target.value)} maxLength={20} readOnly={authenticated} autoFocus={!profile} placeholder="例如：林墨" /></label>
-        <div className="avatar-picker"><div className="avatar-picker-heading"><strong>选择头像</strong><small>使用现有猫咪角色</small></div><div className="avatar-options">{AVATARS.map((item) => <button type="button" key={item.id} className={`avatar-option ${avatar === item.src ? 'selected' : ''}`} onClick={() => setAvatar(item.src)} aria-label={item.label} aria-pressed={avatar === item.src}><img src={item.src} alt="" /><span>{item.label}</span></button>)}</div></div>
-        <p className="profile-privacy">用户名用于登录并参与排行榜查重。密码只交给 Supabase Auth，不会写入玩家档案表。</p>
+        <label className="profile-name-field">{copy.profileNameLabel} <span>{authenticated ? copy.profileNameHelpAuthed : copy.profileNameHelpRequired}</span><input value={name} onChange={(event) => setName(event.target.value)} maxLength={20} readOnly={authenticated} autoFocus={!profile} placeholder={locale === 'en' ? 'e.g. EvidenceCat' : '例如：林墨'} /></label>
+        <div className="avatar-picker"><div className="avatar-picker-heading"><strong>{copy.profileAvatarTitle}</strong><small>{copy.profileAvatarHint}</small></div><div className="avatar-options">{AVATARS.map((item) => <button type="button" key={item.id} className={`avatar-option ${avatar === item.src ? 'selected' : ''}`} onClick={() => setAvatar(item.src)} aria-label={locale === 'en' ? 'Cat avatar' : item.label} aria-pressed={avatar === item.src}><img src={item.src} alt="" /><span>{locale === 'en' ? 'Cat avatar' : item.label}</span></button>)}</div></div>
+        <p className="profile-privacy">{copy.profilePrivacy}</p>
         {error && <p className="error-message" role="alert">{error}</p>}
-        <div className="profile-actions"><button type="submit" className="button primary" disabled={saving}>{saving ? '正在保存…' : '保存并开始闯关 →'}</button>{profile && <button type="button" className="button secondary" onClick={onClose}>稍后再改</button>}</div>
-        {!authenticated && isSupabaseConfigured && <button type="button" className="profile-auth-link" onClick={onAuthRequest}>注册 / 登录账号（保存跨设备进度）</button>}
+        <div className="profile-actions"><button type="submit" className="button primary" disabled={saving}>{saving ? (locale === 'en' ? 'Saving…' : '正在保存…') : copy.profileSave}</button>{profile && <button type="button" className="button secondary" onClick={onClose}>{copy.profileLater}</button>}</div>
+        {!authenticated && isSupabaseConfigured && <button type="button" className="profile-auth-link" onClick={onAuthRequest}>{copy.profileAuthLink}</button>}
       </form>
     </section>
   </div>;
 }
 
 function AuthModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (user: AuthUser, username: string) => Promise<void> }) {
+  const { locale } = useLocale();
+  const copy = APP_COPY[locale];
   const [mode, setMode] = useState<'login' | 'register'>('register');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -778,19 +826,19 @@ function AuthModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (us
     if (!usernameValid || !isSupabaseConfigured) return;
     setChecking(true); setError('');
     try { setAvailable(await isUsernameAvailable(normalizeUsername(username))); }
-    catch (checkError) { setError(checkError instanceof Error ? checkError.message : '查重失败'); }
+    catch (checkError) { setError(checkError instanceof Error ? checkError.message : copy.authCheckError); }
     finally { setChecking(false); }
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(''); setMessage('');
     const cleanUsername = normalizeUsername(username);
-    if (!isSupabaseConfigured) { setError('当前未配置 Supabase，暂时只能使用本机试玩。'); return; }
-    if (!usernameValid) { setError('用户名需为 2-20 位字母、数字、下划线或短横线。'); return; }
-    if (password.length < 6) { setError('密码至少需要 6 位。'); return; }
+    if (!isSupabaseConfigured) { setError(copy.authNotConfigured); return; }
+    if (!usernameValid) { setError(copy.authUsernameInvalid); return; }
+    if (password.length < 6) { setError(copy.authPasswordShort); return; }
     if (mode === 'register') {
-      if (password !== confirmPassword) { setError('两次密码输入不一致。'); return; }
-      if (available === false) { setError('用户名已被占用，请换一个。'); return; }
+      if (password !== confirmPassword) { setError(copy.authPasswordMismatch); return; }
+      if (available === false) { setError(copy.authUsernameTaken); return; }
     }
     setSubmitting(true);
     try {
@@ -800,11 +848,11 @@ function AuthModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (us
           const canUse = await isUsernameAvailable(cleanUsername);
           setAvailable(canUse);
           setChecking(false);
-          if (!canUse) { setError('用户名已被占用，请换一个。'); return; }
+          if (!canUse) { setError(copy.authUsernameTaken); return; }
         }
         const result = await registerAccount(cleanUsername, password);
         if (result.needsEmailConfirmation || !result.user) {
-          setMessage('注册成功，但当前开启了邮箱确认。请在 Supabase Auth → Providers 中关闭 Confirm email 后再登录。');
+          setMessage(copy.authRegisterMessage);
           return;
         }
         await onSuccess(result.user, cleanUsername);
@@ -813,14 +861,14 @@ function AuthModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (us
         await onSuccess(user, cleanUsername);
       }
     } catch (submitError) {
-      const raw = submitError instanceof Error ? submitError.message : '操作失败';
+      const raw = submitError instanceof Error ? submitError.message : copy.authOperationError;
       const normalized = raw.toLowerCase();
       const message = normalized.includes('already registered') || normalized.includes('duplicate')
-        ? '用户名已被占用，请换一个。'
+        ? copy.authUsernameTaken
         : normalized.includes('invalid login credentials')
-          ? '用户名或密码错误。'
+          ? copy.authLoginBadCredentials
           : normalized.includes('email not confirmed')
-            ? '账号尚未确认，请先在 Supabase 中关闭 Confirm email。'
+            ? copy.authEmailUnconfirmed
             : raw;
       setError(message);
     } finally { setChecking(false); setSubmitting(false); }
@@ -828,18 +876,18 @@ function AuthModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (us
 
   return <div className="profile-overlay" role="presentation">
     <section className="profile-modal auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
-      <button type="button" className="profile-close" onClick={onClose} aria-label="关闭登录窗口">×</button>
-      <div className="profile-hero"><img src="/assets/lawyer-cat-transparent.png" alt="律师猫" /><div><span className="eyebrow">ARGUS+ ACCOUNT</span><h2 id="auth-title">{mode === 'register' ? '注册玩家账号' : '登录玩家账号'}</h2><p>用户名就是你的昵称，不需要填写邮箱。</p></div></div>
-      <div className="auth-tabs"><button type="button" className={mode === 'register' ? 'active' : ''} onClick={() => { setMode('register'); setError(''); setMessage(''); }}>注册</button><button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => { setMode('login'); setError(''); setMessage(''); }}>登录</button></div>
+      <button type="button" className="profile-close" onClick={onClose} aria-label={copy.authClose}>×</button>
+      <div className="profile-hero"><img src="/assets/lawyer-cat-transparent.png" alt={copy.brandAlt} /><div><span className="eyebrow">ARGUS+ ACCOUNT</span><h2 id="auth-title">{mode === 'register' ? copy.authTitleRegister : copy.authTitleLogin}</h2><p>{copy.authDesc}</p></div></div>
+      <div className="auth-tabs"><button type="button" className={mode === 'register' ? 'active' : ''} onClick={() => { setMode('register'); setError(''); setMessage(''); }}>{copy.authRegister}</button><button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => { setMode('login'); setError(''); setMessage(''); }}>{copy.authLogin}</button></div>
       <form onSubmit={submit}>
-        <label className="profile-name-field">用户名 / 昵称 <span>2-20 位</span><div className="username-row"><input value={username} onChange={(event) => { setUsername(event.target.value); setAvailable(null); }} maxLength={20} autoFocus placeholder="例如：证据收藏家" /><button type="button" className="button secondary username-check" onClick={checkAvailability} disabled={!usernameValid || checking || mode === 'login'}>{checking ? '查中…' : mode === 'login' ? '登录' : available === true ? '可用 ✓' : '查重'}</button></div></label>
-        <label className="profile-name-field">密码 <span>至少 6 位</span><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={6} maxLength={72} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} placeholder="输入密码" /></label>
-        {mode === 'register' && <label className="profile-name-field">确认密码 <span>再次输入</span><input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} minLength={6} maxLength={72} autoComplete="new-password" placeholder="再次输入密码" /></label>}
-        {available === true && mode === 'register' && <p className="availability-ok">用户名可用，可以注册。</p>}
-        {available === false && mode === 'register' && <p className="availability-taken">用户名已被占用，请换一个。</p>}
+        <label className="profile-name-field">{copy.authNameLabel} <span>{copy.authNameHelp}</span><div className="username-row"><input value={username} onChange={(event) => { setUsername(event.target.value); setAvailable(null); }} maxLength={20} autoFocus placeholder={locale === 'en' ? 'e.g. EvidenceCat' : '例如：证据收藏家'} /><button type="button" className="button secondary username-check" onClick={checkAvailability} disabled={!usernameValid || checking || mode === 'login'}>{checking ? copy.authUsernameChecking : mode === 'login' ? copy.authLogin : available === true ? copy.authUsernameAvailable : copy.authCheck}</button></div></label>
+        <label className="profile-name-field">{copy.authPasswordLabel} <span>{copy.authPasswordHelp}</span><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={6} maxLength={72} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} placeholder={locale === 'en' ? 'Enter password' : '输入密码'} /></label>
+        {mode === 'register' && <label className="profile-name-field">{copy.authConfirmLabel} <span>{copy.authConfirmHelp}</span><input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} minLength={6} maxLength={72} autoComplete="new-password" placeholder={locale === 'en' ? 'Enter password again' : '再次输入密码'} /></label>}
+        {available === true && mode === 'register' && <p className="availability-ok">{locale === 'en' ? 'Username is available.' : '用户名可用，可以注册。'}</p>}
+        {available === false && mode === 'register' && <p className="availability-taken">{copy.authUsernameTaken}</p>}
         {message && <p className="profile-status" role="status">{message}</p>}
         {error && <p className="error-message" role="alert">{error}</p>}
-        <button type="submit" className="button primary auth-submit" disabled={submitting}>{submitting ? '处理中…' : mode === 'register' ? '注册并开始闯关 →' : '登录 →'}</button>
+        <button type="submit" className="button primary auth-submit" disabled={submitting}>{submitting ? (locale === 'en' ? 'Working…' : '处理中…') : mode === 'register' ? copy.authSubmitRegister : copy.authSubmitLogin}</button>
       </form>
     </section>
   </div>;
