@@ -68,6 +68,11 @@ button {
   backdrop-filter: blur(14px);
 }
 
+.app-nav { display:flex; gap:.45rem; max-width:1180px; margin:0 auto; padding:0 28px 10px; }
+.app-nav button { border:1px solid var(--line, #d9c8b6); background:transparent; color:inherit; border-radius:999px; padding:.42rem .8rem; cursor:pointer; font:inherit; }
+.app-nav button.active { background:var(--ink, #241b16); color:#fff; }
+@media (max-width:680px) { .app-nav { padding-left:14px; padding-right:14px; overflow:auto; } .app-nav button { white-space:nowrap; } }
+
 .player-header-actions {
   display: flex;
   align-items: center;

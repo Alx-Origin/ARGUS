@@ -178,6 +178,17 @@ export default function HomePage() {
   }, [locale]);
 
   useEffect(() => {
+    if (pathname !== '/community') return;
+    let cancelled = false;
+    setCommunityLoading(true);
+    requestJson<{ posts?: CommunityPost[] }>(`${apiBaseUrl}/api/community/feed`)
+      .then((data) => { if (!cancelled) setCommunityPosts(Array.isArray(data?.posts) ? data.posts : []); })
+      .catch(() => { if (!cancelled) setCommunityPosts([]); })
+      .finally(() => { if (!cancelled) setCommunityLoading(false); });
+    return () => { cancelled = true; };
+  }, [apiBaseUrl, pathname]);
+
+  useEffect(() => {
     let disposed = false;
     let authReady = false;
     async function hydrate(user: AuthUser | null) {
@@ -220,10 +231,6 @@ export default function HomePage() {
     });
     return () => { disposed = true; unsubscribe(); };
   }, []);
-
-  useEffect(() => {
-    if (pathname !== '/campaign') router.replace('/campaign');
-  }, [pathname, router]);
 
   async function createCase(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -361,8 +368,11 @@ export default function HomePage() {
           </div>
         </header>
 
+        <nav className="app-nav" aria-label={locale === 'en' ? 'Primary navigation' : '主导航'}>
+          {[['/campaign', APP_COPY[locale].navCampaign], ['/forge', APP_COPY[locale].navForge], ['/audit', APP_COPY[locale].navAudit], ['/community', APP_COPY[locale].navCommunity]].map(([href, label]) => <button type="button" key={href} className={pathname === href ? 'active' : ''} onClick={() => router.push(href)}>{label}</button>)}
+        </nav>
         <div className="page-shell" id="main-content">
-          <CampaignSection onRunComplete={handleRunComplete} />
+          {pathname === '/forge' ? <ForgeSection onSubmit={createCase} loading={caseLoading} error={caseError} draft={caseDraft} /> : pathname === '/audit' ? <AuditSection onSubmit={auditContract} loading={auditLoading} error={auditError} result={auditResult} /> : pathname === '/community' ? <CommunitySection apiBaseUrl={apiBaseUrl} posts={communityPosts} setPosts={setCommunityPosts} loading={communityLoading} /> : <CampaignSection onRunComplete={handleRunComplete} />}
         </div>
         {profileError && <p className="profile-sync-note" role="status">{profileError}</p>}
         {!profileLoading && !authOpen && ((!isSupabaseConfigured && (!playerProfile || profileOpen)) || (Boolean(authUser) && (!playerProfile || profileOpen))) && <ProfileModal profile={playerProfile} authenticated={Boolean(authUser)} onSave={handleSaveProfile} onClose={() => playerProfile && setProfileOpen(false)} onAuthRequest={openAuthModal} />}
@@ -373,41 +383,43 @@ export default function HomePage() {
 }
 
 function ForgeSection({ onSubmit, loading, error, draft }: { onSubmit: (event: FormEvent<HTMLFormElement>) => void; loading: boolean; error: string; draft: CaseDraft | null }) {
+  const { locale } = useLocale(); const copy = APP_COPY[locale];
   return <section className="workspace-grid">
     <form className="panel" onSubmit={onSubmit}>
-      <PanelHeading eyebrow="CASE FORGE" title="案件工坊" badge="P0 · 案件配置" />
-      <p className="section-intro">输入一个真实争议概念，系统会先生成可编辑的训练草案。原始材料、金额和待核验事项不会被示例文本覆盖。</p>
-      <label>案件概念<textarea name="concept" required defaultValue="租客退房时，房东以墙面划痕为由扣留押金3000元，但划痕在入住前已存在。" /></label>
-      <div className="field-grid"><label>原告<input name="plaintiff" defaultValue="租客张某" /></label><label>被告<input name="defendant" defaultValue="房东李某" /></label><label>代理立场<select name="side" defaultValue="plaintiff"><option value="plaintiff">原告</option><option value="defendant">被告</option></select></label><label>管辖地区<select name="jurisdiction" defaultValue="中国大陆"><option>中国大陆</option><option>中国香港</option><option>跨境示范</option></select></label></div>
-      <div className="upload-note"><span className="note-mark" aria-hidden="true">材料</span><div><strong>材料接入（MVP）</strong><small>可先粘贴原文；合同审查页支持 TXT / MD 文本文件。PDF、Word、图片解析接口保留在下一迭代。</small></div></div>
-      <button className="button primary" disabled={loading}>{loading ? '正在配置案件…' : '生成案件草案 →'}</button>{error && <p className="error-message">{error}</p>}
+      <PanelHeading eyebrow="CASE FORGE" title={copy.navForge} badge={copy.forgeBadge} />
+      <p className="section-intro">{copy.forgeIntro}</p>
+      <label>{copy.forgeConcept}<textarea name="concept" required defaultValue={copy.forgeDefaultConcept} /></label>
+      <div className="field-grid"><label>{copy.forgePlaintiff}<input name="plaintiff" defaultValue={locale === 'en' ? 'Tenant Zhang' : '租客张某'} /></label><label>{copy.forgeDefendant}<input name="defendant" defaultValue={locale === 'en' ? 'Landlord Li' : '房东李某'} /></label><label>{copy.forgeSide}<select name="side" defaultValue="plaintiff"><option value="plaintiff">{copy.forgePlaintiffOption}</option><option value="defendant">{copy.forgeDefendantOption}</option></select></label><label>{copy.forgeJurisdiction}<select name="jurisdiction" defaultValue={locale === 'en' ? 'Mainland China' : '中国大陆'}><option>{copy.forgeMainland}</option><option>{copy.forgeHongKong}</option><option>{copy.forgeCrossBorder}</option></select></label></div>
+      <div className="upload-note"><span className="note-mark" aria-hidden="true">{locale === 'en' ? 'DOCS' : '材料'}</span><div><strong>{copy.forgeMaterials}</strong><small>{copy.forgeMaterialsHint}</small></div></div>
+      <button className="button primary" disabled={loading}>{loading ? copy.forgeLoading : copy.forgeSubmit}</button>{error && <p className="error-message">{error}</p>}
     </form>
-    <div className="panel result-panel"><PanelHeading eyebrow="CASE SPACE" title="案件空间" badge={draft ? '已配置' : '等待输入'} />
-      {draft ? <div className="result-stack"><div className="case-title-row"><span className="tag">{draft.caseType}</span><span className="tag">{draft.jurisdiction}</span></div><h3>{draft.title}</h3><div className="party-grid"><div><small>原告</small><strong>{draft.parties.plaintiff}</strong></div><div><small>被告</small><strong>{draft.parties.defendant}</strong></div></div><InfoList title="争议焦点" items={draft.focus} /><InfoList title="建议先找的原件" items={draft.evidencePlan} /><div className="trace-box"><strong>可追溯状态</strong><span>来源：{draft.source}</span><span>金额：{draft.trace?.amount || '待核验'} · 需要人工确认</span></div></div> : <EmptyState text="案件草案会在这里生成，并可作为法庭闯关的事实底稿。" />}
+    <div className="panel result-panel"><PanelHeading eyebrow="CASE SPACE" title={copy.forgeSpace} badge={draft ? copy.forgeConfigured : copy.forgeWaiting} />
+      {draft ? <div className="result-stack"><div className="case-title-row"><span className="tag">{draft.caseType}</span><span className="tag">{draft.jurisdiction}</span></div><h3>{draft.title}</h3><div className="party-grid"><div><small>{copy.forgePlaintiff}</small><strong>{draft.parties.plaintiff}</strong></div><div><small>{copy.forgeDefendant}</small><strong>{draft.parties.defendant}</strong></div></div><InfoList title={copy.forgeFocus} items={draft.focus} /><InfoList title={copy.forgeEvidencePlan} items={draft.evidencePlan} /><div className="trace-box"><strong>{copy.forgeTrace}</strong><span>{copy.forgeSource}{draft.source}</span><span>{copy.forgeAmount}{draft.trace?.amount || copy.forgePending} · {copy.forgeHumanConfirm}</span></div></div> : <EmptyState text={copy.forgeEmpty} />}
     </div>
   </section>;
 }
 
 function AuditSection({ onSubmit, loading, error, result }: { onSubmit: (event: FormEvent<HTMLFormElement>) => void; loading: boolean; error: string; result: AuditResult | null }) {
-  const [fileName, setFileName] = useState('选择 TXT / MD 原文');
+  const { locale } = useLocale(); const copy = APP_COPY[locale];
+  const [fileName, setFileName] = useState<string>(copy.auditChooseFile);
   function handleFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]; if (!file) return;
-    setFileName(`已载入：${file.name}`);
+    setFileName(`${copy.auditLoaded}${file.name}`);
     const textArea = document.getElementById('audit-text') as HTMLTextAreaElement | null;
     if (!textArea) return;
-    if (!/\.(txt|md|text)$/i.test(file.name)) { setFileName(`${file.name} · 请粘贴可读文本`); return; }
-    readTextFile(file).then((text) => { textArea.value = text; }).catch(() => setFileName(`${file.name} · 读取失败`));
+    if (!/\.(txt|md|text)$/i.test(file.name)) { setFileName(`${file.name} · ${copy.auditReadableText}`); return; }
+    readTextFile(file).then((text) => { textArea.value = text; }).catch(() => setFileName(`${file.name} · ${copy.auditReadFailed}`));
   }
   function loadSample() {
     const textArea = document.getElementById('audit-text') as HTMLTextAreaElement | null;
     const bg = document.getElementById('audit-background') as HTMLTextAreaElement | null;
     if (textArea) textArea.value = '第一条 乙方承租甲方商铺用于餐饮经营，具体面积和交付条件另行协商。\n第二条 租赁期限自商铺交付之日起三年，乙方应尽快完成装修并开业。\n第三条 乙方应按甲方通知的金额和日期支付租金及其他费用。\n第四条 如乙方违约，甲方有权没收全部保证金，并要求乙方赔偿全部损失。\n第五条 双方发生争议，可向仲裁机构仲裁或向法院起诉。';
     if (bg) bg.value = '我方作为商场出租方，拟与餐饮品牌签署三年商铺租赁合同。';
-    setFileName('已加载租赁示例');
+    setFileName(locale === 'en' ? 'Lease sample loaded' : '已加载租赁示例');
   }
   return <section className="audit-shell">
-    <form className="panel audit-intake" onSubmit={onSubmit}><PanelHeading eyebrow="CONTRACT HUNT" title="合同猎魔" badge="P1 · 多 Skill" /><p className="section-intro">通用合同 Skill 先看完整性，专项 Skill 再看行业风险。每条意见都会返回命中的原文、Skill 版本、法律来源和待确认问题。</p><label>合同背景<textarea id="audit-background" name="background" placeholder="交易目的、履行阶段、我方主要风险偏好…" /></label><div className="field-grid"><label>我方合同地位<select name="position" defaultValue="乙方"><option>甲方</option><option>乙方</option><option>其他</option></select></label><label>合同类型<select name="contractType" defaultValue="房屋租赁合同"><option>房屋租赁合同</option><option>采购合同</option><option>服务合同</option><option>通用合同</option></select></label></div><label className="file-picker"><span>原文文件</span><input type="file" accept=".txt,.md,.text" onChange={handleFile} /><small>{fileName} · 文件默认只在当前浏览器读取</small></label><label>合同原文<textarea id="audit-text" name="text" required className="contract-input" defaultValue={'第一条 乙方承租甲方商铺用于餐饮经营，具体面积和交付条件另行协商。\n第二条 租赁期限自商铺交付之日起三年，乙方应尽快完成装修并开业。\n第三条 乙方应按甲方通知的金额和日期支付租金及其他费用。\n第四条 如乙方违约，甲方有权没收全部保证金，并要求乙方赔偿全部损失。\n第五条 双方发生争议，可向仲裁机构仲裁或向法院起诉。'} /></label><div className="button-row"><button type="button" className="button secondary" onClick={loadSample}>加载租赁示例</button><button className="button primary" disabled={loading}>{loading ? '正在逐条审查…' : '开始合同审查 →'}</button></div>{error && <p className="error-message">{error}</p>}</form>
-    <div className="panel audit-results"><PanelHeading eyebrow="REVIEW DESK" title="风险图鉴 & 对照稿" badge={result ? `${result.summary.findingCount} 条发现` : '等待审查'} />{result ? <><div className="stat-grid"><Stat label="识别条款" value={result.summary.clauseCount} /><Stat label="风险发现" value={result.summary.findingCount} /><Stat label="高风险" value={result.summary.highRiskCount} /></div><div className="audit-meta"><span>我方：{result.summary.position}</span><span>类型：{result.summary.contractType}</span><span>来源覆盖：{Math.round(result.summary.sourceCoverage * 100)}%</span></div><div className="skill-row">{result.skills.map((skill) => <span className="tag" key={skill}>{skill}</span>)}</div><div className="findings-list">{result.findings.map((finding) => <FindingCard finding={finding} key={finding.id} />)}</div><p className="disclaimer">{result.disclaimer}</p></> : <EmptyState text="审查结果会逐条对齐原文与修改方向，并显示可点击的法律来源。" />}</div>
+    <form className="panel audit-intake" onSubmit={onSubmit}><PanelHeading eyebrow="CONTRACT HUNT" title={copy.navAudit} badge={copy.auditBadge} /><p className="section-intro">{copy.auditIntro}</p><label>{copy.auditBackground}<textarea id="audit-background" name="background" placeholder={copy.auditBackgroundPlaceholder} /></label><div className="field-grid"><label>{copy.auditPosition}<select name="position" defaultValue={locale === 'en' ? 'Party B' : '乙方'}><option>{locale === 'en' ? 'Party A' : '甲方'}</option><option>{locale === 'en' ? 'Party B' : '乙方'}</option><option>{locale === 'en' ? 'Other' : '其他'}</option></select></label><label>{copy.auditType}<select name="contractType" defaultValue={locale === 'en' ? 'Lease contract' : '房屋租赁合同'}><option>{locale === 'en' ? 'Lease contract' : '房屋租赁合同'}</option><option>{locale === 'en' ? 'Procurement contract' : '采购合同'}</option><option>{locale === 'en' ? 'Service contract' : '服务合同'}</option><option>{locale === 'en' ? 'General contract' : '通用合同'}</option></select></label></div><label className="file-picker"><span>{copy.auditOriginalFile}</span><input type="file" accept=".txt,.md,.text" onChange={handleFile} /><small>{fileName} · {copy.auditLocalFile}</small></label><label>{copy.auditText}<textarea id="audit-text" name="text" required className="contract-input" defaultValue={'第一条 乙方承租甲方商铺用于餐饮经营，具体面积和交付条件另行协商。\n第二条 租赁期限自商铺交付之日起三年，乙方应尽快完成装修并开业。\n第三条 乙方应按甲方通知的金额和日期支付租金及其他费用。\n第四条 如乙方违约，甲方有权没收全部保证金，并要求乙方赔偿全部损失。\n第五条 双方发生争议，可向仲裁机构仲裁或向法院起诉。'} /></label><div className="button-row"><button type="button" className="button secondary" onClick={loadSample}>{copy.auditLoadSample}</button><button className="button primary" disabled={loading}>{loading ? copy.auditLoading : copy.auditSubmit}</button></div>{error && <p className="error-message">{error}</p>}</form>
+    <div className="panel audit-results"><PanelHeading eyebrow="REVIEW DESK" title={copy.auditResults} badge={result ? interpolate(copy.auditFindings, { count: result.summary.findingCount }) : copy.auditWaiting} />{result ? <><div className="stat-grid"><Stat label={copy.auditClauses} value={result.summary.clauseCount} /><Stat label={copy.auditRisks} value={result.summary.findingCount} /><Stat label={copy.auditHighRisk} value={result.summary.highRiskCount} /></div><div className="audit-meta"><span>{copy.auditOurSide}{result.summary.position}</span><span>{copy.auditContractType}{result.summary.contractType}</span><span>{copy.auditCoverage}{Math.round(result.summary.sourceCoverage * 100)}%</span></div><div className="skill-row">{result.skills.map((skill) => <span className="tag" key={skill}>{skill}</span>)}</div><div className="findings-list">{result.findings.map((finding) => <FindingCard finding={finding} key={finding.id} />)}</div><p className="disclaimer">{result.disclaimer}</p></> : <EmptyState text={copy.auditEmpty} />}</div>
   </section>;
 }
 
@@ -635,7 +647,8 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
 
   const activeScene = demo.scenes.find((scene) => scene.id === sceneId) || demo.scenes[0];
   const activeDocument = demo.documents.find((doc) => doc.id === documentId) || demo.documents[0];
-  const discoverEvidence = (id: string, label = '新证据') => {
+  const discoverEvidence = (id: string, label?: string) => {
+    const clueLabel = label || copy.campaignNewEvidence;
     if (phase !== 'investigate') return;
     if (discovered.includes(id)) {
       // Clicking a collected clue again withdraws it everywhere: the source clue is
@@ -644,13 +657,13 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
       setDiscovered((ids) => ids.filter((item) => item !== id));
       setSelectedEvidence((ids) => ids.filter((item) => item !== id));
       setInvestigationScore((value) => Math.max(0, value - 5));
-      setInvestigationLog((items) => [`${locale === 'en' ? 'Removed evidence' : '取消证据'}：${label}`, ...items].slice(0, 5));
+      setInvestigationLog((items) => [`${copy.campaignRemoved}：${clueLabel}`, ...items].slice(0, 5));
       setError('');
       return;
     }
     setDiscovered((ids) => [...ids, id]);
     setInvestigationScore((value) => value + 5);
-    setInvestigationLog((items) => [`${locale === 'en' ? 'Found evidence' : '发现证据'}：${label}`, ...items].slice(0, 5));
+    setInvestigationLog((items) => [`${copy.campaignFound}：${clueLabel}`, ...items].slice(0, 5));
   };
   const toggleEvidence = (id: string) => {
     // Collecting an exhibit and bringing it to court are separate choices.
@@ -658,7 +671,7 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
     // in the evidence deck so the player can compare it with the other exhibits.
     if (selectedEvidence.includes(id)) {
       setSelectedEvidence((ids) => ids.filter((itemId) => itemId !== id));
-      setInvestigationLog((items) => [`${locale === 'en' ? 'Removed from trial' : '取消带庭选择'}：${demo.evidence.find((item) => item.id === id)?.title || (locale === 'en' ? 'evidence' : '证据')}`, ...items].slice(0, 5));
+      setInvestigationLog((items) => [`${copy.campaignRemovedFromTrial}：${demo.evidence.find((item) => item.id === id)?.title || copy.campaignEvidenceFallback}`, ...items].slice(0, 5));
       setError('');
       return;
     }
@@ -681,7 +694,7 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
     setPhase('court'); setTurnTimer(TURN_SECONDS); setVerdict(null);
     setDebate([]); setScore(0); setSubmitting(false); setError('');
   };
-  return <section className="campaign-shell campaign-run-shell" aria-label={locale === 'en' ? 'Courtroom quest' : '法庭闯关'}>
+  return <section className="campaign-shell campaign-run-shell" aria-label={copy.navCampaign}>
     <div className="compact-run-nav"><button type="button" className="icon-back" onClick={onBack} aria-label={copy.campaignBack}>{locale === 'en' ? '←' : '←'}</button><div className="phase-rail"><span className={phase === 'investigate' ? 'active' : 'done'}>{copy.courtInvestigate}</span><i>→</i><span className={phase === 'court' ? 'active' : ''}>{copy.courtTrial}</span><i>→</i><span className={verdict ? 'active' : ''}>{copy.courtVerdict}</span></div></div>{briefOpen && <div className="level-brief-overlay"><div className="level-brief-card"><span className="brief-stamp">CASE {demo.levelId}</span><h2>{visibleDemo.title}</h2><p>{visibleDemo.summary}</p><h3>{copy.briefTitle}</h3><p>{visibleDemo.goal}</p><button type="button" className="button primary" onClick={() => setBriefOpen(false)}>{copy.campaignStart}</button></div></div>}<div className="campaign-intro-wrap"><button type="button" className="button secondary back-to-map" onClick={onBack}>{copy.campaignBack}</button><div className="panel campaign-intro"><div><span className="tag ready">{locale === 'en' ? 'Level' : '第'} {demo.levelId} {locale === 'en' ? '·' : '关 ·'} {visibleDemo.type} {locale === 'en' ? '· Difficulty' : '· 难度'} {demo.difficulty}</span><h2>{`${phase === 'investigate' ? copy.courtInvestigate : copy.courtTrial}：${visibleDemo.title}`}</h2><p>{visibleDemo.goal}</p></div><div className="campaign-kpis"><span><small>{phase === 'investigate' ? (locale === 'en' ? 'Collected' : '已取证') : copy.courtPlayerHp}</small><strong>{phase === 'investigate' ? `${discovered.length}` : `${playerHp}/${PLAYER_MAX_HP}`}</strong></span><span><small>{phase === 'investigate' ? (locale === 'en' ? 'Key evidence' : '关键证据') : copy.courtOpponentHp}</small><strong>{phase === 'investigate' ? `${demo.keyEvidenceIds.filter((id) => discovered.includes(id)).length}/${demo.keyEvidenceIds.length}` : `${enemyHp}/${maxEnemyHp}`}</strong></span><span><small>{locale === 'en' ? 'Score' : '总分'}</small><strong>{investigationScore + score}</strong></span></div></div></div>
     <div className="phase-rail"><span className={phase === 'investigate' ? 'active' : 'done'}>1 {copy.courtInvestigate}</span><i>→</i><span className={phase === 'court' ? 'active' : ''}>2 {copy.courtTrial}</span><i>→</i><span className={verdict ? 'active' : ''}>3 {copy.courtVerdict}</span></div>
     <small className="campaign-focus-line">{copy.campaignFocusLabel}{locale === 'en' ? ': ' : '：'}{visibleDemo.focus.join(' · ')}</small>
@@ -761,16 +774,17 @@ function CourtArena({ demo, onNext, onInvestigate, hand, cardsPlayed, playerShie
 }
 
 function CommunitySection({ apiBaseUrl, posts, setPosts, loading }: { apiBaseUrl: string; posts: CommunityPost[]; setPosts: (posts: CommunityPost[]) => void; loading: boolean }) {
+  const { locale } = useLocale(); const copy = APP_COPY[locale];
   const [submitting, setSubmitting] = useState(false); const [error, setError] = useState(''); const [liked, setLiked] = useState<string[]>([]);
   async function submitPost(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setSubmitting(true); setError('');
     const form = new FormData(event.currentTarget);
-    if (!form.get('privacy')) { setError('请确认内容已脱敏且不包含需要保密的原始文件。'); setSubmitting(false); return; }
-    try { const post = await requestJson<CommunityPost>(`${apiBaseUrl}/api/community/posts`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: form.get('title'), body: form.get('body'), tags: String(form.get('tags') || '').split(/\s+/).filter(Boolean), author: '你' }) }); setPosts([post, ...posts]); event.currentTarget.reset(); }
-    catch (submitError) { setError(submitError instanceof Error ? submitError.message : '发布失败'); }
+    if (!form.get('privacy')) { setError(copy.communityPrivacyError); setSubmitting(false); return; }
+    try { const post = await requestJson<CommunityPost>(`${apiBaseUrl}/api/community/posts`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: form.get('title'), body: form.get('body'), tags: String(form.get('tags') || '').split(/\s+/).filter(Boolean), author: copy.communityAuthor }) }); setPosts([post, ...posts]); event.currentTarget.reset(); }
+    catch (submitError) { setError(submitError instanceof Error ? submitError.message : copy.communityPublishError); }
     finally { setSubmitting(false); }
   }
-  return <section className="community-shell"><div className="community-layout"><aside className="panel community-sidebar"><PanelHeading eyebrow="COMMUNITY SQUARE" title="社区广场" badge="脱敏分享" /><div className="leaderboard"><h3>本周训练榜</h3>{[['1','证据收藏家','2,520'],['2','仲裁员小王','2,180'],['3','法外狂徒张三','1,960']].map(([rank, name, score]) => <div className="leader-row" key={rank}><strong>{rank}</strong><span className="avatar avatar-cat" aria-hidden="true">猫</span><div><b>{name}</b><small>案件训练者</small></div><em>{score}</em></div>)}</div><div className="privacy-card"><strong>隐私 · 默认私有</strong><p>案件、合同和聊天记录不会自动公开。发布前请先脱敏，并确认内容不含个人信息。</p></div></aside><div className="community-main"><form className="panel share-form" onSubmit={submitPost}><PanelHeading eyebrow="SHARE A RUN" title="分享一次复盘" badge="POST" /><div className="field-grid"><label>标题<input name="title" required placeholder="例如：租赁押金关卡的证据链" /></label><label>标签<input name="tags" placeholder="#证据链 #租赁" /></label></div><label>内容<textarea name="body" required placeholder="分享你的思路、遇到的质证或合同审查方法…" /></label><label className="checkbox-line"><input type="checkbox" name="privacy" /> 我已脱敏，并确认不发布合同、聊天记录等原始文件</label><div className="button-row"><button className="button primary" disabled={submitting}>{submitting ? '正在发布…' : '发布到社区 →'}</button></div>{error && <p className="error-message">{error}</p>}</form><div className="feed-list">{loading ? <div className="panel loading-panel">正在加载社区动态…</div> : posts.map((post) => <article className="panel feed-card" key={post.id}><div className="feed-header"><div><span className="avatar avatar-cat" aria-hidden="true">猫</span><strong>{post.author}</strong></div><small>{post.time}</small></div><h3>{post.title}</h3><p>{post.body}</p><div>{post.tags.map((tag) => <span className="tag" key={tag}>{tag}</span>)}</div><div className="feed-actions"><button onClick={() => setLiked(liked.includes(post.id) ? liked.filter((id) => id !== post.id) : [...liked, post.id])}>{liked.includes(post.id) ? '♥' : '♡'} {post.likes + (liked.includes(post.id) ? 1 : 0)}</button><span>评论 {post.comments}</span></div></article>)}</div></div></div></section>;
+  return <section className="community-shell"><div className="community-layout"><aside className="panel community-sidebar"><PanelHeading eyebrow="COMMUNITY SQUARE" title={copy.navCommunity} badge={copy.communityBadge} /><div className="leaderboard"><h3>{copy.communityWeekly}</h3>{[['1','证据收藏家','2,520'],['2','仲裁员小王','2,180'],['3','法外狂徒张三','1,960']].map(([rank, name, score]) => <div className="leader-row" key={rank}><strong>{rank}</strong><span className="avatar avatar-cat" aria-hidden="true">🐱</span><div><b>{locale === 'en' ? `Learner ${rank}` : name}</b><small>{copy.communityLearner}</small></div><em>{score}</em></div>)}</div><div className="privacy-card"><strong>{copy.communityPrivacy}</strong><p>{copy.communityPrivacyBody}</p></div></aside><div className="community-main"><form className="panel share-form" onSubmit={submitPost}><PanelHeading eyebrow="SHARE A RUN" title={copy.communityShare} badge="POST" /><div className="field-grid"><label>{copy.communityTitle}<input name="title" required placeholder={copy.communityTitlePlaceholder} /></label><label>{copy.communityTags}<input name="tags" placeholder={copy.communityTagsPlaceholder} /></label></div><label>{copy.communityBody}<textarea name="body" required placeholder={copy.communityBodyPlaceholder} /></label><label className="checkbox-line"><input type="checkbox" name="privacy" /> {copy.communityPrivacyCheck}</label><div className="button-row"><button className="button primary" disabled={submitting}>{submitting ? copy.communityPublishing : copy.communityPublish}</button></div>{error && <p className="error-message">{error}</p>}</form><div className="feed-list">{loading ? <div className="panel loading-panel">{copy.communityLoading}</div> : posts.map((post) => <article className="panel feed-card" key={post.id}><div className="feed-header"><div><span className="avatar avatar-cat" aria-hidden="true">🐱</span><strong>{post.author}</strong></div><small>{post.time}</small></div><h3>{post.title}</h3><p>{post.body}</p><div>{post.tags.map((tag) => <span className="tag" key={tag}>{tag}</span>)}</div><div className="feed-actions"><button onClick={() => setLiked(liked.includes(post.id) ? liked.filter((id) => id !== post.id) : [...liked, post.id])}>{liked.includes(post.id) ? '♥' : '♡'} {post.likes + (liked.includes(post.id) ? 1 : 0)}</button><span>{copy.communityComments} {post.comments}</span></div></article>)}</div></div></div></section>;
 }
 
 function ProfileModal({ profile, authenticated, onSave, onClose, onAuthRequest }: { profile: PlayerProfile | null; authenticated: boolean; onSave: (input: Pick<PlayerProfile, 'name' | 'avatar'>) => Promise<void>; onClose: () => void; onAuthRequest: () => void }) {
@@ -897,4 +911,7 @@ function PanelHeading({ title, badge }: { eyebrow: string; title: string; badge:
 function InfoList({ title, items }: { title: string; items: string[] }) { return <div className="info-list"><h4>{title}</h4><ul>{items.map((item) => <li key={item}>{item}</li>)}</ul></div>; }
 function EmptyState({ text }: { text: string }) { return <div className="empty-state"><p>{text}</p></div>; }
 function Stat({ label, value }: { label: string; value: number }) { return <div className="stat"><strong>{value}</strong><span>{label}</span></div>; }
-function FindingCard({ finding }: { finding: AuditFinding }) { return <article className={`finding finding-${finding.severity}`}><div className="finding-top"><span className={`tag ${finding.severity === 'high' ? 'danger' : ''}`}>{finding.category}</span><span className="necessity">必要度 {finding.necessity}/10</span><small>第 {finding.clauseIndex + 1} 段 · {finding.skill_name} v{finding.skill_version}</small></div><blockquote>{finding.clause}</blockquote><p><strong>风险：</strong>{finding.issue}</p><p><strong>方向：</strong>{finding.direction}</p><div className="revision-box"><small>修改参考文本</small>{finding.suggested_text}</div><div className="source-links"><span>置信度 {Math.round(finding.confidence * 100)}%</span>{finding.law_sources.map((source) => <a href={source.url} target="_blank" rel="noreferrer" key={source.sourceId || source.title}>{source.title} ↗</a>)}</div><small className="pending">待确认：{finding.pending_questions.join('；')}</small></article>; }
+function FindingCard({ finding }: { finding: AuditFinding }) {
+  const { locale } = useLocale(); const copy = APP_COPY[locale];
+  return <article className={`finding finding-${finding.severity}`}><div className="finding-top"><span className={`tag ${finding.severity === 'high' ? 'danger' : ''}`}>{finding.category}</span><span className="necessity">{copy.findingNecessity} {finding.necessity}/10</span><small>{copy.findingClause}{finding.clauseIndex + 1}{copy.findingClauseSuffix} · {finding.skill_name} v{finding.skill_version}</small></div><blockquote>{finding.clause}</blockquote><p><strong>{copy.findingRisk}</strong>{finding.issue}</p><p><strong>{copy.findingDirection}</strong>{finding.direction}</p><div className="revision-box"><small>{copy.findingSuggested}</small>{finding.suggested_text}</div><div className="source-links"><span>{copy.findingConfidence} {Math.round(finding.confidence * 100)}%</span>{finding.law_sources.map((source) => <a href={source.url} target="_blank" rel="noreferrer" key={source.sourceId || source.title}>{source.title} ↗</a>)}</div><small className="pending">{copy.findingPending}{finding.pending_questions.join(locale === 'en' ? '; ' : '；')}</small></article>;
+}
