@@ -595,6 +595,69 @@ const LEVEL_COPY: Record<Locale, Record<number, LevelCopy>> = {
   },
 };
 
+// The campaign API keeps the authoritative source text in Chinese. These
+// presentation translations cover the text shown around each exhibit while
+// preserving the original material itself for the source-reader details view.
+const CASE_TEXT_COPY: Record<string, string> = {
+  '胡某购买899元普通手提包，2026年8月14日签收，8月17日申请退货。商家援引商品页“不支持七天无理由退货”拒绝退款。': 'Hu bought a ¥899 ordinary handbag, received it on Aug 14, 2026, and requested a return on Aug 17. The merchant refused, citing a product-page notice that said “no seven-day no-reason returns.”',
+  '证明商品不属于法定退货例外、申请未超期且商品完好，回应商家的页面免责提示。': 'Show that the item is not a statutory return exception, the request was timely, and the item remained intact; answer the merchant’s disclaimer.',
+  '普通手提包是否属于退货例外': 'Whether an ordinary handbag is a statutory return exception',
+  '签收与申请是否相隔七日以内': 'Whether the request was made within seven days of receipt',
+  '拆封检查是否影响商品完好': 'Whether opening the package affected the item’s condition',
+  '场景一 · 购物订单': 'Scene 1 · Purchase order',
+  '场景二 · 快递与售后': 'Scene 2 · Delivery & after-sales',
+  '场景三 · 开箱桌': 'Scene 3 · Unboxing desk',
+  '对照商品性质、支付金额和商品页面的退货提示。': 'Check the item type, payment amount, and the return notice on the product page.',
+  '从物流签收、退款申请和客服对话还原时间线。': 'Reconstruct the timeline from delivery, the refund request, and customer-service chats.',
+  '检查连续开箱视频中的吊牌、包装和使用痕迹。': 'Check the tags, packaging, and signs of use in the continuous unboxing video.',
+  '商品订单与页面提示': 'Product order & page notice',
+  '签收与售后时间线': 'Receipt & after-sales timeline',
+  '商家拒绝退货记录': 'Merchant refusal record',
+  '开箱与商品状态视频': 'Unboxing & item-condition video',
+  '899元普通手提包，页面单方标注不支持退货。': 'A ¥899 ordinary handbag; the page unilaterally stated that returns were not supported.',
+  '8月14日签收，8月17日提出退货申请。': 'Received Aug 14 and requested a return Aug 17.',
+  '商家仅以页面提示和“特殊商品”为由拒绝。': 'The merchant refused only by citing the page notice and “special goods.”',
+  '吊牌、配件和包装齐全，未见使用痕迹。': 'Tags, accessories, and packaging were complete, with no signs of use.',
+  '证明商品性质、价款及商家排除退货的依据。': 'Establish the item type, price, and the merchant’s basis for excluding returns.',
+  '证明消费者在收货后七日内提出退货。': 'Establish that the consumer requested a return within seven days of receipt.',
+  '核对经营者是否证明了法定退货例外。': 'Check whether the merchant proved a statutory return exception.',
+  '证明仅作合理拆封检查且退货时商品保持完好。': 'Establish that the package was opened only for reasonable inspection and the item remained intact on return.',
+  '商品订单20260811001': 'Product order 20260811001',
+  '下单：': 'Order placed: ',
+  '女士手提包 ×1；实付899元；非定制、非鲜活易腐商品。': 'Women’s handbag ×1; paid ¥899; not customized, fresh, or perishable.',
+  '商品页面售后说明：本商品不支持七天无理由退货。': 'Product-page after-sales note: This item does not support seven-day no-reason returns.',
+  '无按消费者要求定制或改变商品的记录。': 'No record shows that the item was customized or altered at the consumer’s request.',
+  '物流签收：': 'Delivery received: ',
+  '签收人胡某。': 'Recipient: Hu.',
+  '售后申请：': 'After-sales request: ',
+  '申请原因：不喜欢/不合适；申请退款899元。': 'Reason: disliked / unsuitable; refund requested: ¥899.',
+  '售后系统已受理，商家于当天拒绝。': 'The after-sales system accepted the request; the merchant refused it the same day.',
+  '客服：特殊商品，售出不退。': 'Support: Special goods; no returns after sale.',
+  '胡某：这不是定制商品，吊牌还在，为什么特殊？': 'Hu: This is not customized, and the tag is still attached. Why is it “special”?',
+  '客服：页面写了不支持，你下单就是同意。': 'Support: The page said returns were not supported; placing the order means you agreed.',
+  '商家未补充商品不宜退货的具体性质说明。': 'The merchant gave no specific explanation of why the item could not legally be returned.',
+  '证明损坏形成时间早于租客退租。': 'Establish that the damage existed before move-out.',
+};
+
+const GENERIC_CASE_REPLACEMENTS: Array<[RegExp, string]> = [
+  [/^场景一\s*·\s*/, 'Scene 1 · '], [/^场景二\s*·\s*/, 'Scene 2 · '], [/^场景三\s*·\s*/, 'Scene 3 · '],
+  [/^场景四\s*·\s*/, 'Scene 4 · '], [/^原告\s*·\s*/, 'Plaintiff · '], [/^被告\s*·\s*/, 'Defendant · '],
+  [/^申请人\s*·\s*/, 'Applicant · '], [/^被申请人\s*·\s*/, 'Respondent · '],
+  [/证据定位：/g, 'Evidence pointer: '], [/证据链/g, 'evidence chain'], [/关键证据/g, 'key evidence'], [/补充证据/g, 'supporting evidence'],
+  [/商品订单/g, 'Product order'], [/页面提示/g, 'page notice'], [/签收/g, 'receipt'], [/退货/g, 'return'], [/退款/g, 'refund'],
+  [/商家/g, 'merchant'], [/消费者/g, 'consumer'], [/客服/g, 'support'], [/场景/g, 'scene'], [/原始材料/g, 'original materials'],
+  [/房东/g, 'landlord'], [/租客/g, 'tenant'], [/合同/g, 'contract'], [/押金/g, 'deposit'], [/维修/g, 'repair'],
+  [/证明/g, 'Establish '], [/核对/g, 'Check '], [/审查/g, 'Review '], [/争议/g, 'dispute'], [/请求/g, 'request'],
+  [/金额/g, 'amount'], [/记录/g, 'record'], [/时间线/g, 'timeline'], [/申请/g, 'request'], [/同意/g, 'consent'], [/撤回/g, 'withdrawal'],
+  [/删除/g, 'deletion'], [/通知/g, 'notice'], [/支付/g, 'payment'], [/原件/g, 'original exhibit'], [/材料/g, 'material'],
+];
+
+export function translateCaseText(value: string, locale: Locale) {
+  if (locale === 'zh' || !value) return value;
+  if (CASE_TEXT_COPY[value]) return CASE_TEXT_COPY[value];
+  return value.split('\n').map((line) => CASE_TEXT_COPY[line] || GENERIC_CASE_REPLACEMENTS.reduce((result, [pattern, replacement]) => result.replace(pattern, replacement), line)).join('\n');
+}
+
 const TYPE_COPY: Record<string, Record<Locale, string>> = {
   '房屋租赁合同纠纷': { zh: '房屋租赁合同纠纷', en: 'Lease contract dispute' },
   '网络消费合同纠纷': { zh: '网络消费合同纠纷', en: 'E-commerce consumer dispute' },
