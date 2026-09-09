@@ -119,11 +119,17 @@ export function speakerIsPlayer(speaker: string, playerSide: string) {
  * and are rendered as plain notes instead of being forced into a speech bubble.
  */
 export function parseChatLine(line: string): ChatLine {
-  const index = line.indexOf('：');
+  const index = (() => {
+    const full = line.indexOf('：');
+    const ascii = line.indexOf(':');
+    if (full < 0) return ascii;
+    if (ascii < 0) return full;
+    return Math.min(full, ascii);
+  })();
   if (index < 0) return null;
   const head = line.slice(0, index);
   const body = line.slice(index + 1);
-  const stamp = (head.match(/^[\d\s:：年月日-]*/) || [''])[0].trim();
+  const stamp = (head.match(/^[\d\s:：年月日\-./]*/) || [''])[0].trim();
   const speaker = head.slice(stamp.length).trim();
   if (!body.trim() || !speaker) return null;
   const named = speaker.length <= 4 && !/[（(]/.test(speaker);
@@ -135,7 +141,7 @@ function contentLines(content: string) {
 }
 
 function isAgreement(name: string) {
-  return /合同|协议|条款/.test(name);
+  return /合同|协议|条款|contract|agreement|terms/i.test(name);
 }
 
 export function CatDocument({ doc, playerSide, discovered, onDiscover, locale = 'zh' }: {
@@ -168,7 +174,7 @@ export function CatDocument({ doc, playerSide, discovered, onDiscover, locale = 
           {parsed.stamp && <time>{parsed.stamp}</time>}
           <div className="cat-message-row">
             <CatPortrait opponent={!mine} locale={locale} label={`${parsed.speaker}${locale === 'en' ? '\'s cat portrait' : '的猫咪形象'}`} />
-            <div><small>{parsed.speaker}：</small><p>{parsed.body}</p></div>
+            <div><small>{parsed.speaker}{locale === 'en' ? ': ' : '：'}</small><p>{parsed.body}</p></div>
           </div>
         </article>;
       })}</div>

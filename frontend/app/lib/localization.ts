@@ -640,6 +640,12 @@ const CASE_TEXT_COPY: Record<string, string> = {
 };
 
 const GENERIC_CASE_REPLACEMENTS: Array<[RegExp, string]> = [
+  [/【虚构训练材料】/g, '[Fictional training material]'], [/虚构训练材料/g, 'fictional training material'],
+  [/^下单：/g, 'Order placed: '], [/^物流签收：/g, 'Delivery received: '], [/^售后申请：/g, 'After-sales request: '],
+  [/^形成时间：/g, 'Created: '], [/^拍摄位置：/g, 'Location: '], [/^可见：/g, 'Visible: '], [/^支付记录：/g, 'Payment record: '],
+  [/^申请原因：/g, 'Reason: '], [/^实付/g, 'Paid'], [/^金额/g, 'Amount'],
+  [/张某/g, 'Zhang'], [/李某/g, 'Li'], [/胡某/g, 'Hu'], [/王某/g, 'Wang'], [/林某/g, 'Lin'], [/陈某/g, 'Chen'], [/周某/g, 'Zhou'], [/赵某/g, 'Zhao'], [/吴某/g, 'Wu'], [/许某/g, 'Xu'],
+  [/主管/g, 'Supervisor'], [/公司/g, 'Company'], [/平台/g, 'Platform'], [/运营商/g, 'Operator'], [/经营者/g, 'Merchant'],
   [/^场景一\s*·\s*/, 'Scene 1 · '], [/^场景二\s*·\s*/, 'Scene 2 · '], [/^场景三\s*·\s*/, 'Scene 3 · '],
   [/^场景四\s*·\s*/, 'Scene 4 · '], [/^原告\s*·\s*/, 'Plaintiff · '], [/^被告\s*·\s*/, 'Defendant · '],
   [/^申请人\s*·\s*/, 'Applicant · '], [/^被申请人\s*·\s*/, 'Respondent · '],
@@ -650,6 +656,15 @@ const GENERIC_CASE_REPLACEMENTS: Array<[RegExp, string]> = [
   [/证明/g, 'Establish '], [/核对/g, 'Check '], [/审查/g, 'Review '], [/争议/g, 'dispute'], [/请求/g, 'request'],
   [/金额/g, 'amount'], [/记录/g, 'record'], [/时间线/g, 'timeline'], [/申请/g, 'request'], [/同意/g, 'consent'], [/撤回/g, 'withdrawal'],
   [/删除/g, 'deletion'], [/通知/g, 'notice'], [/支付/g, 'payment'], [/原件/g, 'original exhibit'], [/材料/g, 'material'],
+  [/对方代理人：/g, 'Opposing counsel: '], [/已收到/g, 'Received '], [/当前未出示有效的本关证据，不能以其他案件的材料替代举证。/g, 'No valid exhibit from this case has been shown; material from another case cannot substitute for proof.'],
+  [/关于/g, 'Regarding '], [/目前只是单方陈述，请提交能定位到原件的本案证据。/g, 'this is currently only a one-sided statement; submit an exhibit from this case that can be located in the source materials.'],
+  [/本轮围绕/g, 'This round concerns '], [/已关联(\d+)项争点。/g, 'Linked $1 dispute point(s).'], [/论点尚未具体回应本案争点。/g, 'The argument does not yet address this case’s dispute point.'],
+  [/尚缺关键材料：/g, 'Missing key materials: '], [/关键材料已齐备，仍须解释其与请求的关联及证明力。/g, 'Key materials are complete; explain their link to the claim and their evidentiary weight.'],
+  [/请继续围绕/g, 'Continue by addressing '], [/补充原件和论证。/g, ' with exhibits and reasoning.'],
+  [/（本局胜诉）/g, ' (won this round)'], [/训练裁决：/g, 'Training verdict: '], [/本局游戏结果判定/g, 'the game result finds that '], [/的请求不获支持/g, '’s claim is not supported'],
+  [/本局游戏结果显示对方先取得胜利。/g, 'The game result shows that the opponent won first.'], [/最终裁决依据本局游戏结果，而不是证据是否齐全；证据链仅用于展示本局的举证过程。/g, 'The final verdict follows the game result, not whether the evidence is complete; the evidence chain only shows the round’s proof process.'],
+  [/尚无可核验的本关关键证据/g, 'No verifiable key exhibit from this case yet'], [/虚构案件的规则化训练反馈，不是真实法院或仲裁机构裁决，不构成法律意见。/g, 'Rule-based training feedback for a fictional case; not a real court or arbitral decision and not legal advice.'],
+  [/：/g, ': '],
 ];
 
 export function translateCaseText(value: string, locale: Locale) {
