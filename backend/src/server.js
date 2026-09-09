@@ -11,31 +11,31 @@ const LAW_SOURCES = {
   civil509: {
     title: '《中华人民共和国民法典》第509条',
     article: '当事人应当按照约定全面履行自己的义务，并遵循诚信原则。',
-    url: 'https://www.gov.cn/xinwen/2020-06/01/content_5516649.htm',
+    url: 'https://www.court.gov.cn/zixun/xiangqing/233181.html',
     status: '现行（以官方发布为准）',
   },
   civil562: {
     title: '《中华人民共和国民法典》第562条',
     article: '当事人协商一致，可以解除合同。当事人可以约定一方解除合同的事由。',
-    url: 'https://www.gov.cn/xinwen/2020-06/01/content_5516649.htm',
+    url: 'https://www.court.gov.cn/zixun/xiangqing/233181.html',
     status: '现行（以官方发布为准）',
   },
   civil585: {
     title: '《中华人民共和国民法典》第585条',
     article: '约定的违约金过分高于造成的损失的，当事人可以请求人民法院或者仲裁机构予以适当减少。',
-    url: 'https://www.gov.cn/xinwen/2020-06/01/content_5516649.htm',
+    url: 'https://www.court.gov.cn/zixun/xiangqing/233181.html',
     status: '现行（以官方发布为准）',
   },
   civil710: {
     title: '《中华人民共和国民法典》第710条',
     article: '承租人按照约定的方法或者根据租赁物的性质使用租赁物，致使租赁物受到损耗的，不承担赔偿责任。',
-    url: 'https://www.gov.cn/xinwen/2020-06/01/content_5516649.htm',
+    url: 'https://www.court.gov.cn/zixun/xiangqing/233181.html',
     status: '现行（以官方发布为准）',
   },
   civil713: {
     title: '《中华人民共和国民法典》第713条',
     article: '承租人在租赁物需要维修时可以请求出租人在合理期限内维修。出租人未履行维修义务的，承租人可以自行维修，维修费用由出租人负担。',
-    url: 'https://www.gov.cn/xinwen/2020-06/01/content_5516649.htm',
+    url: 'https://www.court.gov.cn/zixun/xiangqing/233181.html',
     status: '现行（以官方发布为准）',
   },
 };

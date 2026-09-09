@@ -42,7 +42,7 @@ function defineCase(spec) {
     cards: makeCards(spec.arguments), keywords: spec.keywords, adversary: spec.adversary,
     judgment: { award: spec.award, reasoning: spec.reasoning, sources: spec.laws.map((title) => ({
       title, article: '本关仅作规则识别训练，具体适用须结合完整事实及现行法核验。',
-      url: 'https://flk.npc.gov.cn/', status: '训练用法律检索线索 · 请核验现行文本',
+      url: title.includes('民法典') ? 'https://www.court.gov.cn/zixun/xiangqing/233181.html' : 'https://flk.npc.gov.cn/', status: '训练用法律检索线索 · 请核验现行文本',
     })) },
   };
 }
@@ -290,8 +290,8 @@ Object.assign(rentalCase, {
     award: '训练裁决：现有证据不支持以旧划痕和未经核实的报价扣留3000元押金；如主张其他合理扣款，应另行证明，不能默认扣除500元清洁费。',
     reasoning: '入住照片与聊天印证旧损，合同约定返还条件，报价缺少实际损失凭证。已付押金还可由转账核实；不因存在报价就认定租客应承担损失。',
     sources: [
-      { title: '《民法典》第710条', article: '依约使用造成的正常损耗不由承租人承担赔偿责任。', url: 'https://www.gov.cn/xinwen/2020-06/01/content_5516649.htm', status: '训练用摘要 · 请核验现行文本' },
-      { title: '《民法典》第509条', article: '当事人应当按照约定全面履行自己的义务。', url: 'https://www.gov.cn/xinwen/2020-06/01/content_5516649.htm', status: '训练用摘要 · 请核验现行文本' },
+      { title: '《民法典》第710条', article: '依约使用造成的正常损耗不由承租人承担赔偿责任。', url: 'https://www.court.gov.cn/zixun/xiangqing/233181.html', status: '训练用摘要 · 请核验现行文本' },
+      { title: '《民法典》第509条', article: '当事人应当按照约定全面履行自己的义务。', url: 'https://www.court.gov.cn/zixun/xiangqing/233181.html', status: '训练用摘要 · 请核验现行文本' },
     ],
   },
 });

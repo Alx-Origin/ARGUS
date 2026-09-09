@@ -64,6 +64,12 @@ test('POST /api/contracts/audit returns rule-based findings', async () => {
     assert.equal(body.data.summary.position, '乙方');
     assert.ok(body.data.summary.findingCount >= 3);
     assert.ok(body.data.summary.highRiskCount >= 2);
+    for (const finding of body.data.findings) {
+      assert.ok(finding.law_sources.length > 0);
+      for (const source of finding.law_sources) {
+        assert.equal(source.url, 'https://www.court.gov.cn/zixun/xiangqing/233181.html');
+      }
+    }
   });
 });
 
@@ -228,6 +234,11 @@ test('each of the twenty levels completes its own debate and verdict, and verdic
       assert.ok(body.data.winner.includes(caseData.playerSide));
       assert.equal(body.data.chain.length, caseData.keyEvidenceIds.length);
       assert.ok(body.data.award && body.data.reasoning && body.data.sources.length);
+      for (const source of body.data.sources) {
+        assert.equal(source.url, source.title.includes('民法典')
+          ? 'https://www.court.gov.cn/zixun/xiangqing/233181.html'
+          : 'https://flk.npc.gov.cn/', source.title);
+      }
       if (levelId > 1 && levelId !== 11) assert.doesNotMatch(JSON.stringify(body.data), rentalCaseLeakPattern);
       const { body: partial } = await postCampaign(baseUrl, 'verdict', { ...payload, evidenceIds: caseData.keyEvidenceIds.slice(1) });
       assert.equal(partial.data.status, 'player_win');

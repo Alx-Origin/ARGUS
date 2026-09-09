@@ -323,13 +323,13 @@ const eazoCampaignCases = [
         {
           "title": "《中华人民共和国民法典》第 710 条：合理使用损耗不担责",
           "article": "本关仅作规则识别训练，具体适用须结合完整事实及现行法核验。",
-          "url": "https://flk.npc.gov.cn/",
+          "url": "https://www.court.gov.cn/zixun/xiangqing/233181.html",
           "status": "训练用法律检索线索 · 请核验现行文本"
         },
         {
           "title": "《中华人民共和国民法典》第 713 条：维修义务与费用负担",
           "article": "本关仅作规则识别训练，具体适用须结合完整事实及现行法核验。",
-          "url": "https://flk.npc.gov.cn/",
+          "url": "https://www.court.gov.cn/zixun/xiangqing/233181.html",
           "status": "训练用法律检索线索 · 请核验现行文本"
         }
       ]
@@ -1047,7 +1047,7 @@ const eazoCampaignCases = [
         {
           "title": "《中华人民共和国民法典》第 509 条：按约定全面履行",
           "article": "本关仅作规则识别训练，具体适用须结合完整事实及现行法核验。",
-          "url": "https://flk.npc.gov.cn/",
+          "url": "https://www.court.gov.cn/zixun/xiangqing/233181.html",
           "status": "训练用法律检索线索 · 请核验现行文本"
         },
         {
@@ -1294,7 +1294,7 @@ const eazoCampaignCases = [
         {
           "title": "《中华人民共和国民法典》第 667 条：借款合同定义",
           "article": "本关仅作规则识别训练，具体适用须结合完整事实及现行法核验。",
-          "url": "https://flk.npc.gov.cn/",
+          "url": "https://www.court.gov.cn/zixun/xiangqing/233181.html",
           "status": "训练用法律检索线索 · 请核验现行文本"
         },
         {
@@ -1535,13 +1535,13 @@ const eazoCampaignCases = [
         {
           "title": "《中华人民共和国民法典》第 577 条：违约责任",
           "article": "本关仅作规则识别训练，具体适用须结合完整事实及现行法核验。",
-          "url": "https://flk.npc.gov.cn/",
+          "url": "https://www.court.gov.cn/zixun/xiangqing/233181.html",
           "status": "训练用法律检索线索 · 请核验现行文本"
         },
         {
           "title": "《中华人民共和国民法典》第 563 条：法定解除情形",
           "article": "本关仅作规则识别训练，具体适用须结合完整事实及现行法核验。",
-          "url": "https://flk.npc.gov.cn/",
+          "url": "https://www.court.gov.cn/zixun/xiangqing/233181.html",
           "status": "训练用法律检索线索 · 请核验现行文本"
         }
       ]
@@ -1774,7 +1774,7 @@ const eazoCampaignCases = [
         {
           "title": "《中华人民共和国民法典》第 148 条：欺诈可撤销",
           "article": "本关仅作规则识别训练，具体适用须结合完整事实及现行法核验。",
-          "url": "https://flk.npc.gov.cn/",
+          "url": "https://www.court.gov.cn/zixun/xiangqing/233181.html",
           "status": "训练用法律检索线索 · 请核验现行文本"
         },
         {
@@ -2012,13 +2012,13 @@ const eazoCampaignCases = [
         {
           "title": "《中华人民共和国民法典》第 621 条：质量异议期限",
           "article": "本关仅作规则识别训练，具体适用须结合完整事实及现行法核验。",
-          "url": "https://flk.npc.gov.cn/",
+          "url": "https://www.court.gov.cn/zixun/xiangqing/233181.html",
           "status": "训练用法律检索线索 · 请核验现行文本"
         },
         {
           "title": "《中华人民共和国民法典》第 617 条：瑕疵担保责任",
           "article": "本关仅作规则识别训练，具体适用须结合完整事实及现行法核验。",
-          "url": "https://flk.npc.gov.cn/",
+          "url": "https://www.court.gov.cn/zixun/xiangqing/233181.html",
           "status": "训练用法律检索线索 · 请核验现行文本"
         }
       ]
@@ -2489,13 +2489,13 @@ const eazoCampaignCases = [
         {
           "title": "《中华人民共和国民法典》第 1165 条：过错责任",
           "article": "本关仅作规则识别训练，具体适用须结合完整事实及现行法核验。",
-          "url": "https://flk.npc.gov.cn/",
+          "url": "https://www.court.gov.cn/zixun/xiangqing/233181.html",
           "status": "训练用法律检索线索 · 请核验现行文本"
         },
         {
           "title": "《中华人民共和国民法典》第 1173 条：与有过失减轻责任",
           "article": "本关仅作规则识别训练，具体适用须结合完整事实及现行法核验。",
-          "url": "https://flk.npc.gov.cn/",
+          "url": "https://www.court.gov.cn/zixun/xiangqing/233181.html",
           "status": "训练用法律检索线索 · 请核验现行文本"
         }
       ]
@@ -2504,4 +2504,3 @@ const eazoCampaignCases = [
 ];
 
 module.exports = { eazoCampaignCases };
-
