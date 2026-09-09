@@ -178,15 +178,8 @@ export default function HomePage() {
   }, [locale]);
 
   useEffect(() => {
-    if (pathname !== '/community') return;
-    let cancelled = false;
-    setCommunityLoading(true);
-    requestJson<{ posts?: CommunityPost[] }>(`${apiBaseUrl}/api/community/feed`)
-      .then((data) => { if (!cancelled) setCommunityPosts(Array.isArray(data?.posts) ? data.posts : []); })
-      .catch(() => { if (!cancelled) setCommunityPosts([]); })
-      .finally(() => { if (!cancelled) setCommunityLoading(false); });
-    return () => { cancelled = true; };
-  }, [apiBaseUrl, pathname]);
+    if (pathname !== '/campaign') router.replace('/campaign');
+  }, [pathname, router]);
 
   useEffect(() => {
     let disposed = false;
@@ -368,11 +361,8 @@ export default function HomePage() {
           </div>
         </header>
 
-        <nav className="app-nav" aria-label={locale === 'en' ? 'Primary navigation' : '主导航'}>
-          {[['/campaign', APP_COPY[locale].navCampaign], ['/forge', APP_COPY[locale].navForge], ['/audit', APP_COPY[locale].navAudit], ['/community', APP_COPY[locale].navCommunity]].map(([href, label]) => <button type="button" key={href} className={pathname === href ? 'active' : ''} onClick={() => router.push(href)}>{label}</button>)}
-        </nav>
         <div className="page-shell" id="main-content">
-          {pathname === '/forge' ? <ForgeSection onSubmit={createCase} loading={caseLoading} error={caseError} draft={caseDraft} /> : pathname === '/audit' ? <AuditSection onSubmit={auditContract} loading={auditLoading} error={auditError} result={auditResult} /> : pathname === '/community' ? <CommunitySection apiBaseUrl={apiBaseUrl} posts={communityPosts} setPosts={setCommunityPosts} loading={communityLoading} /> : <CampaignSection onRunComplete={handleRunComplete} />}
+          <CampaignSection onRunComplete={handleRunComplete} />
         </div>
         {profileError && <p className="profile-sync-note" role="status">{profileError}</p>}
         {!profileLoading && !authOpen && ((!isSupabaseConfigured && (!playerProfile || profileOpen)) || (Boolean(authUser) && (!playerProfile || profileOpen))) && <ProfileModal profile={playerProfile} authenticated={Boolean(authUser)} onSave={handleSaveProfile} onClose={() => playerProfile && setProfileOpen(false)} onAuthRequest={openAuthModal} />}
