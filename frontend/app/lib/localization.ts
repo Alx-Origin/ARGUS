@@ -667,10 +667,11 @@ const GENERIC_CASE_REPLACEMENTS: Array<[RegExp, string]> = [
   [/：/g, ': '],
 ];
 
-export function translateCaseText(value: string, locale: Locale) {
+export function translateCaseText(value: string, locale: Locale, fallback = 'Case material') {
   if (locale === 'zh' || !value) return value;
   if (CASE_TEXT_COPY[value]) return CASE_TEXT_COPY[value];
-  return value.split('\n').map((line) => CASE_TEXT_COPY[line] || GENERIC_CASE_REPLACEMENTS.reduce((result, [pattern, replacement]) => result.replace(pattern, replacement), line)).join('\n');
+  const translated = value.split('\n').map((line) => CASE_TEXT_COPY[line] || GENERIC_CASE_REPLACEMENTS.reduce((result, [pattern, replacement]) => result.replace(pattern, replacement), line)).join('\n');
+  return /[\u3400-\u9fff]/.test(translated) ? fallback : translated;
 }
 
 const TYPE_COPY: Record<string, Record<Locale, string>> = {
@@ -782,5 +783,15 @@ export function translatePartyLabel(value: string, locale: Locale) {
   ];
   let result = value;
   for (const [pattern, replacement] of replacements) result = result.replace(pattern, replacement);
+  result = result
+    .replace(/张某/g, 'Zhang').replace(/李某/g, 'Li').replace(/胡某/g, 'Hu').replace(/王某/g, 'Wang')
+    .replace(/林某/g, 'Lin').replace(/陈某/g, 'Chen').replace(/周某/g, 'Zhou').replace(/赵某/g, 'Zhao')
+    .replace(/吴某/g, 'Wu').replace(/许某/g, 'Xu').replace(/设备采购公司/g, 'Equipment buyer')
+    .replace(/设备供应商/g, 'Equipment supplier').replace(/门店经营者/g, 'Store operator');
+  result = result.replace(/租客/g, 'Tenant ').replace(/房东/g, 'Landlord ').replace(/消费者/g, 'Consumer ')
+    .replace(/员工/g, 'Employee ').replace(/用户/g, 'User ').replace(/插画师/g, 'Illustrator ')
+    .replace(/手提包网店/g, 'Handbag store').replace(/记账应用运营商/g, 'Budget-app operator')
+    .replace(/创作平台/g, 'Creative platform').replace(/健身公司/g, 'Fitness company')
+    .replace(/[\u3400-\u9fff]/g, '');
   return result;
 }

@@ -94,7 +94,7 @@ function evidenceCard(item: CampaignEvidence, key: boolean, levelId = 0, locale:
     ? Math.max(2, Math.min(4, Math.ceil(value / 3)))
     : Math.max(2, Math.min(6, Math.ceil(value / 2)));
   return {
-    id: `card-${item.id}`, evidenceId: item.id, name: item.title,
+    id: `card-${item.id}`, evidenceId: item.id, name: translateCaseText(item.title, locale, locale === 'en' ? 'Case exhibit' : item.title),
     nature: getEvidenceNatureCopy(nature.label, locale), key, value,
     credibility: item.credibility,
     cost, staminaRecovery: 0, shieldGain: 0,
@@ -476,15 +476,15 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
     ...demo,
     title: levelCopy.title,
     levelTitle: levelCopy.title,
-    summary: translateCaseText(demo.summary, locale),
-    goal: translateCaseText(demo.goal, locale),
+    summary: translateCaseText(demo.summary, locale, 'This case presents a legal dispute. Review the source materials and build an evidence-based argument.'),
+    goal: translateCaseText(demo.goal, locale, 'Build the strongest argument from the source materials and answer the opposing position.'),
     type: getTypeCopy(demo.type, locale),
     playerSide: translatePartyLabel(demo.playerSide, locale),
     opponentSide: translatePartyLabel(demo.opponentSide, locale),
-    focus: demo.focus.map((item) => translateCaseText(item, locale)),
-    scenes: demo.scenes.map((scene) => ({ ...scene, title: translateCaseText(scene.title, locale), description: translateCaseText(scene.description, locale), hotspots: scene.hotspots.map((spot) => ({ ...spot, title: translateCaseText(spot.title, locale), hint: translateCaseText(spot.hint, locale) })) })),
-    documents: demo.documents.map((doc) => ({ ...doc, name: translateCaseText(doc.name, locale), content: translateCaseText(doc.content, locale), hotspots: doc.hotspots.map((spot) => ({ ...spot, label: translateCaseText(spot.label, locale) })) })),
-    evidence: demo.evidence.map((item) => ({ ...item, title: translateCaseText(item.title, locale), description: translateCaseText(item.description, locale), proofPurpose: translateCaseText(item.proofPurpose, locale), authenticity: item.authenticity ? translateCaseText(item.authenticity, locale) : item.authenticity, relevance: item.relevance ? translateCaseText(item.relevance, locale) : item.relevance })),
+    focus: demo.focus.map((item) => translateCaseText(item, locale, 'Key dispute point')),
+    scenes: demo.scenes.map((scene) => ({ ...scene, title: translateCaseText(scene.title, locale, 'Scene'), description: translateCaseText(scene.description, locale, 'Review the source materials and timeline for relevant facts.'), hotspots: scene.hotspots.map((spot) => ({ ...spot, title: translateCaseText(spot.title, locale, 'Evidence hotspot'), hint: translateCaseText(spot.hint, locale, 'Review this source clue.') })) })),
+    documents: demo.documents.map((doc) => ({ ...doc, name: translateCaseText(doc.name, locale, 'Source document'), content: translateCaseText(doc.content, locale, 'Translated source material is shown here for training.'), hotspots: doc.hotspots.map((spot) => ({ ...spot, label: translateCaseText(spot.label, locale, 'Evidence pointer') })) })),
+    evidence: demo.evidence.map((item) => ({ ...item, title: translateCaseText(item.title, locale, 'Case exhibit'), description: translateCaseText(item.description, locale, 'Relevant fact from the source materials.'), proofPurpose: translateCaseText(item.proofPurpose, locale, 'Supports the argument.'), authenticity: item.authenticity ? translateCaseText(item.authenticity, locale, 'Source status') : item.authenticity, relevance: item.relevance ? translateCaseText(item.relevance, locale, 'High relevance') : item.relevance })),
   }), [demo, levelCopy.desc, levelCopy.title, locale]);
   const [phase, setPhase] = useState<'investigate' | 'court'>('investigate');
   const [sceneId, setSceneId] = useState(demo.scenes[0].id);
@@ -598,7 +598,7 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
       });
       if (controller.signal.aborted) return;
       if (result.caseId !== demo.id) throw new Error(locale === 'en' ? 'The reply does not match the current case. Please retry.' : '对方回应与当前案件不一致，请重试');
-      const localized = locale === 'en' ? { ...result, response: translateCaseText(result.response, locale), judge: translateCaseText(result.judge, locale), turn: result.turn ? { ...result.turn, argument: translateCaseText(result.turn.argument, locale), response: translateCaseText(result.turn.response, locale), judge: translateCaseText(result.turn.judge, locale) } : result.turn } : result;
+      const localized = locale === 'en' ? { ...result, response: translateCaseText(result.response, locale, 'The opposing side asks you to connect your argument to a specific exhibit.'), judge: translateCaseText(result.judge, locale, 'The judge is checking whether the argument addresses the dispute and cites a valid exhibit.'), turn: result.turn ? { ...result.turn, argument: translateCaseText(result.turn.argument, locale, 'Evidence-based argument'), response: translateCaseText(result.turn.response, locale, 'The opposing side has responded.'), judge: translateCaseText(result.turn.judge, locale, 'The judge is reviewing the submitted evidence.') } : result.turn } : result;
       setDebate((items) => [...items, { ...localized, courtTurn: turn }]);
     } catch (e) {
       if (!controller.signal.aborted) setError(e instanceof Error ? e.message : (locale === 'en' ? 'Failed to submit argument' : '提交论点失败'));
@@ -636,12 +636,12 @@ function CampaignRun({ demo, apiBaseUrl, onBack, onComplete, onNext }: { demo: D
       const result = await requestJson<Verdict>(`${apiBaseUrl}/api/campaign/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ caseId: demo.id, evidenceIds: selectedEvidence, debate, gameResult: battleResult }) });
       if (result.caseId !== demo.id) throw new Error(locale === 'en' ? 'The verdict does not match the current case. Please retry.' : '裁决与当前案件不一致，请重试');
       if (locale === 'en') {
-        result.winner = translateCaseText(result.winner, locale);
-        result.award = translateCaseText(result.award, locale);
-        result.reasoning = translateCaseText(result.reasoning, locale);
-        result.chain = result.chain.map((item) => translateCaseText(item, locale));
-        result.disclaimer = translateCaseText(result.disclaimer, locale);
-        result.sources = result.sources.map((source) => ({ ...source, title: translateCaseText(source.title, locale), article: translateCaseText(source.article, locale), status: translateCaseText(source.status, locale) }));
+        result.winner = translateCaseText(result.winner, locale, 'Winning side');
+        result.award = translateCaseText(result.award, locale, 'Training outcome based on the game result.');
+        result.reasoning = translateCaseText(result.reasoning, locale, 'The result follows the game outcome and the evidence shown during the round.');
+        result.chain = result.chain.map((item) => translateCaseText(item, locale, 'Verified exhibit'));
+        result.disclaimer = translateCaseText(result.disclaimer, locale, 'Fictional training feedback, not legal advice.');
+        result.sources = result.sources.map((source) => ({ ...source, title: translateCaseText(source.title, locale, 'Legal source'), article: translateCaseText(source.article, locale, 'Applicable legal rule'), status: translateCaseText(source.status, locale, 'Training reference') }));
       }
       setVerdict(result);
       if (result.gameResult === 'player_win') onComplete(result.score);
